@@ -1,3 +1,30 @@
+<script setup>
+import { ref, onMounted } from 'vue';
+
+const isDarkMode = ref(false);
+
+const toggleTheme = () => {
+  isDarkMode.value = !isDarkMode.value;
+  const theme = isDarkMode.value ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+};
+
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    isDarkMode.value = true;
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else if (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    // 默认跟随系统
+    isDarkMode.value = true;
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+});
+</script>
+
 <template>
   <div class="app-layout">
     <!-- 主内容区域 (左侧) -->
@@ -34,7 +61,15 @@
         </nav>
 
         <div class="sidebar-footer">
-          &copy; 2025 OpenBlog
+          <!-- 主题切换按钮 -->
+          <button @click="toggleTheme" class="theme-toggle-btn" :title="isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+            <span v-if="isDarkMode">🌞 Light Mode</span>
+            <span v-else>🌙 Dark Mode</span>
+          </button>
+          
+          <div class="copyright">
+            &copy; 2025 OpenBlog
+          </div>
         </div>
       </div>
     </aside>
@@ -42,12 +77,48 @@
 </template>
 
 <style>
-/* 全局样式重置，确保背景色覆盖 */
+/* 定义 CSS 变量：默认 Light 模式 */
+:root {
+  --bg-color: #f6f8fa;
+  --text-color: #24292f;
+  --sidebar-bg: #ffffff;
+  --border-color: #d0d7de;
+  --link-color: #0969da;
+  --link-hover-bg: #f6f8fa;
+  --text-secondary: #57606a;
+  --btn-bg: #24292f;
+  --btn-text: #ffffff;
+  --btn-hover: #000000;
+  --nav-active-color: #0969da;
+}
+
+/* Dark 模式 */
+[data-theme='dark'] {
+  --bg-color: #0d1117;
+  --text-color: #c9d1d9;
+  --sidebar-bg: #161b22;
+  --border-color: #30363d;
+  --link-color: #58a6ff;
+  --link-hover-bg: #21262d;
+  --text-secondary: #8b949e;
+  --btn-bg: #21262d;
+  --btn-text: #c9d1d9;
+  --btn-hover: #30363d;
+  --nav-active-color: #58a6ff;
+}
+
+/* 全局样式重置，使用变量 */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  background-color: #f6f8fa; /* 内容区浅灰背景 */
-  color: #24292f;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+a {
+  color: var(--link-color);
+  text-decoration: none;
 }
 </style>
 
@@ -71,13 +142,14 @@ body {
 
 .sidebar {
   width: 280px;
-  background-color: #fff;
-  border-left: 1px solid #d0d7de; /* 左边框 */
+  background-color: var(--sidebar-bg);
+  border-left: 1px solid var(--border-color); /* 左边框 */
   flex-shrink: 0;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-wrapper {
@@ -92,7 +164,7 @@ body {
   text-align: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .avatar-wrapper {
@@ -103,10 +175,10 @@ body {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid #fff;
+  border: 4px solid var(--sidebar-bg);
   box-shadow: 0 0 15px rgba(0,0,0,0.1);
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
 .avatar:hover {
@@ -117,7 +189,7 @@ body {
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0.5rem 0 1rem;
-  color: #24292f;
+  color: var(--text-color);
 }
 
 .github-btn {
@@ -126,8 +198,9 @@ body {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background-color: #24292f;
-  color: #fff;
+  background-color: var(--btn-bg);
+  color: var(--btn-text);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   text-decoration: none;
   font-size: 0.9rem;
@@ -138,7 +211,7 @@ body {
 }
 
 .github-btn:hover {
-  background-color: #000;
+  background-color: var(--btn-hover);
   transform: translateY(-1px);
 }
 
@@ -159,21 +232,21 @@ body {
   padding: 0.75rem 1rem;
   border-radius: 6px;
   text-decoration: none;
-  color: #57606a;
+  color: var(--text-secondary);
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .nav-item:hover {
-  background-color: #f6f8fa;
-  color: #24292f;
+  background-color: var(--link-hover-bg);
+  color: var(--text-color);
 }
 
 .nav-item.router-link-active {
-  background-color: #f6f8fa;
-  color: #0969da;
+  background-color: var(--link-hover-bg);
+  color: var(--nav-active-color);
   font-weight: 600;
-  border-right: 3px solid #0969da; /* 右侧高亮条，呼应右侧边栏 */
+  border-right: 3px solid var(--nav-active-color);
 }
 
 .nav-item.disabled {
@@ -184,9 +257,36 @@ body {
 .sidebar-footer {
   margin-top: auto;
   text-align: center;
-  font-size: 0.8rem;
-  color: #8c959f;
   padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  width: 80%;
+  justify-content: center;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--link-hover-bg);
+}
+
+.copyright {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {
@@ -199,7 +299,7 @@ body {
     height: auto;
     position: relative;
     border-left: none;
-    border-bottom: 1px solid #d0d7de;
+    border-bottom: 1px solid var(--border-color);
     order: -1; /* 移动端把侧边栏放到最上面 */
   }
   
