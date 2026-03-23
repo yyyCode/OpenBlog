@@ -1,0 +1,207 @@
+package com.yqz.openblog.user.service;
+
+import com.yqz.openblog.common.BizException;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.yqz.openblog.security.JwtService;
+import com.yqz.openblog.security.TokenHashUtil;
+import com.yqz.openblog.user.dto.AuthResponse;
+import com.yqz.openblog.user.dto.MeResponse;
+import com.yqz.openblog.user.dto.RegisterRequest;
+import com.yqz.openblog.user.dto.LoginRequest;
+import com.yqz.openblog.user.dto.RefreshRequest;
+import com.yqz.openblog.user.dto.UserUpdateRequest;
+import com.yqz.openblog.user.entity.RefreshToken;
+import com.yqz.openblog.user.entity.User;
+import com.yqz.openblog.user.entity.UserRole;
+import com.yqz.openblog.user.repo.RefreshTokenMapper;
+import com.yqz.openblog.user.repo.UserMapper;
+import com.yqz.openblog.security.CurrentUser;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+
+@Service
+public class AuthService {
+
+    private final UserMapper userMapper;
+    private final RefreshTokenMapper refreshTokenMapper;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final com.yqz.openblog.security.JwtProperties jwtProperties;
+    private final CurrentUser currentUser;
+
+    public AuthService(UserMapper userMapper,
+                        RefreshTokenMapper refreshTokenMapper,
+                        PasswordEncoder passwordEncoder,
+                        JwtService jwtService,
+                        com.yqz.openblog.security.JwtProperties jwtProperties,
+                        CurrentUser currentUser) {
+        this.userMapper = userMapper;
+        this.refreshTokenMapper = refreshTokenMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.jwtProperties = jwtProperties;
+        this.currentUser = currentUser;
+    }
+
+    public void register(RegisterRequest req) {
+        if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
+                .eq(User::getUsername, req.getUsername())) > 0) {
+            throw new BizException(clientErrorCode(), "用户名已存在");
+        }
+        if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
+                .eq(User::getEmail, req.getEmail())) > 0) {
+            throw new BizException(clientErrorCode(), "邮箱已存在");
+        }
+
+        User user = new User();
+        user.setUsername(req.getUsername());
+        user.setEmail(req.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        user.setNickname(req.getNickname());
+        // 个人博客模式：默认作者角色（无审核/无管理员审核流程）
+        user.setRole(UserRole.AUTHOR);
+        user.setStatus("ACTIVE");
+        userMapper.insert(user);
+    }
+
+    public AuthResponse login(LoginRequest req) {
+        User user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getUsername, req.getAccount()));
+        if (user == null) {
+            user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getEmail, req.getAccount()));
+        }
+        if (user == null) {
+            throw new BizException(clientErrorCode(), "账号或密码错误");
+        }
+
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new BizException(4011, "账号已被封禁");
+        }
+        if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+            throw new BizException(clientErrorCode(), "账号或密码错误");
+        }
+
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
+        String refreshToken = jwtService.generateRefreshToken(user.getId());
+
+        Instant refreshExpireAt = Instant.now().plusSeconds(jwtProperties.getRefreshTokenExpireSeconds());
+        RefreshToken token = new RefreshToken(user.getId(), TokenHashUtil.sha256Hex(refreshToken), refreshExpireAt);
+        refreshTokenMapper.insert(token);
+
+        AuthResponse resp = new AuthResponse();
+        resp.setAccessToken(accessToken);
+        resp.setRefreshToken(refreshToken);
+        return resp;
+    }
+
+    public AuthResponse refresh(RefreshRequest req) {
+        String tokenHash = TokenHashUtil.sha256Hex(req.getRefreshToken());
+        RefreshToken rt = refreshTokenMapper.selectOne(
+                Wrappers.lambdaQuery(RefreshToken.class).eq(RefreshToken::getTokenHash, tokenHash));
+        if (rt == null) {
+            throw new BizException(4012, "刷新令牌无效");
+        }
+
+        if (rt.getRevokedAt() != null) {
+            throw new BizException(4012, "刷新令牌已撤销");
+        }
+        if (rt.getExpiresAt().isBefore(Instant.now())) {
+            throw new BizException(4012, "刷新令牌已过期");
+        }
+
+        rt.revoke(Instant.now());
+        refreshTokenMapper.updateById(rt);
+
+        Long userId = rt.getUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(4041, "用户不存在");
+        }
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new BizException(4011, "账号已被封禁");
+        }
+
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
+        String refreshToken = jwtService.generateRefreshToken(user.getId());
+
+        Instant refreshExpireAt = Instant.now().plusSeconds(jwtProperties.getRefreshTokenExpireSeconds());
+        RefreshToken newRt = new RefreshToken(user.getId(), TokenHashUtil.sha256Hex(refreshToken), refreshExpireAt);
+        refreshTokenMapper.insert(newRt);
+
+        AuthResponse resp = new AuthResponse();
+        resp.setAccessToken(accessToken);
+        resp.setRefreshToken(refreshToken);
+        return resp;
+    }
+
+    public MeResponse me() {
+        Long uid = currentUser.userId();
+        if (uid == null) {
+            throw new BizException(4010, "未登录");
+        }
+        User user = userMapper.selectById(uid);
+        if (user == null) {
+            throw new BizException(4041, "用户不存在");
+        }
+        MeResponse resp = new MeResponse();
+        resp.setUserId(user.getId());
+        resp.setUsername(user.getUsername());
+        resp.setNickname(user.getNickname());
+        resp.setAvatarUrl(user.getAvatarUrl());
+        resp.setBio(user.getBio());
+        resp.setRole(user.getRole());
+        return resp;
+    }
+
+    public MeResponse updateMe(UserUpdateRequest req) {
+        Long uid = currentUser.userId();
+        if (uid == null) {
+            throw new BizException(4010, "未登录");
+        }
+        User user = userMapper.selectById(uid);
+        if (user == null) {
+            throw new BizException(4041, "用户不存在");
+        }
+
+        if (req.getUsername() != null && !req.getUsername().trim().isEmpty()) {
+            String newUsername = req.getUsername().trim();
+            if (!newUsername.equals(user.getUsername()) &&
+                    userMapper.selectCount(Wrappers.lambdaQuery(User.class).eq(User::getUsername, newUsername)) > 0) {
+                throw new BizException(4090, "用户名已存在");
+            }
+            user.setUsername(newUsername);
+        }
+
+        if (req.getNickname() != null) {
+            user.setNickname(req.getNickname());
+        }
+
+        if (req.getBio() != null) {
+            user.setBio(req.getBio());
+        }
+
+        if (req.getAvatarUrl() != null) {
+            user.setAvatarUrl(req.getAvatarUrl());
+        }
+
+        if (req.getEmail() != null && !req.getEmail().trim().isEmpty()) {
+            String newEmail = req.getEmail().trim();
+            if (!newEmail.equals(user.getEmail()) &&
+                    userMapper.selectCount(Wrappers.lambdaQuery(User.class).eq(User::getEmail, newEmail)) > 0) {
+                throw new BizException(4090, "邮箱已存在");
+            }
+            user.setEmail(newEmail);
+        }
+
+        userMapper.updateById(user);
+        return me();
+    }
+
+    // MVP：错误码占位（后续你可按文档替换成统一 code 表）
+    private int clientErrorCode() {
+        return 4000;
+    }
+}
+
