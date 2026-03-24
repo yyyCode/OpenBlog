@@ -31,6 +31,14 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 openblog:
+  site:
+    # 侧栏展示的站点版本（与业务数据独立，可自行随发版修改）
+    version: "1.0.0"
+  # 全站按 IP 滑动窗口限流（依赖 Redis；单机部署可调大窗口与次数）
+  rate-limit:
+    enabled: true
+    window-ms: 60000
+    max-requests: 120
   jwt:
     secret: "PLEASE_CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_32_PLUS_CHARS"
     issuer: openblog

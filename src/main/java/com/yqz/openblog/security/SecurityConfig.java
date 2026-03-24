@@ -53,8 +53,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Public home
                         .requestMatchers(HttpMethod.GET, "/api/v1/home").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/site/**").permitAll()
                         // Public profile (for avatar/signature)
                         .requestMatchers(HttpMethod.GET, "/api/v1/profile").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/changelog").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/changelog/*").permitAll()
                         // Public articles/comments
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()

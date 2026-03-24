@@ -5,6 +5,8 @@ import ArticleDetailView from '../views/ArticleDetailView.vue'
 import AllArticlesView from '../views/AllArticlesView.vue'
 import AdminLoginView from '../views/AdminLoginView.vue'
 import AdminDashboardView from '../views/AdminDashboardView.vue'
+import ChangelogListView from '../views/ChangelogListView.vue'
+import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 
 const routes = [
   {
@@ -31,6 +33,17 @@ const routes = [
     path: '/article/:id',
     name: 'articleDetail',
     component: ArticleDetailView,
+    props: true
+  },
+  {
+    path: '/changelog',
+    name: 'changelogList',
+    component: ChangelogListView
+  },
+  {
+    path: '/changelog/:id',
+    name: 'changelogDetail',
+    component: ChangelogDetailView,
     props: true
   }
 ]
