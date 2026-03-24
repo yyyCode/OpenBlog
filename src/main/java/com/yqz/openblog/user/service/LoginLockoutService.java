@@ -2,6 +2,8 @@ package com.yqz.openblog.user.service;
 
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.config.AuthSecurityProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,8 @@ import java.time.Duration;
  */
 @Service
 public class LoginLockoutService {
+
+    private static final Logger log = LoggerFactory.getLogger(LoginLockoutService.class);
 
     private static final String FAIL_PREFIX = "openblog:auth:fail:ip:";
     private static final String LOCK_PREFIX = "openblog:auth:lock:ip:";
@@ -28,10 +32,16 @@ public class LoginLockoutService {
         if (!authSecurityProperties.getLoginLockout().isEnabled()) {
             return;
         }
-        String lockKey = LOCK_PREFIX + ipKeySegment;
-        Boolean locked = redisTemplate.hasKey(lockKey);
-        if (Boolean.TRUE.equals(locked)) {
-            throw new BizException(4292, "登录尝试过于频繁，请稍后再试");
+        try {
+            String lockKey = LOCK_PREFIX + ipKeySegment;
+            Boolean locked = redisTemplate.hasKey(lockKey);
+            if (Boolean.TRUE.equals(locked)) {
+                throw new BizException(4292, "登录尝试过于频繁，请稍后再试");
+            }
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("login lockout check skipped (redis unavailable), ipSeg={}", ipKeySegment, e);
         }
     }
 
@@ -42,17 +52,21 @@ public class LoginLockoutService {
         if (!authSecurityProperties.getLoginLockout().isEnabled()) {
             return;
         }
-        var cfg = authSecurityProperties.getLoginLockout();
-        String failKey = FAIL_PREFIX + ipKeySegment;
-        Long c = redisTemplate.opsForValue().increment(failKey);
-        if (c != null && c == 1L) {
-            redisTemplate.expire(failKey, Duration.ofSeconds(Math.max(30, cfg.getFailureWindowSeconds())));
-        }
-        if (c != null && c >= cfg.getMaxFailuresPerIp()) {
-            redisTemplate.opsForValue().set(
-                    LOCK_PREFIX + ipKeySegment,
-                    "1",
-                    Duration.ofSeconds(Math.max(60, cfg.getLockoutSeconds())));
+        try {
+            var cfg = authSecurityProperties.getLoginLockout();
+            String failKey = FAIL_PREFIX + ipKeySegment;
+            Long c = redisTemplate.opsForValue().increment(failKey);
+            if (c != null && c == 1L) {
+                redisTemplate.expire(failKey, Duration.ofSeconds(Math.max(30, cfg.getFailureWindowSeconds())));
+            }
+            if (c != null && c >= cfg.getMaxFailuresPerIp()) {
+                redisTemplate.opsForValue().set(
+                        LOCK_PREFIX + ipKeySegment,
+                        "1",
+                        Duration.ofSeconds(Math.max(60, cfg.getLockoutSeconds())));
+            }
+        } catch (Exception e) {
+            log.warn("record login failure skipped (redis unavailable), ipSeg={}", ipKeySegment, e);
         }
     }
 
@@ -63,7 +77,11 @@ public class LoginLockoutService {
         if (!authSecurityProperties.getLoginLockout().isEnabled()) {
             return;
         }
-        redisTemplate.delete(FAIL_PREFIX + ipKeySegment);
-        redisTemplate.delete(LOCK_PREFIX + ipKeySegment);
+        try {
+            redisTemplate.delete(FAIL_PREFIX + ipKeySegment);
+            redisTemplate.delete(LOCK_PREFIX + ipKeySegment);
+        } catch (Exception e) {
+            log.warn("clear login lockout skipped (redis unavailable), ipSeg={}", ipKeySegment, e);
+        }
     }
 }

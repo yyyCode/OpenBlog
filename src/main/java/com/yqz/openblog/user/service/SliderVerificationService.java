@@ -5,6 +5,8 @@ import com.yqz.openblog.config.AuthSecurityProperties;
 import com.yqz.openblog.config.ClientIpResolver;
 import com.yqz.openblog.user.dto.SliderChallengeResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,8 @@ import java.util.UUID;
  */
 @Service
 public class SliderVerificationService {
+
+    private static final Logger log = LoggerFactory.getLogger(SliderVerificationService.class);
 
     private static final String PENDING_PREFIX = "openblog:slider:pending:";
     private static final String OK_PREFIX = "openblog:slider:ok:";
@@ -39,7 +43,13 @@ public class SliderVerificationService {
         String id = UUID.randomUUID().toString();
         String ipSeg = ipSegment(request);
         int ttl = Math.max(30, authSecurityProperties.getSlider().getTtlSeconds());
-        redisTemplate.opsForValue().set(PENDING_PREFIX + id, ipSeg, Duration.ofSeconds(ttl));
+        try {
+            redisTemplate.opsForValue().set(PENDING_PREFIX + id, ipSeg, Duration.ofSeconds(ttl));
+        } catch (Exception e) {
+            log.warn("slider challenge issue skipped (redis unavailable)", e);
+            r.setEnabled(false);
+            return r;
+        }
         r.setEnabled(true);
         r.setChallengeId(id);
         return r;
@@ -54,17 +64,24 @@ public class SliderVerificationService {
         }
         String id = challengeId.trim();
         String pendingKey = PENDING_PREFIX + id;
-        String storedIp = redisTemplate.opsForValue().get(pendingKey);
-        if (storedIp == null) {
-            throw new BizException(4001, "验证已失效，请刷新重试");
+        try {
+            String storedIp = redisTemplate.opsForValue().get(pendingKey);
+            if (storedIp == null) {
+                throw new BizException(4001, "验证已失效，请刷新重试");
+            }
+            String ipSeg = ipSegment(request);
+            if (!storedIp.equals(ipSeg)) {
+                throw new BizException(4001, "验证环境异常，请刷新重试");
+            }
+            redisTemplate.delete(pendingKey);
+            int ttl = Math.max(30, authSecurityProperties.getSlider().getTtlSeconds());
+            redisTemplate.opsForValue().set(OK_PREFIX + id, "1", Duration.ofSeconds(ttl));
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("slider complete failed (redis unavailable)", e);
+            throw new BizException(5031, "验证服务暂不可用，请稍后重试");
         }
-        String ipSeg = ipSegment(request);
-        if (!storedIp.equals(ipSeg)) {
-            throw new BizException(4001, "验证环境异常，请刷新重试");
-        }
-        redisTemplate.delete(pendingKey);
-        int ttl = Math.max(30, authSecurityProperties.getSlider().getTtlSeconds());
-        redisTemplate.opsForValue().set(OK_PREFIX + id, "1", Duration.ofSeconds(ttl));
     }
 
     /**
@@ -75,12 +92,24 @@ public class SliderVerificationService {
             return;
         }
         if (sliderChallengeId == null || sliderChallengeId.isBlank()) {
+            try {
+                redisTemplate.hasKey("openblog:slider:healthcheck");
+            } catch (Exception e) {
+                log.warn("slider verify skipped (redis unavailable), empty challenge allowed");
+                return;
+            }
             throw new BizException(4001, "请先完成滑动验证");
         }
         String okKey = OK_PREFIX + sliderChallengeId.trim();
-        String ok = redisTemplate.opsForValue().getAndDelete(okKey);
-        if (ok == null) {
-            throw new BizException(4001, "请先完成滑动验证");
+        try {
+            String ok = redisTemplate.opsForValue().getAndDelete(okKey);
+            if (ok == null) {
+                throw new BizException(4001, "请先完成滑动验证");
+            }
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("slider verify skipped (redis unavailable), fail-open login");
         }
     }
 

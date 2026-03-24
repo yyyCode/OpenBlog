@@ -1,4 +1,5 @@
-const baseUrl = import.meta.env.VITE_API_BASE || 'http://localhost:8082'
+// 未配置环境变量时默认连线上后端（也可用 .env.development / .env.production 覆盖）
+const baseUrl = import.meta.env.VITE_API_BASE || 'http://8.138.32.217:8082'
 
 function buildUrl(path) {
   // 后端统一是 /api/v1 前缀
