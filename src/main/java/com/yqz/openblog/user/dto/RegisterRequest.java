@@ -22,6 +22,8 @@ public class RegisterRequest {
     @Size(max = 32)
     private String nickname;
 
+    private String sliderChallengeId;
+
     public String getUsername() {
         return username;
     }
@@ -52,6 +54,14 @@ public class RegisterRequest {
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getSliderChallengeId() {
+        return sliderChallengeId;
+    }
+
+    public void setSliderChallengeId(String sliderChallengeId) {
+        this.sliderChallengeId = sliderChallengeId;
     }
 }
 

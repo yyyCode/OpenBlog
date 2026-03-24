@@ -22,18 +22,10 @@
       <div class="profile-signature">{{ profile?.bio || '平凡的一枚程序员' }}</div>
 
       <div class="profile-menu">
-        <router-link
-          class="profile-menu-item"
-          :class="{ active: isAllArticlesActive }"
-          to="/all"
-        >
+        <router-link class="profile-menu-item" to="/all">
           全部文章
         </router-link>
-        <router-link
-          class="profile-menu-item"
-          :class="{ active: isChangelogActive }"
-          to="/changelog"
-        >
+        <router-link class="profile-menu-item" to="/changelog">
           更新日志
         </router-link>
       </div>
@@ -55,7 +47,6 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
 import { fetchSiteVersion } from '../api/site'
 
 defineProps({
@@ -65,16 +56,12 @@ defineProps({
   }
 })
 
-const route = useRoute()
 const siteVersion = ref('')
 
 const defaultAvatar = 'https://via.placeholder.com/120x120.png?text=OpenBlog'
 const githubUrl = 'https://github.com/yyyCode'
 const csdnUrl = 'https://blog.csdn.net/2301_80044822'
 const nowcoderUrl = 'https://www.nowcoder.com/users/597303882'
-
-const isAllArticlesActive = computed(() => route.path === '/all')
-const isChangelogActive = computed(() => route.path.startsWith('/changelog'))
 
 const siteVersionLabel = computed(() => {
   const v = (siteVersion.value || '').trim()

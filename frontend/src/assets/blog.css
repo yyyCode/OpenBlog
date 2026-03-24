@@ -430,32 +430,34 @@ body {
 .profile-menu-item {
   text-decoration: none;
   font-weight: 850;
-  color: var(--muted);
+  color: #fff;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: 1px solid #000;
+  background: #000;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .profile-menu-item:hover {
-  border-color: var(--border);
-  color: var(--text);
-  background: rgba(0, 0, 0, 0.02);
+  color: #fff;
+  border-color: #000;
+  background: #1a1a1a;
+}
+
+[data-theme='dark'] .profile-menu-item {
+  color: #000;
+  border-color: #fff;
+  background: #fff;
 }
 
 [data-theme='dark'] .profile-menu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.profile-menu-item.active {
-  color: #fff;
-  border-color: #000;
-  background: #000;
-}
-
-.profile-menu-item.active:hover {
-  color: #fff;
-  border-color: #000;
-  background: #000;
+  color: #000;
+  border-color: #fff;
+  background: #e8e8e8;
 }
 
 .mini-list {

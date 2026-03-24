@@ -1,4 +1,4 @@
-const baseUrl = import.meta.env.VITE_API_BASE || 'http://8.138.32.217:8082'
+const baseUrl = import.meta.env.VITE_API_BASE || 'http://localhost:8082'
 
 function buildUrl(path) {
   // 后端统一是 /api/v1 前缀

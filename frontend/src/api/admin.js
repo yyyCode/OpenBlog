@@ -1,9 +1,22 @@
 import { request } from './http'
 
-export function login(account, password) {
+export function fetchSliderChallenge() {
+  return request('/api/v1/auth/slider-challenge', { method: 'GET' })
+}
+
+export function completeSliderChallenge(challengeId) {
+  return request('/api/v1/auth/slider-complete', {
+    method: 'POST',
+    body: JSON.stringify({ challengeId })
+  })
+}
+
+export function login(account, password, sliderChallengeId) {
+  const body = { account, password }
+  if (sliderChallengeId != null && sliderChallengeId !== '') body.sliderChallengeId = sliderChallengeId
   return request('/api/v1/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ account, password })
+    body: JSON.stringify(body)
   })
 }
 

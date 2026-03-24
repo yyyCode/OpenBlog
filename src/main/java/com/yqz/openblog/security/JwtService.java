@@ -6,6 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import java.time.Instant;
@@ -21,6 +22,15 @@ public class JwtService {
 
     public JwtService(JwtProperties props) {
         this.props = props;
+    }
+
+    @PostConstruct
+    void assertJwtSecretLength() {
+        String s = props.getSecret();
+        if (s == null || s.length() < 32) {
+            throw new IllegalStateException(
+                    "openblog.jwt.secret 长度须至少 32 字符，请通过环境变量 OPENBLOG_JWT_SECRET 设置高熵随机串");
+        }
     }
 
     private SecretKey key() {

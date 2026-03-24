@@ -16,10 +16,14 @@ import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.entity.UserRole;
 import com.yqz.openblog.user.repo.RefreshTokenMapper;
 import com.yqz.openblog.user.repo.UserMapper;
+import com.yqz.openblog.config.ClientIpResolver;
 import com.yqz.openblog.security.CurrentUser;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 
 @Service
@@ -31,22 +35,29 @@ public class AuthService {
     private final JwtService jwtService;
     private final com.yqz.openblog.security.JwtProperties jwtProperties;
     private final CurrentUser currentUser;
+    private final SliderVerificationService sliderVerificationService;
+    private final LoginLockoutService loginLockoutService;
 
     public AuthService(UserMapper userMapper,
                         RefreshTokenMapper refreshTokenMapper,
                         PasswordEncoder passwordEncoder,
                         JwtService jwtService,
                         com.yqz.openblog.security.JwtProperties jwtProperties,
-                        CurrentUser currentUser) {
+                        CurrentUser currentUser,
+                        SliderVerificationService sliderVerificationService,
+                        LoginLockoutService loginLockoutService) {
         this.userMapper = userMapper;
         this.refreshTokenMapper = refreshTokenMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
         this.currentUser = currentUser;
+        this.sliderVerificationService = sliderVerificationService;
+        this.loginLockoutService = loginLockoutService;
     }
 
     public void register(RegisterRequest req) {
+        sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
         if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
                 .eq(User::getUsername, req.getUsername())) > 0) {
             throw new BizException(clientErrorCode(), "用户名已存在");
@@ -68,20 +79,29 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest req) {
+        String ipSeg = currentIpKeySegment();
+        loginLockoutService.assertNotLocked(ipSeg);
+        sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
+
         User user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getUsername, req.getAccount()));
         if (user == null) {
             user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getEmail, req.getAccount()));
         }
         if (user == null) {
+            loginLockoutService.recordPasswordFailure(ipSeg);
             throw new BizException(clientErrorCode(), "账号或密码错误");
         }
 
         if (!"ACTIVE".equals(user.getStatus())) {
+            loginLockoutService.recordPasswordFailure(ipSeg);
             throw new BizException(4011, "账号已被封禁");
         }
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
+            loginLockoutService.recordPasswordFailure(ipSeg);
             throw new BizException(clientErrorCode(), "账号或密码错误");
         }
+
+        loginLockoutService.clearFailures(ipSeg);
 
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
@@ -202,6 +222,16 @@ public class AuthService {
     // MVP：错误码占位（后续你可按文档替换成统一 code 表）
     private int clientErrorCode() {
         return 4000;
+    }
+
+    private String currentIpKeySegment() {
+        var attrs = RequestContextHolder.getRequestAttributes();
+        if (!(attrs instanceof ServletRequestAttributes sra)) {
+            return "unknown";
+        }
+        HttpServletRequest request = sra.getRequest();
+        String ip = ClientIpResolver.resolve(request);
+        return ClientIpResolver.toRedisKeySegment(ip);
     }
 }
 

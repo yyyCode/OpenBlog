@@ -1,5 +1,6 @@
 package com.yqz.openblog.security;
 
+import com.yqz.openblog.config.CorsProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -13,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.web.filter.CorsFilter;
@@ -26,13 +28,16 @@ public class SecurityConfig {
     private final JwtService jwtService;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final CorsProperties corsProperties;
 
     public SecurityConfig(JwtService jwtService,
                            RestAuthenticationEntryPoint authenticationEntryPoint,
-                           RestAccessDeniedHandler accessDeniedHandler) {
+                           RestAccessDeniedHandler accessDeniedHandler,
+                           CorsProperties corsProperties) {
         this.jwtService = jwtService;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.corsProperties = corsProperties;
     }
 
     @Bean
@@ -41,6 +46,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 // 允许跨域（前端会有 OPTIONS 预检请求；否则可能被安全策略拦截）
                 .cors(Customizer.withDefaults())
+                .headers(h -> h.referrerPolicy(
+                        ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -80,7 +87,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        List<String> patterns = corsProperties.getAllowedOriginPatterns();
+        if (patterns == null || patterns.isEmpty()) {
+            patterns = List.of("*");
+        }
+        config.setAllowedOriginPatterns(patterns);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(false);

@@ -6,8 +6,8 @@ import com.yqz.openblog.changelog.dto.ChangelogUpsertRequest;
 import com.yqz.openblog.changelog.service.ChangelogService;
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.common.PageResult;
-import com.yqz.openblog.security.CurrentUser;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,11 +16,9 @@ import org.springframework.web.bind.annotation.*;
 public class ChangelogController {
 
     private final ChangelogService changelogService;
-    private final CurrentUser currentUser;
 
-    public ChangelogController(ChangelogService changelogService, CurrentUser currentUser) {
+    public ChangelogController(ChangelogService changelogService) {
         this.changelogService = changelogService;
-        this.currentUser = currentUser;
     }
 
     @GetMapping
@@ -36,22 +34,22 @@ public class ChangelogController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ChangelogListItemResponse> create(@RequestBody @Valid ChangelogUpsertRequest req) {
-        currentUser.userId();
         return ApiResponse.ok(changelogService.create(req));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ChangelogListItemResponse> update(
             @PathVariable Long id,
             @RequestBody @Valid ChangelogUpsertRequest req) {
-        currentUser.userId();
         return ApiResponse.ok(changelogService.update(id, req));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> delete(@PathVariable Long id) {
-        currentUser.userId();
         changelogService.delete(id);
         return ApiResponse.ok();
     }

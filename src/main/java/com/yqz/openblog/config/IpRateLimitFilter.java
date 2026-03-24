@@ -22,6 +22,7 @@ import java.util.UUID;
 
 /**
  * 全站按 IP 滑动窗口限流；不统计 OPTIONS（避免 CORS 预检被误伤）。
+ * 对 {@code /api/v1/auth/login|register|refresh|slider-complete} 使用更严格的独立配额。
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 20)
@@ -44,6 +45,24 @@ public class IpRateLimitFilter extends OncePerRequestFilter {
         this.objectMapper = objectMapper;
     }
 
+    private static boolean isAuthSensitivePost(HttpServletRequest request) {
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        String path = request.getRequestURI();
+        if (path == null) {
+            return false;
+        }
+        int q = path.indexOf('?');
+        if (q >= 0) {
+            path = path.substring(0, q);
+        }
+        return path.endsWith("/api/v1/auth/login")
+                || path.endsWith("/api/v1/auth/register")
+                || path.endsWith("/api/v1/auth/refresh")
+                || path.endsWith("/api/v1/auth/slider-complete");
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         if (!properties.isEnabled()) {
@@ -59,19 +78,32 @@ public class IpRateLimitFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String ip = ClientIpResolver.resolve(request);
-        String redisKey = "openblog:rl:global:ip:" + ClientIpResolver.toRedisKeySegment(ip);
+        String ipSeg = ClientIpResolver.toRedisKeySegment(ip);
         long nowMs = System.currentTimeMillis();
         String member = nowMs + "-" + UUID.randomUUID();
 
         boolean allowed;
         try {
-            allowed = limiter.tryAcquire(
-                    redisKey,
-                    properties.getWindowMs(),
-                    properties.getMaxRequests(),
-                    nowMs,
-                    member
-            );
+            boolean authPost = isAuthSensitivePost(request);
+            if (authPost && properties.getAuth().isEnabled()) {
+                String authKey = "openblog:rl:auth:ip:" + ipSeg;
+                allowed = limiter.tryAcquire(
+                        authKey,
+                        properties.getAuth().getWindowMs(),
+                        properties.getAuth().getMaxRequests(),
+                        nowMs,
+                        member + ":auth"
+                );
+            } else {
+                String redisKey = "openblog:rl:global:ip:" + ipSeg;
+                allowed = limiter.tryAcquire(
+                        redisKey,
+                        properties.getWindowMs(),
+                        properties.getMaxRequests(),
+                        nowMs,
+                        member
+                );
+            }
         } catch (Exception e) {
             log.warn("rate limit skipped (fail-open), ip={}", ip, e);
             filterChain.doFilter(request, response);
