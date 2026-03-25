@@ -1,5 +1,7 @@
 package com.yqz.openblog.article.service;
 
+import com.yqz.openblog.article.cache.CachedHomeArticleQueryService;
+import com.yqz.openblog.article.cache.HomeArticleCacheEvictionService;
 import com.yqz.openblog.article.dto.ArticleCreateRequest;
 import com.yqz.openblog.article.dto.ArticleDetailResponse;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
@@ -10,6 +12,7 @@ import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserMapper;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,11 +29,19 @@ public class ArticleService {
     private final ArticleMapper articleMapper;
     private final UserMapper userMapper;
     private final ArticleViewService articleViewService;
+    private final CachedHomeArticleQueryService cachedHomeArticleQueryService;
+    private final HomeArticleCacheEvictionService homeArticleCacheEvictionService;
 
-    public ArticleService(ArticleMapper articleMapper, UserMapper userMapper, ArticleViewService articleViewService) {
+    public ArticleService(ArticleMapper articleMapper,
+                          UserMapper userMapper,
+                          ArticleViewService articleViewService,
+                          @Lazy CachedHomeArticleQueryService cachedHomeArticleQueryService,
+                          HomeArticleCacheEvictionService homeArticleCacheEvictionService) {
         this.articleMapper = articleMapper;
         this.userMapper = userMapper;
         this.articleViewService = articleViewService;
+        this.cachedHomeArticleQueryService = cachedHomeArticleQueryService;
+        this.homeArticleCacheEvictionService = homeArticleCacheEvictionService;
     }
 
     public ArticleListItemResponse mapListItem(Article a) {
@@ -82,7 +93,21 @@ public class ArticleService {
         return new PageResult<>(items, page, size, p.getTotal());
     }
 
+    /**
+     * 供 {@link CachedHomeArticleQueryService} 缓存：不含阅读计数逻辑。
+     */
+    public ArticleDetailResponse loadPublishedDetailSnapshot(Long id) {
+        LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
+        w.eq(Article::getId, id).eq(Article::getStatus, ArticleStatus.PUBLISHED);
+        Article a = articleMapper.selectOne(w);
+        if (a == null) {
+            throw new BizException(4041, "文章不存在");
+        }
+        return mapDetail(a);
+    }
+
     public ArticleDetailResponse detailPublished(Long id, String viewerKey) {
+        ArticleDetailResponse resp = cachedHomeArticleQueryService.loadPublishedDetailSnapshot(id);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getId, id).eq(Article::getStatus, ArticleStatus.PUBLISHED);
         Article a = articleMapper.selectOne(w);
@@ -96,7 +121,8 @@ public class ArticleService {
                 throw new BizException(4041, "文章不存在");
             }
         }
-        return mapDetail(a);
+        resp.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
+        return resp;
     }
 
     public ArticleDetailResponse detailMine(Long authorId, Long articleId, String viewerKey) {
@@ -153,6 +179,8 @@ public class ArticleService {
         a.setCoverMediaKey(req.getCoverMediaKey());
         a.setCategoryId(req.getCategoryId());
         articleMapper.updateById(a);
+        homeArticleCacheEvictionService.evictFirstPageList();
+        homeArticleCacheEvictionService.evictDetail(articleId);
         return mapListItem(a);
     }
 
@@ -174,6 +202,8 @@ public class ArticleService {
         a.setReviewedAt(null);
         a.setRejectedReason(null);
         articleMapper.updateById(a);
+        homeArticleCacheEvictionService.evictFirstPageList();
+        homeArticleCacheEvictionService.evictDetail(articleId);
         return mapListItem(a);
     }
 
@@ -190,6 +220,8 @@ public class ArticleService {
         }
         a.setStatus(ArticleStatus.DELETED);
         articleMapper.updateById(a);
+        homeArticleCacheEvictionService.evictFirstPageList();
+        homeArticleCacheEvictionService.evictDetail(articleId);
     }
 
     public PageResult<ArticleListItemResponse> listMine(Long authorId, int page, int size) {
