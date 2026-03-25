@@ -68,6 +68,7 @@
       <!-- 右侧固定：头像/个性签名 -->
       <aside class="right-rail">
         <ProfileCard :profile="profile" />
+        <BlogInfoCard />
       </aside>
     </div>
   </div>
@@ -80,6 +81,7 @@ import { marked } from 'marked'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import ProfileCard from '../components/ProfileCard.vue'
+import BlogInfoCard from '../components/BlogInfoCard.vue'
 import { fetchPublicProfile } from '../api/profile'
 
 const loadingList = ref(true)

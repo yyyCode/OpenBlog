@@ -36,6 +36,7 @@
       <!-- 右侧：头像/个人信息 -->
       <div class="right-rail">
         <ProfileCard :profile="profile" />
+        <BlogInfoCard />
       </div>
     </div>
   </div>
@@ -48,6 +49,7 @@ import { marked } from 'marked'
 
 import { fetchArticles, fetchArticleDetail } from '../api/article'
 import ProfileCard from '../components/ProfileCard.vue'
+import BlogInfoCard from '../components/BlogInfoCard.vue'
 import { useRouter } from 'vue-router'
 import { fetchPublicProfile } from '../api/profile'
 
