@@ -30,10 +30,11 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { login } from '../api/admin'
 
 const router = useRouter()
+const route = useRoute()
 const account = ref('')
 const password = ref('')
 const error = ref('')
@@ -44,7 +45,10 @@ async function doLogin() {
     const resp = await login(account.value, password.value)
     localStorage.setItem('accessToken', resp.accessToken)
     localStorage.setItem('refreshToken', resp.refreshToken)
-    router.push('/admin')
+    const r = route.query.redirect
+    const target =
+      typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : '/admin'
+    router.push(target)
   } catch (e) {
     error.value = e?.message || '登录失败'
   }

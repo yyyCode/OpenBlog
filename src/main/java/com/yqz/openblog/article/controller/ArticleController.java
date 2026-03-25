@@ -1,6 +1,5 @@
 package com.yqz.openblog.article.controller;
 
-import com.yqz.openblog.article.cache.CachedHomeArticleQueryService;
 import com.yqz.openblog.article.dto.ArticleCreateRequest;
 import com.yqz.openblog.article.dto.ArticleDetailResponse;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
@@ -22,14 +21,10 @@ import jakarta.servlet.http.HttpServletRequest;
 public class ArticleController {
 
     private final ArticleService articleService;
-    private final CachedHomeArticleQueryService cachedHomeArticleQueryService;
     private final CurrentUser currentUser;
 
-    public ArticleController(ArticleService articleService,
-                             CachedHomeArticleQueryService cachedHomeArticleQueryService,
-                             CurrentUser currentUser) {
+    public ArticleController(ArticleService articleService, CurrentUser currentUser) {
         this.articleService = articleService;
-        this.cachedHomeArticleQueryService = cachedHomeArticleQueryService;
         this.currentUser = currentUser;
     }
 
@@ -37,9 +32,6 @@ public class ArticleController {
     public ApiResponse<PageResult<ArticleListItemResponse>> listPublished(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        if (page == 0 && size == 1) {
-            return ApiResponse.ok(cachedHomeArticleQueryService.listFirstPublishedPage());
-        }
         return ApiResponse.ok(articleService.listPublished(page, size));
     }
 
@@ -121,4 +113,3 @@ public class ArticleController {
         return "anon:" + TokenHashUtil.sha256Hex(raw);
     }
 }
-

@@ -10,5 +10,12 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     allowedHosts: true,
+    // 当 VITE_API_BASE 为空时，开发环境把 /api 转到本机后端，与生产 Nginx 反代行为一致
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8082',
+        changeOrigin: true,
+      },
+    },
   },
 })

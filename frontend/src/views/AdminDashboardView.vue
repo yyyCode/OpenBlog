@@ -268,6 +268,7 @@
       <div>
         <ProfileCard :profile="meProfile" />
         <BlogInfoCard />
+        <AdminEntryCard />
       </div>
     </div>
   </div>
@@ -279,6 +280,7 @@ import { useRouter } from 'vue-router'
 
 import ProfileCard from '../components/ProfileCard.vue'
 import BlogInfoCard from '../components/BlogInfoCard.vue'
+import AdminEntryCard from '../components/AdminEntryCard.vue'
 import { fetchMe, updateMe, fetchMyArticles, fetchMyArticleDetail, createDraft, updateArticle, publishArticle, deleteMyArticle } from '../api/admin'
 import { uploadMedia } from '../api/media'
 import { coverUrl } from '../api/article'

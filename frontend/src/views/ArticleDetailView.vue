@@ -35,6 +35,7 @@
       <div class="right-rail">
         <ProfileCard :profile="profile" />
         <BlogInfoCard />
+        <AdminEntryCard />
       </div>
     </div>
   </div>
@@ -49,6 +50,7 @@ import { marked } from 'marked'
 import { fetchArticleDetail, coverUrl } from '../api/article'
 import ProfileCard from '../components/ProfileCard.vue'
 import BlogInfoCard from '../components/BlogInfoCard.vue'
+import AdminEntryCard from '../components/AdminEntryCard.vue'
 import { fetchPublicProfile } from '../api/profile'
 
 const route = useRoute()

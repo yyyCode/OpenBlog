@@ -69,6 +69,7 @@
       <aside class="right-rail">
         <ProfileCard :profile="profile" />
         <BlogInfoCard />
+        <AdminEntryCard />
       </aside>
     </div>
   </div>
@@ -82,6 +83,7 @@ import { marked } from 'marked'
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import ProfileCard from '../components/ProfileCard.vue'
 import BlogInfoCard from '../components/BlogInfoCard.vue'
+import AdminEntryCard from '../components/AdminEntryCard.vue'
 import { fetchPublicProfile } from '../api/profile'
 
 const loadingList = ref(true)

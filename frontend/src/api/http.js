@@ -1,5 +1,19 @@
-// 未配置环境变量时默认连线上后端（也可用 .env.development / .env.production 覆盖）
-const baseUrl = import.meta.env.VITE_API_BASE || 'http://8.138.32.217:8082'
+/**
+ * 后端根地址（不带末尾 /）。
+ * - 显式 `VITE_API_BASE=` 空字符串：请求走当前站点同域 `/api/...`（生产需 Nginx 反代；开发需 Vite proxy）。
+ * - 未设置：开发环境默认连仓库里的远程后端；生产环境默认同域（与上面空字符串一致）。
+ * 注意：不要用 `||`，否则空字符串会被当成假值而误用默认 IP。
+ */
+function resolveApiBase() {
+  const v = import.meta.env.VITE_API_BASE
+  if (v === '') return ''
+  if (v != null && v !== '') return v
+  return import.meta.env.DEV ? 'http://8.138.32.217:8082' : ''
+}
+
+export const API_BASE = resolveApiBase()
+
+const baseUrl = API_BASE
 
 function buildUrl(path) {
   // 后端统一是 /api/v1 前缀

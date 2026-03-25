@@ -48,8 +48,35 @@ const routes = [
   }
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHistory(),
   routes
 })
+
+/**
+ * 本标签页内是否已访问过「前台」任意页面（非 /admin*）。
+ * 用于避免地址栏直接敲 /admin、/admin/login：须先进入博客前台一次，侧栏「管理员入口」才有意义。
+ * sessionStorage：关标签即失效；新标签需重新从本站进入。
+ */
+const SITE_ENTRY_KEY = 'openblog_site_entry_ok'
+
+router.afterEach((to) => {
+  if (!to.path.startsWith('/admin')) {
+    sessionStorage.setItem(SITE_ENTRY_KEY, '1')
+  }
+})
+
+router.beforeEach((to) => {
+  if (to.path.startsWith('/admin')) {
+    if (!sessionStorage.getItem(SITE_ENTRY_KEY)) {
+      return { path: '/' }
+    }
+    if (to.path !== '/admin/login' && !localStorage.getItem('accessToken')) {
+      return { path: '/admin/login', query: { redirect: to.fullPath } }
+    }
+  }
+  return true
+})
+
+export default router
 

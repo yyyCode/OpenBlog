@@ -1,4 +1,4 @@
-const baseUrl = import.meta.env.VITE_API_BASE || 'http://8.138.32.217:8082'
+import { API_BASE } from './http'
 
 function getAuthHeader() {
   const token = localStorage.getItem('accessToken')
@@ -10,7 +10,7 @@ export async function uploadMedia(file) {
   const fd = new FormData()
   fd.append('file', file)
 
-  const res = await fetch(`${baseUrl}/api/v1/media/upload`, {
+  const res = await fetch(`${API_BASE}/api/v1/media/upload`, {
     method: 'POST',
     headers: {
       ...getAuthHeader()

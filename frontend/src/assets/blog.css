@@ -541,6 +541,32 @@ body {
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+.admin-entry-wrap .admin-entry-card-body {
+  padding: 12px 14px;
+}
+
+.profile-menu-item.admin-entry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.admin-entry-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.95;
+}
+
+.admin-entry-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .mini-list {
   display: flex;
   flex-direction: column;

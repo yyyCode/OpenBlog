@@ -34,6 +34,7 @@
       <div class="right-rail">
         <ProfileCard :profile="profile" />
         <BlogInfoCard />
+        <AdminEntryCard />
       </div>
     </div>
   </div>
@@ -43,6 +44,7 @@
 import { onMounted, ref } from 'vue'
 import ProfileCard from '../components/ProfileCard.vue'
 import BlogInfoCard from '../components/BlogInfoCard.vue'
+import AdminEntryCard from '../components/AdminEntryCard.vue'
 import { fetchChangelogList } from '../api/changelog'
 import { fetchPublicProfile } from '../api/profile'
 

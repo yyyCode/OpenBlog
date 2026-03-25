@@ -2,7 +2,6 @@ package com.yqz.openblog;
 
 import com.yqz.openblog.config.AuthSecurityProperties;
 import com.yqz.openblog.config.CorsProperties;
-import com.yqz.openblog.config.OpenblogCacheProperties;
 import com.yqz.openblog.config.SiteProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,8 +11,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties({
         SiteProperties.class,
         CorsProperties.class,
-        AuthSecurityProperties.class,
-        OpenblogCacheProperties.class
+        AuthSecurityProperties.class
 })
 public class OpenBlogApplication {
 

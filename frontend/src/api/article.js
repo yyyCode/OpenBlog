@@ -1,4 +1,4 @@
-import { request } from './http'
+import { API_BASE, request } from './http'
 
 export function fetchArticles(params = {}) {
   // GET /api/v1/articles?page&size&sort... 简化：只支持 size
@@ -13,7 +13,6 @@ export function fetchArticleDetail(id) {
 
 export function coverUrl(key) {
   if (!key) return ''
-  const baseUrl = import.meta.env.VITE_API_BASE || 'http://8.138.32.217:8082'
-  return `${baseUrl}/api/v1/media/files/${key}`
+  return `${API_BASE}/api/v1/media/files/${key}`
 }
 

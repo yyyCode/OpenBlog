@@ -33,9 +33,6 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 openblog:
-  cache:
-    # 首页首条列表 + 公开文章详情快照（Redis），默认半小时
-    home-ttl-seconds: 1800
   site:
     version: "1.0.0"
   # 生产环境请改为前端实际域名，例如 https://blog.example.com
