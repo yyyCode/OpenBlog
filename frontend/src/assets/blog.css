@@ -931,3 +931,51 @@ body {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
 }
 
+/* 类 Element Plus ElMessage：顶部居中、卡片阴影、淡入淡出 */
+.ob-message-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+}
+
+.ob-message {
+  pointer-events: auto;
+  min-width: 240px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 19px;
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+  color: #5c4a1a;
+  background: #fffbe6;
+  border: 1px solid #f5e6b8;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  transform: translateY(-16px);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+
+.ob-message.ob-message--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+[data-theme='dark'] .ob-message {
+  color: #fff8e6;
+  background: #3d3528;
+  border-color: #6b5a40;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+

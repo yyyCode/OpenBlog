@@ -1,22 +1,21 @@
 <template>
   <div class="blog-info-wrap admin-entry-wrap">
-    <div class="blog-info-heading">管理员入口</div>
+    <div class="blog-info-heading">AI平台</div>
     <div class="card blog-info-card">
       <div class="blog-info-card-body admin-entry-card-body">
         <button
           class="profile-menu-item admin-entry-btn"
           type="button"
-          :disabled="loading"
-          @click="goAdmin"
+          @click="onAiPlatformClick"
         >
           <svg class="admin-entry-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <!-- 仪表盘 / 控制台，表示后台 -->
+            <!-- auto_awesome / 星芒，表示 AI -->
             <path
               fill="currentColor"
-              d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"
+              d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"
             />
           </svg>
-          <span>{{ loading ? '验证中…' : '进入后台' }}</span>
+          <span>AI平台</span>
         </button>
       </div>
     </div>
@@ -24,29 +23,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { fetchMe } from '../api/admin'
+import { showMessage } from '../utils/message'
 
-const router = useRouter()
-const loading = ref(false)
-
-async function goAdmin() {
-  const token = localStorage.getItem('accessToken')
-  if (!token) {
-    router.push({ path: '/admin/login', query: { redirect: '/admin' } })
-    return
-  }
-  loading.value = true
-  try {
-    await fetchMe()
-    router.push('/admin')
-  } catch {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-    router.push({ path: '/admin/login', query: { redirect: '/admin' } })
-  } finally {
-    loading.value = false
-  }
+function onAiPlatformClick() {
+  showMessage('功能暂未开放')
 }
 </script>

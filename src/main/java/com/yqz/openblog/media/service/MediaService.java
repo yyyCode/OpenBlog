@@ -141,10 +141,31 @@ public class MediaService {
         return media;
     }
 
+    /**
+     * 按当前 {@link MediaProperties#getPublicBaseUrl()} 重写已存储的媒体绝对 URL，
+     * 避免换域名或启用 HTTPS 后仍返回旧 http://IP:8082，导致混合内容拦截或端口不可达。
+     */
+    public String normalizePublicMediaUrl(String url) {
+        if (!StringUtils.hasText(url)) {
+            return url;
+        }
+        String marker = "/api/v1/media/files/";
+        int idx = url.indexOf(marker);
+        if (idx < 0) {
+            return url;
+        }
+        String pathFromApi = url.substring(idx);
+        String base = properties.getPublicBaseUrl();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + pathFromApi;
+    }
+
     public ThumbInfoResponse thumbInfo(String key) {
         Media media = getByKey(key);
         ThumbInfoResponse resp = new ThumbInfoResponse();
-        resp.setThumbUrl(media.getThumbUrl());
+        resp.setThumbUrl(normalizePublicMediaUrl(media.getThumbUrl()));
         resp.setWidth(media.getThumbWidth());
         resp.setHeight(media.getThumbHeight());
         return resp;

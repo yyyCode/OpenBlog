@@ -14,6 +14,7 @@ import com.yqz.openblog.user.dto.UserUpdateRequest;
 import com.yqz.openblog.user.entity.RefreshToken;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.entity.UserRole;
+import com.yqz.openblog.media.service.MediaService;
 import com.yqz.openblog.user.repo.RefreshTokenMapper;
 import com.yqz.openblog.user.repo.UserMapper;
 import com.yqz.openblog.config.ClientIpResolver;
@@ -37,6 +38,7 @@ public class AuthService {
     private final CurrentUser currentUser;
     private final SliderVerificationService sliderVerificationService;
     private final LoginLockoutService loginLockoutService;
+    private final MediaService mediaService;
 
     public AuthService(UserMapper userMapper,
                         RefreshTokenMapper refreshTokenMapper,
@@ -45,7 +47,8 @@ public class AuthService {
                         com.yqz.openblog.security.JwtProperties jwtProperties,
                         CurrentUser currentUser,
                         SliderVerificationService sliderVerificationService,
-                        LoginLockoutService loginLockoutService) {
+                        LoginLockoutService loginLockoutService,
+                        MediaService mediaService) {
         this.userMapper = userMapper;
         this.refreshTokenMapper = refreshTokenMapper;
         this.passwordEncoder = passwordEncoder;
@@ -54,6 +57,7 @@ public class AuthService {
         this.currentUser = currentUser;
         this.sliderVerificationService = sliderVerificationService;
         this.loginLockoutService = loginLockoutService;
+        this.mediaService = mediaService;
     }
 
     public void register(RegisterRequest req) {
@@ -169,7 +173,7 @@ public class AuthService {
         resp.setUserId(user.getId());
         resp.setUsername(user.getUsername());
         resp.setNickname(user.getNickname());
-        resp.setAvatarUrl(user.getAvatarUrl());
+        resp.setAvatarUrl(mediaService.normalizePublicMediaUrl(user.getAvatarUrl()));
         resp.setBio(user.getBio());
         resp.setRole(user.getRole());
         return resp;

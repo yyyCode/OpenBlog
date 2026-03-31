@@ -55,7 +55,7 @@ const router = createRouter({
 
 /**
  * 本标签页内是否已访问过「前台」任意页面（非 /admin*）。
- * 用于避免地址栏直接敲 /admin、/admin/login：须先进入博客前台一次，侧栏「管理员入口」才有意义。
+ * 用于避免地址栏直接敲 /admin、/admin/login：须先访问本站前台一次。
  * sessionStorage：关标签即失效；新标签需重新从本站进入。
  */
 const SITE_ENTRY_KEY = 'openblog_site_entry_ok'

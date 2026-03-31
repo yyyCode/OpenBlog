@@ -4,6 +4,7 @@ import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.user.dto.PublicProfileResponse;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.entity.UserRole;
+import com.yqz.openblog.media.service.MediaService;
 import com.yqz.openblog.user.repo.UserMapper;
 import com.yqz.openblog.security.CurrentUser;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -19,10 +20,12 @@ public class PublicProfileController {
 
     private final UserMapper userMapper;
     private final CurrentUser currentUser;
+    private final MediaService mediaService;
 
-    public PublicProfileController(UserMapper userMapper, CurrentUser currentUser) {
+    public PublicProfileController(UserMapper userMapper, CurrentUser currentUser, MediaService mediaService) {
         this.userMapper = userMapper;
         this.currentUser = currentUser;
+        this.mediaService = mediaService;
     }
 
     @GetMapping("/profile")
@@ -36,7 +39,7 @@ public class PublicProfileController {
                 PublicProfileResponse resp = new PublicProfileResponse();
                 resp.setUserId(u.getId());
                 resp.setNickname(u.getNickname());
-                resp.setAvatarUrl(u.getAvatarUrl());
+                resp.setAvatarUrl(mediaService.normalizePublicMediaUrl(u.getAvatarUrl()));
                 resp.setBio(u.getBio());
                 return ApiResponse.ok(resp);
             }
@@ -67,7 +70,7 @@ public class PublicProfileController {
         PublicProfileResponse resp = new PublicProfileResponse();
         resp.setUserId(u.getId());
         resp.setNickname(u.getNickname());
-        resp.setAvatarUrl(u.getAvatarUrl());
+        resp.setAvatarUrl(mediaService.normalizePublicMediaUrl(u.getAvatarUrl()));
         resp.setBio(u.getBio());
         return ApiResponse.ok(resp);
     }

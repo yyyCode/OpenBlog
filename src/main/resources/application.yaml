@@ -55,5 +55,6 @@ openblog:
     refresh-token-expire-seconds: 2592000
   storage:
     root-path: "/www/wwwroot/java/uploads/"
-    public-base-url: "http://8.138.32.217:8082"
+    # 浏览器可访问的站点根（含 https 与域名），勿写内网 IP:8082，否则 HTTPS 页会混合内容拦截图片
+    public-base-url: "https://www.wecode.xin"
     thumb-long-edge: 320
