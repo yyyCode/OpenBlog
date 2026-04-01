@@ -32,6 +32,18 @@
             <svg class="blog-info-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="currentColor"
+                d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+              />
+            </svg>
+            <span class="blog-info-label">站点访问</span>
+          </span>
+          <span class="blog-info-badge">{{ displaySiteVisits }}</span>
+        </div>
+        <div class="blog-info-row">
+          <span class="blog-info-left">
+            <svg class="blog-info-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                fill="currentColor"
                 d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"
               />
             </svg>
@@ -119,6 +131,12 @@ const displayArticles = computed(() => {
 const displayComments = computed(() => {
   if (statsError.value) return '—'
   const n = stats.value?.commentCount
+  return n == null ? '…' : String(n)
+})
+
+const displaySiteVisits = computed(() => {
+  if (statsError.value) return '—'
+  const n = stats.value?.siteVisitCount
   return n == null ? '…' : String(n)
 })
 

@@ -7,8 +7,8 @@ import com.yqz.openblog.article.dto.ArticleUpdateRequest;
 import com.yqz.openblog.article.service.ArticleService;
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.common.PageResult;
+import com.yqz.openblog.common.web.ClientIpResolver;
 import com.yqz.openblog.security.CurrentUser;
-import com.yqz.openblog.security.TokenHashUtil;
 
 import jakarta.validation.Valid;
 
@@ -38,8 +38,8 @@ public class ArticleController {
     @GetMapping("/articles/{articleId}")
     public ApiResponse<ArticleDetailResponse> detailPublished(@PathVariable("articleId") Long articleId,
                                                              HttpServletRequest request) {
-        String viewerKey = buildViewerKey(request);
-        return ApiResponse.ok(articleService.detailPublished(articleId, viewerKey));
+        String clientIp = ClientIpResolver.resolve(request);
+        return ApiResponse.ok(articleService.detailPublished(articleId, clientIp));
     }
 
     @PostMapping("/articles")
@@ -87,29 +87,7 @@ public class ArticleController {
     public ApiResponse<ArticleDetailResponse> detailMine(@PathVariable("articleId") Long articleId,
                                                           HttpServletRequest request) {
         Long uid = currentUser.userId();
-        String viewerKey = buildViewerKey(request);
-        return ApiResponse.ok(articleService.detailMine(uid, articleId, viewerKey));
-    }
-
-    private String buildViewerKey(HttpServletRequest request) {
-        Long uid = currentUser.userId();
-        if (uid != null) {
-            return "u:" + uid;
-        }
-
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        if (ip == null || ip.isBlank()) {
-            ip = request.getRemoteAddr();
-        }
-        if (ip == null) ip = "";
-
-        String ua = request.getHeader("User-Agent");
-        if (ua == null) ua = "";
-
-        String raw = ip + "|" + ua;
-        return "anon:" + TokenHashUtil.sha256Hex(raw);
+        String clientIp = ClientIpResolver.resolve(request);
+        return ApiResponse.ok(articleService.detailMine(uid, articleId, clientIp));
     }
 }

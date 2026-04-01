@@ -22,8 +22,10 @@ spring:
       max-request-size: 20MB
   data:
     redis:
+      # 阅读量/站点访问的滑动窗口去重依赖 Redis；连不上时应用会降级为直接写 MySQL（无去重）。
+      # 若 26739 连接失败，请检查：本机/服务器防火墙、云安全组、Redis 是否监听 0.0.0.0、地址与端口是否正确。
       host: 8.138.32.217
-      port: 26379
+      port: 26739
       # 若 Redis 设置了 requirepass，在此填写密码
       # password: your_redis_password
       timeout: 3s

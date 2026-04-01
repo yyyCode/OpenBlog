@@ -8,6 +8,8 @@ import com.yqz.openblog.comment.entity.Comment;
 import com.yqz.openblog.comment.entity.CommentStatus;
 import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.site.dto.SiteStatsResponse;
+import com.yqz.openblog.site.entity.SiteVisitCounter;
+import com.yqz.openblog.site.repo.SiteVisitCounterMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,10 +19,13 @@ public class SiteStatsService {
 
     private final ArticleMapper articleMapper;
     private final CommentMapper commentMapper;
+    private final SiteVisitCounterMapper siteVisitCounterMapper;
 
-    public SiteStatsService(ArticleMapper articleMapper, CommentMapper commentMapper) {
+    public SiteStatsService(ArticleMapper articleMapper, CommentMapper commentMapper,
+                            SiteVisitCounterMapper siteVisitCounterMapper) {
         this.articleMapper = articleMapper;
         this.commentMapper = commentMapper;
+        this.siteVisitCounterMapper = siteVisitCounterMapper;
     }
 
     public SiteStatsResponse getPublicStats() {
@@ -28,6 +33,10 @@ public class SiteStatsService {
                 Wrappers.lambdaQuery(Article.class).eq(Article::getStatus, ArticleStatus.PUBLISHED));
         long commentCount = commentMapper.selectCount(
                 Wrappers.lambdaQuery(Comment.class).eq(Comment::getStatus, CommentStatus.APPROVED));
+
+        SiteVisitCounter siteCounter = siteVisitCounterMapper.selectById(SiteVisitCounter.SINGLETON_ID);
+        long siteVisitCount = siteCounter != null && siteCounter.getVisitCount() != null
+                ? siteCounter.getVisitCount() : 0L;
 
         Article latestPublished = articleMapper.selectOne(
                 Wrappers.lambdaQuery(Article.class)
@@ -37,6 +46,6 @@ public class SiteStatsService {
                         .last("LIMIT 1"));
         Instant lastActivity = latestPublished != null ? latestPublished.getPublishedAt() : null;
 
-        return new SiteStatsResponse(articleCount, commentCount, lastActivity);
+        return new SiteStatsResponse(articleCount, commentCount, siteVisitCount, lastActivity);
     }
 }

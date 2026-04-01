@@ -11,9 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.UUID;
 
 /**
- * 文章阅读次数记录：
- * - 使用 Redis 滑动窗口限流（5 分钟、同一 viewer 最多 1 次有效阅读）
- * - 限流通过后才更新 MySQL 的 view_count
+ * 文章阅读次数（按客户端 IP 去重）：
+ * Redis 滑动窗口（5 分钟、同一 IP 对同一文章最多 1 次有效阅读），通过后累加 articles.view_count。
  */
 @Service
 public class ArticleViewService {
@@ -32,14 +31,15 @@ public class ArticleViewService {
     }
 
     /**
-     * @return true=已成功增加一次 viewCount
+     * @param clientIp 客户端 IP（由 ClientIpResolver 解析）
+     * @return true 已成功增加一次 viewCount
      */
-    public boolean tryRecordView(Article article, String viewerKey) {
+    public boolean tryRecordView(Article article, String clientIp) {
         if (article == null || article.getId() == null) return false;
         if (article.getStatus() != ArticleStatus.PUBLISHED) return false;
-        if (viewerKey == null || viewerKey.isBlank()) return false;
+        if (clientIp == null || clientIp.isBlank()) return false;
 
-        String redisKey = buildRedisKey(article.getId(), viewerKey);
+        String redisKey = buildRedisKey(article.getId(), clientIp);
         long nowMs = System.currentTimeMillis();
         String member = nowMs + "-" + UUID.randomUUID();
 
@@ -47,9 +47,10 @@ public class ArticleViewService {
         try {
             allowed = limiter.tryAcquire(redisKey, WINDOW_MS, LIMIT_PER_WINDOW, nowMs, member);
         } catch (Exception e) {
-            // Redis 宕机/异常时降级：不计数但不影响页面
-            log.warn("record view skipped due to redis error. articleId={}, viewerKey={}", article.getId(), viewerKey, e);
-            return false;
+            // Redis 不可用时降级为直接写库，否则阅读量永远不涨；此模式下不做 IP 去重（刷新会多次 +1）
+            log.warn("Redis 不可用，文章阅读量将直接写入数据库（无滑动窗口去重）。articleId={}, clientIp={}",
+                    article.getId(), clientIp, e);
+            allowed = true;
         }
 
         if (!allowed) return false;
@@ -58,13 +59,13 @@ public class ArticleViewService {
             int updated = articleMapper.incrementViewCount(article.getId(), ArticleStatus.PUBLISHED);
             return updated > 0;
         } catch (Exception e) {
-            log.warn("record view skipped due to db error. articleId={}, viewerKey={}", article.getId(), viewerKey, e);
+            log.warn("record view skipped due to db error. articleId={}, clientIp={}", article.getId(), clientIp, e);
             return false;
         }
     }
 
-    private String buildRedisKey(Long articleId, String viewerKey) {
-        return "openblog:view:" + articleId + ":" + viewerKey;
+    private String buildRedisKey(Long articleId, String clientIp) {
+        return "openblog:article:view:" + articleId + ":" + clientIp;
     }
 }
 

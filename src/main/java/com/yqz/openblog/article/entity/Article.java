@@ -59,6 +59,7 @@ public class Article {
     private Long likeCount;
 
     @Column(nullable = false)
+    @TableField("view_count")
     private Long viewCount;
 
     @Column(nullable = false)

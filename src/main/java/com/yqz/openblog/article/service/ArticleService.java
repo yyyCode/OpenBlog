@@ -82,24 +82,22 @@ public class ArticleService {
         return new PageResult<>(items, page, size, p.getTotal());
     }
 
-    public ArticleDetailResponse detailPublished(Long id, String viewerKey) {
+    public ArticleDetailResponse detailPublished(Long id, String clientIp) {
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getId, id).eq(Article::getStatus, ArticleStatus.PUBLISHED);
         Article a = articleMapper.selectOne(w);
         if (a == null) {
             throw new BizException(4041, "文章不存在");
         }
-        boolean incremented = articleViewService.tryRecordView(a, viewerKey);
+        boolean incremented = articleViewService.tryRecordView(a, clientIp);
         if (incremented) {
-            a = articleMapper.selectOne(w);
-            if (a == null) {
-                throw new BizException(4041, "文章不存在");
-            }
+            long v = a.getViewCount() == null ? 0L : a.getViewCount();
+            a.setViewCount(v + 1L);
         }
         return mapDetail(a);
     }
 
-    public ArticleDetailResponse detailMine(Long authorId, Long articleId, String viewerKey) {
+    public ArticleDetailResponse detailMine(Long authorId, Long articleId, String clientIp) {
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getId, articleId).eq(Article::getAuthorId, authorId);
         Article a = articleMapper.selectOne(w);
@@ -109,12 +107,10 @@ public class ArticleService {
         if (a.getStatus() == ArticleStatus.DELETED) {
             throw new BizException(4041, "文章不存在");
         }
-        boolean incremented = articleViewService.tryRecordView(a, viewerKey);
+        boolean incremented = articleViewService.tryRecordView(a, clientIp);
         if (incremented) {
-            a = articleMapper.selectOne(w);
-            if (a == null) {
-                throw new BizException(4041, "文章不存在");
-            }
+            long v = a.getViewCount() == null ? 0L : a.getViewCount();
+            a.setViewCount(v + 1L);
         }
         return mapDetail(a);
     }

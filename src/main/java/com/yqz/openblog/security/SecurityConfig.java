@@ -61,6 +61,7 @@ public class SecurityConfig {
                         // Public home
                         .requestMatchers(HttpMethod.GET, "/api/v1/home").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/site/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/site/visit").permitAll()
                         // Public profile (for avatar/signature)
                         .requestMatchers(HttpMethod.GET, "/api/v1/profile").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/changelog").permitAll()

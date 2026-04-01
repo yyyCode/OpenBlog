@@ -174,3 +174,14 @@ CREATE TABLE IF NOT EXISTS media (
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ----------------------------
+-- site_visit_counter（全站访问累计，单行 id=1）
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS site_visit_counter (
+  id TINYINT NOT NULL PRIMARY KEY,
+  visit_count BIGINT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO site_visit_counter (id, visit_count) VALUES (1, 0)
+  ON DUPLICATE KEY UPDATE id = id;
+
