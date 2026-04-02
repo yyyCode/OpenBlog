@@ -1,5 +1,7 @@
 package com.yqz.openblog.site;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.yqz.openblog.article.limiter.SlidingWindowLimiter;
 import com.yqz.openblog.site.repo.SiteVisitCounterMapper;
 import org.slf4j.Logger;
@@ -7,10 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 全站访问次数（按客户端 IP 去重）：
- * Redis 滑动窗口（5 分钟、同一 IP 最多记 1 次有效访问），通过后累加 MySQL。
+ * Redis 滑动窗口优先；Redis 不可用时用进程内 Caffeine 5 分钟去重（多实例需 Redis）。
  */
 @Service
 public class SiteVisitService {
@@ -19,6 +22,11 @@ public class SiteVisitService {
     private static final int LIMIT_PER_WINDOW = 1;
 
     private static final Logger log = LoggerFactory.getLogger(SiteVisitService.class);
+
+    private final Cache<String, Boolean> redisDownDedup = Caffeine.newBuilder()
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .maximumSize(200_000)
+            .build();
 
     private final SlidingWindowLimiter limiter;
     private final SiteVisitCounterMapper siteVisitCounterMapper;
@@ -43,8 +51,9 @@ public class SiteVisitService {
         try {
             allowed = limiter.tryAcquire(redisKey, WINDOW_MS, LIMIT_PER_WINDOW, nowMs, member);
         } catch (Exception e) {
-            log.warn("Redis 不可用，全站访问将直接写入数据库（无滑动窗口去重）。ip={}", clientIp, e);
-            allowed = true;
+            log.warn("Redis 不可用，全站访问改用进程内 5 分钟去重。ip={}", clientIp, e);
+            Boolean prev = redisDownDedup.asMap().putIfAbsent(redisKey, Boolean.TRUE);
+            allowed = prev == null;
         }
         if (!allowed) {
             return false;

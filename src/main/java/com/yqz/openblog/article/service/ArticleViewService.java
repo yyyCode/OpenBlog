@@ -3,16 +3,23 @@ package com.yqz.openblog.article.service;
 import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.entity.ArticleStatus;
 import com.yqz.openblog.article.limiter.SlidingWindowLimiter;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 文章阅读次数（按客户端 IP 去重）：
- * Redis 滑动窗口（5 分钟、同一 IP 对同一文章最多 1 次有效阅读），通过后累加 articles.view_count。
+ * <ul>
+ *   <li>优先：Redis 滑动窗口（5 分钟、同一 IP 对同一文章最多 1 次有效阅读）</li>
+ *   <li>Redis 不可用时：进程内 Caffeine 同样 5 分钟去重（多实例部署需 Redis 才一致）</li>
+ * </ul>
+ * 通过后累加 articles.view_count。
  */
 @Service
 public class ArticleViewService {
@@ -21,6 +28,12 @@ public class ArticleViewService {
     private static final int LIMIT_PER_WINDOW = 1;
 
     private static final Logger log = LoggerFactory.getLogger(ArticleViewService.class);
+
+    /** Redis 故障时的单机去重，键与 Redis 侧一致 */
+    private final Cache<String, Boolean> redisDownDedup = Caffeine.newBuilder()
+            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .maximumSize(500_000)
+            .build();
 
     private final SlidingWindowLimiter limiter;
     private final ArticleMapper articleMapper;
@@ -47,10 +60,10 @@ public class ArticleViewService {
         try {
             allowed = limiter.tryAcquire(redisKey, WINDOW_MS, LIMIT_PER_WINDOW, nowMs, member);
         } catch (Exception e) {
-            // Redis 不可用时降级为直接写库，否则阅读量永远不涨；此模式下不做 IP 去重（刷新会多次 +1）
-            log.warn("Redis 不可用，文章阅读量将直接写入数据库（无滑动窗口去重）。articleId={}, clientIp={}",
+            log.warn("Redis 不可用，文章阅读量改用进程内 5 分钟去重。articleId={}, clientIp={}",
                     article.getId(), clientIp, e);
-            allowed = true;
+            Boolean prev = redisDownDedup.asMap().putIfAbsent(redisKey, Boolean.TRUE);
+            allowed = prev == null;
         }
 
         if (!allowed) return false;
