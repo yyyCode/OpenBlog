@@ -3,6 +3,7 @@ package com.yqz.openblog.article.service;
 import com.yqz.openblog.article.dto.ArticleCreateRequest;
 import com.yqz.openblog.article.dto.ArticleDetailResponse;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
+import com.yqz.openblog.article.dto.ArticlePublishedContentCachePayload;
 import com.yqz.openblog.article.dto.ArticleUpdateRequest;
 import com.yqz.openblog.article.entity.*;
 import com.yqz.openblog.article.repo.ArticleMapper;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -26,11 +28,17 @@ public class ArticleService {
     private final ArticleMapper articleMapper;
     private final UserMapper userMapper;
     private final ArticleViewService articleViewService;
+    private final ArticlePublishedContentCacheService publishedContentCache;
 
-    public ArticleService(ArticleMapper articleMapper, UserMapper userMapper, ArticleViewService articleViewService) {
+    public ArticleService(
+            ArticleMapper articleMapper,
+            UserMapper userMapper,
+            ArticleViewService articleViewService,
+            ArticlePublishedContentCacheService publishedContentCache) {
         this.articleMapper = articleMapper;
         this.userMapper = userMapper;
         this.articleViewService = articleViewService;
+        this.publishedContentCache = publishedContentCache;
     }
 
     public ArticleListItemResponse mapListItem(Article a) {
@@ -72,6 +80,29 @@ public class ArticleService {
         return resp;
     }
 
+    /**
+     * 缓存命中时：正文等用缓存，计数类字段始终用当前数据库行（避免阅读量/评论数长期失真）。
+     */
+    private ArticleDetailResponse mergePublishedDetailFromCache(ArticlePublishedContentCachePayload p, Article a) {
+        ArticleDetailResponse r = new ArticleDetailResponse();
+        r.setId(p.getId());
+        r.setTitle(p.getTitle());
+        r.setSummary(p.getSummary());
+        r.setContentMarkdown(p.getContentMarkdown());
+        r.setCoverMediaKey(p.getCoverMediaKey());
+        r.setAuthorId(p.getAuthorId());
+        r.setAuthorNickname(p.getAuthorNickname());
+        r.setPublishedAt(p.getPublishedAt());
+        r.setStatus(p.getStatus());
+        r.setCreatedAt(p.getCreatedAt());
+        r.setUpdatedAt(p.getUpdatedAt());
+        r.setLikeCount(a.getLikeCount() == null ? 0L : a.getLikeCount());
+        r.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
+        r.setFavoriteCount(a.getFavoriteCount() == null ? 0L : a.getFavoriteCount());
+        r.setCommentCount(a.getCommentCount() == null ? 0L : a.getCommentCount());
+        return r;
+    }
+
     public PageResult<ArticleListItemResponse> listPublished(int page, int size) {
         Page<Article> mpPage = new Page<>(page + 1L, size);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
@@ -83,18 +114,27 @@ public class ArticleService {
     }
 
     public ArticleDetailResponse detailPublished(Long id, String clientIp) {
-        LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
-        w.eq(Article::getId, id).eq(Article::getStatus, ArticleStatus.PUBLISHED);
-        Article a = articleMapper.selectOne(w);
-        if (a == null) {
+        Article a = articleMapper.selectById(id);
+        if (a == null || a.getStatus() != ArticleStatus.PUBLISHED) {
+            publishedContentCache.evict(id);
             throw new BizException(4041, "文章不存在");
         }
+
+        ArticleDetailResponse resp;
+        Optional<ArticlePublishedContentCachePayload> cached = publishedContentCache.get(id);
+        if (cached.isPresent()) {
+            resp = mergePublishedDetailFromCache(cached.get(), a);
+        } else {
+            resp = mapDetail(a);
+            publishedContentCache.put(id, ArticlePublishedContentCachePayload.fromDetail(resp));
+        }
+
         boolean incremented = articleViewService.tryRecordView(a, clientIp);
         if (incremented) {
-            long v = a.getViewCount() == null ? 0L : a.getViewCount();
-            a.setViewCount(v + 1L);
+            long v = resp.getViewCount() == null ? 0L : resp.getViewCount();
+            resp.setViewCount(v + 1L);
         }
-        return mapDetail(a);
+        return resp;
     }
 
     public ArticleDetailResponse detailMine(Long authorId, Long articleId, String clientIp) {
@@ -149,6 +189,9 @@ public class ArticleService {
         a.setCoverMediaKey(req.getCoverMediaKey());
         a.setCategoryId(req.getCategoryId());
         articleMapper.updateById(a);
+        if (a.getStatus() == ArticleStatus.PUBLISHED) {
+            publishedContentCache.evict(articleId);
+        }
         return mapListItem(a);
     }
 
@@ -170,6 +213,7 @@ public class ArticleService {
         a.setReviewedAt(null);
         a.setRejectedReason(null);
         articleMapper.updateById(a);
+        publishedContentCache.evict(articleId);
         return mapListItem(a);
     }
 
@@ -186,6 +230,7 @@ public class ArticleService {
         }
         a.setStatus(ArticleStatus.DELETED);
         articleMapper.updateById(a);
+        publishedContentCache.evict(articleId);
     }
 
     public PageResult<ArticleListItemResponse> listMine(Long authorId, int page, int size) {

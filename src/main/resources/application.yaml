@@ -22,6 +22,7 @@ spring:
       max-request-size: 20MB
   data:
     redis:
+      # 阅读量滑动窗口、登录锁、文章正文缓存等；正文缓存读/写失败时自动仅走 MySQL。
       # 阅读量/站点访问的滑动窗口去重依赖 Redis；连不上时应用会降级为直接写 MySQL（无去重）。
       # 若 26739 连接失败，请检查：本机/服务器防火墙、云安全组、Redis 是否监听 0.0.0.0、地址与端口是否正确。
       host: 8.138.32.217
@@ -35,6 +36,9 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 openblog:
+  cache:
+    # 已发布文章正文（Redis）；不可用或异常时自动仅查 MySQL
+    article-published-ttl-minutes: 30
   site:
     version: "1.0.0"
   # 生产环境请改为前端实际域名，例如 https://blog.example.com

@@ -10,6 +10,9 @@ spring:
       port: 6379
 
 openblog:
+  cache:
+    # 已发布文章正文 Redis TTL（分钟），可按需覆盖
+    article-published-ttl-minutes: 30
   jwt:
     secret: "REPLACE_WITH_LONG_RANDOM_AT_LEAST_32_CHARS"
   storage:
