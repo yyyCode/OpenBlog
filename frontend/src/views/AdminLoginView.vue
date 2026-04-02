@@ -4,7 +4,7 @@
       <div class="card admin-login-card">
         <div class="card-body" style="padding: 22px">
           <div style="font-weight: 1000; font-size: 22px; margin-bottom: 18px">
-            后台登录
+            控制台登录
           </div>
 
           <div class="field">
@@ -47,7 +47,7 @@ async function doLogin() {
     localStorage.setItem('refreshToken', resp.refreshToken)
     const r = route.query.redirect
     const target =
-      typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : '/admin'
+      typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : '/console'
     router.push(target)
   } catch (e) {
     error.value = e?.message || '登录失败'

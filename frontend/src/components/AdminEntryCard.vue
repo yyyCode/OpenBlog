@@ -1,31 +1,18 @@
 <template>
   <div class="blog-info-wrap admin-entry-wrap">
-    <div class="blog-info-heading">AI平台</div>
+    <div class="blog-info-heading">管理</div>
     <div class="card blog-info-card">
       <div class="blog-info-card-body admin-entry-card-body">
-        <button
-          class="profile-menu-item admin-entry-btn"
-          type="button"
-          @click="onAiPlatformClick"
-        >
+        <router-link class="profile-menu-item admin-entry-btn" to="/console">
           <svg class="admin-entry-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <!-- auto_awesome / 星芒，表示 AI -->
             <path
               fill="currentColor"
-              d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"
+              d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94-3.72-1.15-6.47-4.82-7-8.94h7V11.99z"
             />
           </svg>
-          <span>AI平台</span>
-        </button>
+          <span>控制台</span>
+        </router-link>
       </div>
     </div>
   </div>
 </template>
-
-<script setup>
-import { showMessage } from '../utils/message'
-
-function onAiPlatformClick() {
-  showMessage('功能暂未开放')
-}
-</script>

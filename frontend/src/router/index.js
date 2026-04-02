@@ -4,9 +4,16 @@ import HomeView from '../views/HomeView.vue'
 import ArticleDetailView from '../views/ArticleDetailView.vue'
 import AllArticlesView from '../views/AllArticlesView.vue'
 import AdminLoginView from '../views/AdminLoginView.vue'
-import AdminDashboardView from '../views/AdminDashboardView.vue'
 import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
+import ConsoleLayout from '../layouts/ConsoleLayout.vue'
+import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
+import ConsoleProfileView from '../views/ConsoleProfileView.vue'
+import ConsoleArticlesView from '../views/ConsoleArticlesView.vue'
+import ConsoleChangelogView from '../views/ConsoleChangelogView.vue'
+import ConsoleAttachmentsView from '../views/ConsoleAttachmentsView.vue'
+import ConsoleCommentsView from '../views/ConsoleCommentsView.vue'
+import ConsoleSystemView from '../views/ConsoleSystemView.vue'
 
 const routes = [
   {
@@ -20,14 +27,30 @@ const routes = [
     component: AllArticlesView
   },
   {
-    path: '/admin/login',
-    name: 'adminLogin',
+    path: '/console/login',
+    name: 'consoleLogin',
     component: AdminLoginView
   },
   {
+    path: '/console',
+    component: ConsoleLayout,
+    children: [
+      { path: '', name: 'consoleDashboard', component: ConsoleDashboardView },
+      { path: 'profile', name: 'consoleProfile', component: ConsoleProfileView },
+      { path: 'articles', name: 'consoleArticles', component: ConsoleArticlesView },
+      { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
+      { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
+      { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
+      { path: 'system', name: 'consoleSystem', component: ConsoleSystemView }
+    ]
+  },
+  {
+    path: '/admin/login',
+    redirect: '/console/login'
+  },
+  {
     path: '/admin',
-    name: 'adminDashboard',
-    component: AdminDashboardView
+    redirect: '/console'
   },
   {
     path: '/article/:id',
@@ -54,29 +77,27 @@ const router = createRouter({
 })
 
 /**
- * 本标签页内是否已访问过「前台」任意页面（非 /admin*）。
- * 用于避免地址栏直接敲 /admin、/admin/login：须先访问本站前台一次。
- * sessionStorage：关标签即失效；新标签需重新从本站进入。
+ * 本标签页内是否已访问过「前台」任意页面（非 /console*）。
+ * 用于避免地址栏直接敲 /console、/console/login：须先访问本站前台一次。
  */
 const SITE_ENTRY_KEY = 'openblog_site_entry_ok'
 
 router.afterEach((to) => {
-  if (!to.path.startsWith('/admin')) {
+  if (!to.path.startsWith('/console')) {
     sessionStorage.setItem(SITE_ENTRY_KEY, '1')
   }
 })
 
 router.beforeEach((to) => {
-  if (to.path.startsWith('/admin')) {
+  if (to.path.startsWith('/console')) {
     if (!sessionStorage.getItem(SITE_ENTRY_KEY)) {
       return { path: '/' }
     }
-    if (to.path !== '/admin/login' && !localStorage.getItem('accessToken')) {
-      return { path: '/admin/login', query: { redirect: to.fullPath } }
+    if (to.path !== '/console/login' && !localStorage.getItem('accessToken')) {
+      return { path: '/console/login', query: { redirect: to.fullPath } }
     }
   }
   return true
 })
 
 export default router
-
