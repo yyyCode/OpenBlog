@@ -1,0 +1,193 @@
+<template>
+  <div class="console-page">
+    <header class="console-page-header">
+      <div class="console-page-title">
+        <h1>文章管理</h1>
+      </div>
+    </header>
+
+    <div class="console-card console-inner-card">
+      <div class="manage-top">
+        <div class="manage-top-left">
+          <div style="font-weight: 900">我的文章</div>
+          <div style="color: var(--console-muted, var(--muted)); font-size: 12px">点击文章进入编辑</div>
+        </div>
+        <div class="manage-top-right">
+          <input v-model="keyword" class="input manage-search" type="search" placeholder="搜索标题..." />
+          <button class="btn primary" style="padding: 8px 12px" @click="goNew">新建文章</button>
+        </div>
+      </div>
+
+      <div v-if="loadingArticles" style="color: var(--console-muted, var(--muted))">加载中...</div>
+      <div v-else-if="listItems.length === 0" style="color: var(--console-muted, var(--muted))">暂无文章</div>
+
+      <div v-else class="manage-list">
+        <div v-for="a in listItems" :key="a.id" class="manage-item" @click="goEdit(a.id)">
+          <div class="manage-item-main">
+            <div class="manage-item-title">{{ a.title || '未命名' }}</div>
+            <div class="manage-item-meta">{{ a.status }} · {{ formatDate(a.publishedAt) }}</div>
+          </div>
+          <div class="manage-item-actions" @click.stop>
+            <button class="btn" style="padding: 6px 10px" @click="goEdit(a.id)">编辑</button>
+            <button class="btn" style="padding: 6px 10px" @click="remove(a.id)">删除</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="articleSuccess" class="success" style="margin-top: 10px">{{ articleSuccess }}</div>
+      <div v-if="articleError" class="error" style="margin-top: 10px">{{ articleError }}</div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { deleteMyArticle, fetchMyArticles } from '../api/admin'
+
+const router = useRouter()
+
+const loadingArticles = ref(false)
+const myArticles = ref([])
+const keyword = ref('')
+
+const articleError = ref('')
+const articleSuccess = ref('')
+
+function formatDate(v) {
+  if (!v) return ''
+  try {
+    return new Date(v).toISOString().slice(0, 10)
+  } catch {
+    return ''
+  }
+}
+
+async function loadArticles() {
+  loadingArticles.value = true
+  try {
+    const resp = await fetchMyArticles(0, 200)
+    myArticles.value = resp?.items || []
+  } finally {
+    loadingArticles.value = false
+  }
+}
+
+const listItems = computed(() => {
+  const k = (keyword.value || '').trim().toLowerCase()
+  if (!k) return myArticles.value
+  return myArticles.value.filter((a) => (a.title || '').toLowerCase().includes(k))
+})
+
+function goNew() {
+  router.push('/console/articles/new')
+}
+
+function goEdit(id) {
+  router.push({ path: '/console/articles/new', query: { id: String(id) } })
+}
+
+async function remove(id) {
+  articleError.value = ''
+  articleSuccess.value = ''
+  try {
+    await deleteMyArticle(id)
+    await loadArticles()
+    articleSuccess.value = '删除成功'
+  } catch (e) {
+    const apiCode = e?.code
+    const httpStatus = e?.httpStatus
+    const prefix = apiCode ? `错误码 ${apiCode}` : httpStatus ? `HTTP ${httpStatus}` : ''
+    articleError.value = prefix ? `${prefix}：${e?.message || '删除失败'}` : e?.message || '删除失败'
+    articleSuccess.value = ''
+  }
+}
+
+onMounted(() => {
+  loadArticles()
+})
+</script>
+
+<style scoped>
+.manage-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.manage-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manage-search {
+  min-width: 240px;
+}
+
+.manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.manage-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.manage-item-main {
+  min-width: 0;
+}
+
+.manage-item-title {
+  font-weight: 950;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 64vw;
+}
+
+.manage-item-meta {
+  color: var(--console-muted, var(--muted));
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.manage-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .manage-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .manage-search {
+    min-width: 0;
+    width: 100%;
+  }
+  .manage-item-title {
+    max-width: 60vw;
+  }
+}
+</style>
+

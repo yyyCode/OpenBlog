@@ -11,7 +11,8 @@ import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
 import ConsoleProfileView from '../views/ConsoleProfileView.vue'
-import ConsoleArticlesView from '../views/ConsoleArticlesView.vue'
+import ConsoleArticleManageView from '../views/ConsoleArticleManageView.vue'
+import ConsoleArticleComposeView from '../views/ConsoleArticleComposeView.vue'
 import ConsoleChangelogView from '../views/ConsoleChangelogView.vue'
 import ConsoleAttachmentsView from '../views/ConsoleAttachmentsView.vue'
 import ConsoleCommentsView from '../views/ConsoleCommentsView.vue'
@@ -39,7 +40,9 @@ const routes = [
     children: [
       { path: '', name: 'consoleDashboard', component: ConsoleDashboardView },
       { path: 'profile', name: 'consoleProfile', component: ConsoleProfileView },
-      { path: 'articles', name: 'consoleArticles', component: ConsoleArticlesView },
+      { path: 'articles', redirect: '/console/articles/manage' },
+      { path: 'articles/manage', name: 'consoleArticleManage', component: ConsoleArticleManageView },
+      { path: 'articles/new', name: 'consoleArticleCompose', component: ConsoleArticleComposeView },
       { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
