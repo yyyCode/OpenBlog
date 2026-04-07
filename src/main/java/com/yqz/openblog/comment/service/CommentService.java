@@ -100,13 +100,21 @@ public class CommentService {
         }
 
         // 挂载 replies
+        // 两层结构：所有后代评论都折叠挂到“顶层评论”的 replies 下
+        Map<Long, Long> parentById = new HashMap<>();
+        for (Comment c : all) {
+            parentById.put(c.getId(), c.getParentId());
+        }
+        Set<Long> topIds = new HashSet<>(top.stream().map(Comment::getId).toList());
         for (Comment c : descendants) {
-            Long pid = c.getParentId();
-            if (pid == null) continue;
-            CommentThreadResponse parent = nodeById.get(pid);
+            Long topId = findTopAncestorId(c.getId(), parentById, topIds);
+            if (topId == null) continue;
+            CommentThreadResponse topNode = nodeById.get(topId);
             CommentThreadResponse child = nodeById.get(c.getId());
-            if (parent == null || child == null) continue;
-            parent.getReplies().add(child);
+            if (topNode == null || child == null) continue;
+            // 强制让前端按两层渲染
+            child.setReplies(List.of());
+            topNode.getReplies().add(child);
         }
 
         // 每个节点的 replies 按时间排序（稳定）
@@ -121,6 +129,16 @@ public class CommentService {
 
         List<CommentThreadResponse> items = top.stream().map(c -> nodeById.get(c.getId())).toList();
         return new PageResult<>(items, page, size, p.getTotal());
+    }
+
+    private Long findTopAncestorId(Long id, Map<Long, Long> parentById, Set<Long> topIds) {
+        Long cur = id;
+        int guard = 0;
+        while (cur != null && guard++ < 16) {
+            if (topIds.contains(cur)) return cur;
+            cur = parentById.get(cur);
+        }
+        return null;
     }
 
     private CommentThreadResponse toNode(Comment c) {

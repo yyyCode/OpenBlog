@@ -28,30 +28,15 @@
           </button>
         </div>
       </div>
-
-      <div v-if="comment.replies?.length" class="comment-replies">
-        <CommentItem
-          v-for="c in comment.replies"
-          :key="c.id"
-          :comment="c"
-          :depth="depth + 1"
-          :me="me"
-          @reply="$emit('reply', $event)"
-          @delete="$emit('delete', $event)"
-          @submit-reply="$emit('submit-reply', $event)"
-        />
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import CommentItem from './CommentItem.vue'
 
 const props = defineProps({
   comment: { type: Object, required: true },
-  depth: { type: Number, default: 1 },
   me: { type: Object, default: null }
 })
 

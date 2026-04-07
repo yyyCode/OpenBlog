@@ -373,6 +373,13 @@ body {
   border-left: 2px solid rgba(170, 59, 255, 0.18);
 }
 
+.comment-replies-title {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--muted);
+  margin: 6px 0 6px;
+}
+
 .comment-reply-box {
   margin-top: 10px;
 }

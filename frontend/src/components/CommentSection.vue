@@ -42,6 +42,21 @@
           @delete="onDelete"
           @submit-reply="onSubmitReply"
         />
+
+        <div v-for="p in items" :key="'replies-' + p.id">
+          <div v-if="p.replies?.length" class="comment-replies">
+            <div class="comment-replies-title">回复</div>
+            <CommentItem
+              v-for="r in p.replies"
+              :key="r.id"
+              :comment="r"
+              :me="me"
+              @reply="onReplyClick"
+              @delete="onDelete"
+              @submit-reply="onSubmitReply"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
