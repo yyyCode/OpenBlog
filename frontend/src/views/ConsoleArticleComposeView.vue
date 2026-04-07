@@ -6,7 +6,7 @@
       </div>
     </header>
 
-    <div class="console-card console-inner-card">
+    <div class="console-card console-inner-card compose-page-card">
       <div v-if="loadingDetail" style="color: var(--console-muted, var(--muted))">加载中...</div>
       <div v-else class="compose-root">
         <div class="compose-left">
@@ -296,20 +296,32 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 右侧预览贴齐卡片右缘；左侧保留与页面一致的左内边距 */
+.compose-page-card.console-inner-card {
+  padding: 20px 0 24px 20px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
 .compose-root {
   display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(420px, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(360px, 1fr) minmax(380px, 1.25fr);
+  gap: 0;
+  align-items: stretch;
 }
 
 .compose-left {
   min-width: 0;
+  padding-right: 18px;
 }
 
 .compose-right {
   min-width: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  padding-left: 16px;
+  margin: -20px 0 -24px 0;
+  padding: 20px 20px 24px 22px;
+  border-left: 2px solid var(--console-border, rgba(15, 23, 42, 0.12));
+  background: var(--console-bg, rgba(15, 23, 42, 0.02));
+  box-shadow: inset 1px 0 0 rgba(15, 23, 42, 0.06);
 }
 
 .preview-header {
@@ -331,7 +343,7 @@ onMounted(async () => {
 .compose-preview {
   max-height: calc(100vh - 320px);
   overflow: auto;
-  padding-right: 8px;
+  padding-right: 0;
 }
 
 .compose-textarea {
@@ -339,15 +351,27 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+[data-theme='dark'] .compose-right {
+  border-left-color: var(--console-border, rgba(255, 255, 255, 0.12));
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 @media (max-width: 1100px) {
+  .compose-page-card.console-inner-card {
+    padding: 20px 20px 24px;
+  }
+
   .compose-root {
     grid-template-columns: 1fr;
   }
   .compose-right {
+    margin: 0;
     border-left: none;
-    padding-left: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 14px;
+    padding: 18px 0 0;
+    border-top: 2px solid var(--console-border, rgba(15, 23, 42, 0.12));
+    box-shadow: none;
+    background: transparent;
   }
   .compose-preview {
     max-height: none;
