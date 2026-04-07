@@ -274,6 +274,8 @@ body {
   flex-direction: column;
   gap: 16px;
   align-items: stretch;
+  position: sticky;
+  top: 86px;
 }
 
 /* 全部文章（主从布局）：左侧侧边栏 + 右侧正文 */
