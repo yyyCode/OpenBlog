@@ -457,20 +457,19 @@ body {
 .profile-menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin-top: 26px;
   width: 100%;
 }
 
 .profile-menu-item {
   text-decoration: none;
-  font-weight: 750;
-  font-size: 13px;
-  color: var(--text);
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: transparent;
+  font-weight: 850;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #000;
+  background: #000;
   transition:
     background 0.15s ease,
     color 0.15s ease,
@@ -479,20 +478,21 @@ body {
 }
 
 .profile-menu-item:hover {
-  color: var(--text);
-  border-color: var(--text);
-  background: rgba(0, 0, 0, 0.05);
+  color: #fff;
+  border-color: #000;
+  background: #1a1a1a;
 }
 
 [data-theme='dark'] .profile-menu-item {
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.22);
-  background: transparent;
+  color: #000;
+  border-color: #fff;
+  background: #fff;
 }
 
 [data-theme='dark'] .profile-menu-item:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.06);
+  color: #000;
+  border-color: #fff;
+  background: #e8e8e8;
 }
 
 .blog-info-wrap {
@@ -591,8 +591,8 @@ body {
 }
 
 .admin-entry-icon {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   opacity: 0.95;
 }
