@@ -77,8 +77,8 @@ import { computed, onMounted, ref } from 'vue'
 import { fetchArticles } from '../api/article'
 import { fetchSiteStats } from '../api/site'
 
-/** 站点统计起点：2025-10-01（本地日界线） */
-const SITE_START = new Date(2025, 9, 1, 0, 0, 0, 0)
+/** 站点统计起点：2026-03-20（本地日界线） */
+const SITE_START = new Date(2026, 2, 20, 0, 0, 0, 0)
 
 const stats = ref(null)
 /** 文章列表页数据（含 total、items），用于展示与回退 */
