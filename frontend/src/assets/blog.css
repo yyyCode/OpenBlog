@@ -83,7 +83,7 @@ body {
 
 .page-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 320px 1fr;
   gap: 24px;
   align-items: start;
 }

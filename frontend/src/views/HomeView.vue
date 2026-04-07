@@ -1,7 +1,14 @@
 <template>
   <div class="blog-container">
     <div class="page-grid">
-      <!-- 主内容：一大篇文章 -->
+      <!-- 左侧：头像/个人信息 -->
+      <div class="right-rail">
+        <ProfileCard :profile="profile" />
+        <BlogInfoCard />
+        <AdminEntryCard />
+      </div>
+
+      <!-- 右侧：主内容（文章） -->
       <div>
         <div v-if="loading" class="card">
           <div class="card-body" style="padding: 22px">加载中...</div>
@@ -31,13 +38,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 右侧：头像/个人信息 -->
-      <div class="right-rail">
-        <ProfileCard :profile="profile" />
-        <BlogInfoCard />
-        <AdminEntryCard />
       </div>
     </div>
   </div>
