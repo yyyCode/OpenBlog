@@ -1,5 +1,5 @@
 <template>
-  <div class="blog-container">
+  <div class="blog-container all-articles-page">
     <div class="all-layout-3">
       <!-- 左侧：头像 + 搜索 + 文章列表 -->
       <aside class="all-sidebar">
