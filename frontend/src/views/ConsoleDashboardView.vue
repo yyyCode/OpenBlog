@@ -87,13 +87,22 @@
             <span class="console-quick-label">查看站点</span>
             <span class="console-quick-chev" aria-hidden="true">›</span>
           </a>
-          <router-link to="/console/articles?new=1" class="console-quick-tile">
+          <router-link to="/console/articles/new" class="console-quick-tile">
             <span class="console-quick-ico">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
               </svg>
             </span>
             <span class="console-quick-label">创建文章</span>
+            <span class="console-quick-chev" aria-hidden="true">›</span>
+          </router-link>
+          <router-link to="/console/articles/manage" class="console-quick-tile">
+            <span class="console-quick-ico">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </span>
+            <span class="console-quick-label">文章管理</span>
             <span class="console-quick-chev" aria-hidden="true">›</span>
           </router-link>
           <router-link to="/console/changelog" class="console-quick-tile">
