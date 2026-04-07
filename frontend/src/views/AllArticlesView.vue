@@ -44,24 +44,28 @@
           <div class="card-body" style="padding: 22px; color: var(--muted)">请选择一篇文章</div>
         </div>
 
-        <div v-else class="card">
-          <div class="article-content">
-            <div v-if="selectedArticle.coverMediaKey" style="margin-bottom: 14px">
-              <img
-                :src="coverUrl(selectedArticle.coverMediaKey)"
-                alt="cover"
-                style="width: 100%; max-height: 340px; object-fit: cover; border-radius: 12px"
-              />
-            </div>
+        <div v-else>
+          <div class="card">
+            <div class="article-content">
+              <div v-if="selectedArticle.coverMediaKey" style="margin-bottom: 14px">
+                <img
+                  :src="coverUrl(selectedArticle.coverMediaKey)"
+                  alt="cover"
+                  style="width: 100%; max-height: 340px; object-fit: cover; border-radius: 12px"
+                />
+              </div>
 
-            <h1 class="article-hero-title">{{ selectedArticle.title }}</h1>
-            <div class="article-hero-meta">
-              发布于 {{ formatDate(selectedArticle.publishedAt) }} · 作者 {{ selectedArticle.authorNickname || '' }} · 阅读
-              {{ selectedArticle.viewCount ?? 0 }}
-            </div>
+              <h1 class="article-hero-title">{{ selectedArticle.title }}</h1>
+              <div class="article-hero-meta">
+                发布于 {{ formatDate(selectedArticle.publishedAt) }} · 作者 {{ selectedArticle.authorNickname || '' }} · 阅读
+                {{ selectedArticle.viewCount ?? 0 }}
+              </div>
 
-            <div class="markdown-body article-markdown" v-html="html" />
+              <div class="markdown-body article-markdown" v-html="html" />
+            </div>
           </div>
+
+          <CommentSection v-if="selectedArticle?.id" :article-id="selectedArticle.id" />
         </div>
       </main>
 
@@ -84,6 +88,7 @@ import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import ProfileCard from '../components/ProfileCard.vue'
 import BlogInfoCard from '../components/BlogInfoCard.vue'
 import AdminEntryCard from '../components/AdminEntryCard.vue'
+import CommentSection from '../components/CommentSection.vue'
 import { fetchPublicProfile } from '../api/profile'
 
 const loadingList = ref(true)
