@@ -59,7 +59,7 @@ jobs:
         uses: easingthemes/ssh-deploy@v5.1.1
         with:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          ARGS: "-rlgoDzvc --delete"
+          ARGS: "-rlgoDzvc --delete --exclude=dist/.user.ini"
           SOURCE: "release/dist release/Dockerfile release/docker.sh release/nginx.conf"
           REMOTE_HOST: ${{ secrets.SERVER_REMOTE_HOST }}
           REMOTE_USER: ${{ secrets.SERVER_REMOTE_USER }}
