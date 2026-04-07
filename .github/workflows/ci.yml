@@ -6,7 +6,6 @@
 #   SERVER_TARGET       服务器上部署目录绝对路径（如 /opt/openblog/web），该目录下会有 dist、Dockerfile、docker.sh、nginx.conf
 #
 # 后端 Spring Boot 需在**同一台机器宿主机**上监听 8082（java -jar 或 systemd），容器内 Nginx 通过 host.docker.internal 反代到宿主机。
-# 前端容器默认映射宿主机端口 18088 → 容器 80，访问 http://IP:18088/ ，请在安全组放行 TCP 18088。
 name: Build and deploy OpenBlog
 
 on:
@@ -17,10 +16,6 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    # 消除 “Node.js 20 actions are deprecated” 警告：让基于 JS 的 action 在 Node 24 上跑
-    # 见 https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout
@@ -39,7 +34,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20"
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
