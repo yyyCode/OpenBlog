@@ -195,7 +195,7 @@ public class ArticleService {
         return mapListItem(a);
     }
 
-    public ArticleListItemResponse publish(Long authorId, Long articleId) {
+    public ArticleListItemResponse publish(Long authorId, Long articleId, Instant publishedAt) {
         Article a = articleMapper.selectById(articleId);
         if (a == null) {
             throw new BizException(4041, "文章不存在");
@@ -208,7 +208,7 @@ public class ArticleService {
             throw new BizException(4002, "标题和正文不能为空");
         }
         a.setStatus(ArticleStatus.PUBLISHED);
-        a.setPublishedAt(Instant.now());
+        a.setPublishedAt(publishedAt == null ? Instant.now() : publishedAt);
         a.setSubmittedAt(null);
         a.setReviewedAt(null);
         a.setRejectedReason(null);

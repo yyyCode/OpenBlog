@@ -47,6 +47,14 @@ export function publishArticle(id) {
   return request(`/api/v1/articles/${id}/publish`, { method: 'POST', withAuth: true })
 }
 
+export function publishArticleWithTime(id, payload) {
+  return request(`/api/v1/articles/${id}/publish`, {
+    method: 'POST',
+    withAuth: true,
+    body: JSON.stringify(payload || {})
+  })
+}
+
 export function deleteMyArticle(id) {
   return request(`/api/v1/articles/${id}`, { method: 'DELETE', withAuth: true })
 }

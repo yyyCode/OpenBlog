@@ -1,7 +1,8 @@
+import { getStoredAccessToken } from '../auth/session'
 import { API_BASE } from './http'
 
 function getAuthHeader() {
-  const token = localStorage.getItem('accessToken')
+  const token = getStoredAccessToken()
   if (!token) return {}
   return { Authorization: `Bearer ${token}` }
 }

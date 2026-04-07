@@ -77,6 +77,11 @@
                 <textarea v-model="form.contentMarkdown" class="textarea" rows="10"></textarea>
               </div>
 
+              <div class="field" style="margin-top: 12px; max-width: 420px">
+                <div class="label">发布时间（可选，留空为当前时间；允许早于当前时间）</div>
+                <input v-model="publishAtInput" class="input" type="datetime-local" />
+              </div>
+
               <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px">
                 <button class="btn primary" @click="saveDraft">保存草稿/更新</button>
                 <button class="btn" :disabled="!selectedId" @click="publish" :style="{ opacity: selectedId ? 1 : 0.6 }">
@@ -106,6 +111,7 @@ import {
   createDraft,
   updateArticle,
   publishArticle,
+  publishArticleWithTime,
   deleteMyArticle
 } from '../api/admin'
 import { uploadMedia } from '../api/media'
@@ -122,6 +128,8 @@ const form = ref({
   contentMarkdown: '',
   coverMediaKey: null
 })
+
+const publishAtInput = ref('')
 
 const loadingArticles = ref(false)
 const loadingDetail = ref(false)
@@ -153,6 +161,26 @@ function resetEditor() {
   form.value.summary = ''
   form.value.contentMarkdown = ''
   form.value.coverMediaKey = null
+  publishAtInput.value = ''
+}
+
+function toLocalDatetimeInput(iso) {
+  if (!iso) return ''
+  try {
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  } catch {
+    return ''
+  }
+}
+
+function toIsoOrEmpty(v) {
+  if (!v || !String(v).trim()) return undefined
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return undefined
+  return d.toISOString()
 }
 
 async function newDraft() {
@@ -170,6 +198,7 @@ async function loadEditor(id) {
     form.value.summary = detail.summary || ''
     form.value.contentMarkdown = detail.contentMarkdown || ''
     form.value.coverMediaKey = detail.coverMediaKey || null
+    publishAtInput.value = toLocalDatetimeInput(detail.publishedAt)
   } finally {
     loadingDetail.value = false
   }
@@ -216,7 +245,12 @@ async function publish() {
   articleError.value = ''
   articleSuccess.value = ''
   try {
-    await publishArticle(selectedId.value)
+    const publishedAt = toIsoOrEmpty(publishAtInput.value)
+    if (publishedAt) {
+      await publishArticleWithTime(selectedId.value, { publishedAt })
+    } else {
+      await publishArticle(selectedId.value)
+    }
     await loadArticles()
     articleSuccess.value = '发布成功'
   } catch (e) {

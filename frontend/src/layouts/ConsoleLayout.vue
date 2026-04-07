@@ -137,6 +137,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchMe } from '../api/admin'
+import { clearAuth } from '../auth/session'
 
 const router = useRouter()
 const route = useRoute()
@@ -171,8 +172,7 @@ async function loadMe() {
 }
 
 function logout() {
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
+  clearAuth()
   router.push('/console/login')
 }
 

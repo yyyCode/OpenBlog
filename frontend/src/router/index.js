@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import { clearAuth, isConsoleSessionValid } from '../auth/session'
+
 import HomeView from '../views/HomeView.vue'
 import ArticleDetailView from '../views/ArticleDetailView.vue'
 import AllArticlesView from '../views/AllArticlesView.vue'
@@ -76,26 +78,31 @@ const router = createRouter({
   routes
 })
 
-/**
- * 本标签页内是否已访问过「前台」任意页面（非 /console*）。
- * 用于避免地址栏直接敲 /console、/console/login：须先访问本站前台一次。
- */
-const SITE_ENTRY_KEY = 'openblog_site_entry_ok'
-
-router.afterEach((to) => {
-  if (!to.path.startsWith('/console')) {
-    sessionStorage.setItem(SITE_ENTRY_KEY, '1')
-  }
-})
+/** 仅允许站内相对路径，防止 open redirect */
+function safeConsoleRedirect(raw) {
+  if (typeof raw !== 'string') return '/console'
+  const t = raw.trim()
+  if (!t.startsWith('/') || t.startsWith('//')) return '/console'
+  if (t.startsWith('/console/login')) return '/console'
+  return t
+}
 
 router.beforeEach((to) => {
-  if (to.path.startsWith('/console')) {
-    if (!sessionStorage.getItem(SITE_ENTRY_KEY)) {
-      return { path: '/' }
+  if (!to.path.startsWith('/console')) return true
+
+  const isLoginPage = to.path === '/console/login'
+
+  if (isLoginPage) {
+    if (isConsoleSessionValid()) {
+      const r = to.query.redirect
+      return { path: safeConsoleRedirect(typeof r === 'string' ? r : '') }
     }
-    if (to.path !== '/console/login' && !localStorage.getItem('accessToken')) {
-      return { path: '/console/login', query: { redirect: to.fullPath } }
-    }
+    return true
+  }
+
+  if (!isConsoleSessionValid()) {
+    clearAuth()
+    return { path: '/console/login', query: { redirect: to.fullPath } }
   }
   return true
 })

@@ -3,6 +3,7 @@ package com.yqz.openblog.article.controller;
 import com.yqz.openblog.article.dto.ArticleCreateRequest;
 import com.yqz.openblog.article.dto.ArticleDetailResponse;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
+import com.yqz.openblog.article.dto.ArticlePublishRequest;
 import com.yqz.openblog.article.dto.ArticleUpdateRequest;
 import com.yqz.openblog.article.service.ArticleService;
 import com.yqz.openblog.common.ApiResponse;
@@ -56,9 +57,10 @@ public class ArticleController {
     }
 
     @PostMapping("/articles/{articleId}/publish")
-    public ApiResponse<ArticleListItemResponse> submitForReview(@PathVariable("articleId") Long articleId) {
+    public ApiResponse<ArticleListItemResponse> submitForReview(@PathVariable("articleId") Long articleId,
+                                                                @RequestBody(required = false) ArticlePublishRequest req) {
         Long uid = currentUser.userId();
-        return ApiResponse.ok(articleService.publish(uid, articleId));
+        return ApiResponse.ok(articleService.publish(uid, articleId, req == null ? null : req.getPublishedAt()));
     }
 
     @PostMapping("/articles/{articleId}/unpublish")

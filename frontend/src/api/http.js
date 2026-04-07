@@ -4,6 +4,8 @@
  * - 未设置：开发环境默认连仓库里的远程后端；生产环境默认同域（与上面空字符串一致）。
  * 注意：不要用 `||`，否则空字符串会被当成假值而误用默认 IP。
  */
+import { clearAuth, getStoredAccessToken } from '../auth/session'
+
 function resolveApiBase() {
   const v = import.meta.env.VITE_API_BASE
   if (v === '') return ''
@@ -28,7 +30,7 @@ export async function request(path, options = {}) {
   }
 
   if (options.withAuth) {
-    const token = localStorage.getItem('accessToken')
+    const token = getStoredAccessToken()
     if (!token) {
       const err = new Error('未登录')
       err.httpStatus = 401
@@ -48,6 +50,17 @@ export async function request(path, options = {}) {
     json = text ? JSON.parse(text) : null
   } catch {
     // ignore
+  }
+
+  if (res.status === 401 && options.withAuth) {
+    clearAuth()
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/console')) {
+      const redirect = window.location.pathname + window.location.search
+      window.location.assign('/console/login?redirect=' + encodeURIComponent(redirect))
+    }
+    const err = new Error('登录已失效')
+    err.httpStatus = 401
+    throw err
   }
 
   // API 统一返回 ApiResponse，HTTP 层可能仍为 200

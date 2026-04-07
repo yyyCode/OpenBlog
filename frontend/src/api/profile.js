@@ -1,8 +1,9 @@
+import { getStoredAccessToken } from '../auth/session'
 import { request } from './http'
 
 export function fetchPublicProfile() {
   // 已登录时也希望前台右侧头像/昵称/签名随当前用户更新
-  const token = localStorage.getItem('accessToken')
+  const token = getStoredAccessToken()
   if (token) {
     return request(`/api/v1/profile`, { withAuth: true })
   }
