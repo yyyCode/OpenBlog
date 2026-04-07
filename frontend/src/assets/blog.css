@@ -262,6 +262,128 @@ body {
   margin-top: 18px;
 }
 
+.comment-section {
+  margin-top: 18px;
+}
+
+.comment-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 2px 12px;
+}
+
+.comment-section-title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.comment-editor .comment-login-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+}
+
+.comment-list .card-body {
+  padding: 14px 14px 6px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 2px;
+}
+
+.comment-item + .comment-item {
+  border-top: 1px solid var(--border);
+}
+
+.comment-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.comment-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.comment-author {
+  font-weight: 850;
+  font-size: 13px;
+}
+
+.comment-time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.comment-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.comment-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.comment-link:hover {
+  color: var(--accent);
+}
+
+.comment-link--danger:hover {
+  color: #b42318;
+}
+
+.comment-content {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-replies {
+  margin-top: 10px;
+  padding-left: 14px;
+  border-left: 2px solid rgba(170, 59, 255, 0.18);
+}
+
+.comment-reply-box {
+  margin-top: 10px;
+}
+
+.comment-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .article-title {
   font-size: 18px;
   font-weight: 900;

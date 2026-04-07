@@ -6,29 +6,33 @@
           <div class="card-body" style="padding: 22px">加载中...</div>
         </div>
 
-        <div v-else class="card">
-          <div class="article-content">
-            <div v-if="!article?.id" style="padding: 20px 0">文章不存在</div>
+        <div v-else>
+          <div class="card">
+            <div class="article-content">
+              <div v-if="!article?.id" style="padding: 20px 0">文章不存在</div>
 
-            <div v-else>
-              <div style="margin-bottom: 14px">
-                <img
-                  v-if="article.coverMediaKey"
-                  :src="coverUrl(article.coverMediaKey)"
-                  alt="cover"
-                  style="width: 100%; max-height: 340px; object-fit: cover; border-radius: 12px"
-                />
+              <div v-else>
+                <div style="margin-bottom: 14px">
+                  <img
+                    v-if="article.coverMediaKey"
+                    :src="coverUrl(article.coverMediaKey)"
+                    alt="cover"
+                    style="width: 100%; max-height: 340px; object-fit: cover; border-radius: 12px"
+                  />
+                </div>
+
+                <h1 class="article-hero-title">{{ article.title }}</h1>
+                <div class="article-hero-meta">
+                  发布于 {{ formatDate(article.publishedAt) }} · 作者 {{ article.authorNickname || '' }} · 阅读
+                  {{ article.viewCount ?? 0 }}
+                </div>
+
+                <div class="markdown-body article-markdown" v-html="html" />
               </div>
-
-              <h1 class="article-hero-title">{{ article.title }}</h1>
-              <div class="article-hero-meta">
-                发布于 {{ formatDate(article.publishedAt) }} · 作者 {{ article.authorNickname || '' }} · 阅读
-                {{ article.viewCount ?? 0 }}
-              </div>
-
-              <div class="markdown-body article-markdown" v-html="html" />
             </div>
           </div>
+
+          <CommentSection v-if="article?.id" :article-id="article.id" />
         </div>
       </div>
 
@@ -51,6 +55,7 @@ import { fetchArticleDetail, coverUrl } from '../api/article'
 import ProfileCard from '../components/ProfileCard.vue'
 import BlogInfoCard from '../components/BlogInfoCard.vue'
 import AdminEntryCard from '../components/AdminEntryCard.vue'
+import CommentSection from '../components/CommentSection.vue'
 import { fetchPublicProfile } from '../api/profile'
 
 const route = useRoute()

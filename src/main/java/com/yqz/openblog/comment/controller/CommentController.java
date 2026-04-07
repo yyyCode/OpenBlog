@@ -1,7 +1,7 @@
 package com.yqz.openblog.comment.controller;
 
 import com.yqz.openblog.comment.dto.CommentCreateRequest;
-import com.yqz.openblog.comment.dto.CommentResponse;
+import com.yqz.openblog.comment.dto.CommentThreadResponse;
 import com.yqz.openblog.comment.service.CommentService;
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.common.PageResult;
@@ -23,7 +23,7 @@ public class CommentController {
     }
 
     @GetMapping("/articles/{articleId}/comments")
-    public ApiResponse<PageResult<CommentResponse>> list(
+    public ApiResponse<PageResult<CommentThreadResponse>> list(
             @PathVariable("articleId") Long articleId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -31,15 +31,15 @@ public class CommentController {
     }
 
     @PostMapping("/articles/{articleId}/comments")
-    public ApiResponse<CommentResponse> createTopLevel(@PathVariable("articleId") Long articleId,
-                                                         @RequestBody @Valid CommentCreateRequest req) {
+    public ApiResponse<CommentThreadResponse> createTopLevel(@PathVariable("articleId") Long articleId,
+                                                             @RequestBody @Valid CommentCreateRequest req) {
         Long uid = currentUser.userId();
         return ApiResponse.ok(commentService.createTopLevel(articleId, uid, req));
     }
 
     @PostMapping("/comments/{commentId}/replies")
-    public ApiResponse<CommentResponse> reply(@PathVariable("commentId") Long commentId,
-                                               @RequestBody @Valid CommentCreateRequest req) {
+    public ApiResponse<CommentThreadResponse> reply(@PathVariable("commentId") Long commentId,
+                                                    @RequestBody @Valid CommentCreateRequest req) {
         Long uid = currentUser.userId();
         return ApiResponse.ok(commentService.reply(commentId, uid, req));
     }

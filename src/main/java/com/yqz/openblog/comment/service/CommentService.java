@@ -7,21 +7,25 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.entity.ArticleStatus;
 import com.yqz.openblog.comment.dto.CommentCreateRequest;
-import com.yqz.openblog.comment.dto.CommentResponse;
+import com.yqz.openblog.comment.dto.CommentThreadResponse;
+import com.yqz.openblog.comment.dto.CommentUserResponse;
 import com.yqz.openblog.comment.entity.Comment;
 import com.yqz.openblog.comment.entity.CommentStatus;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
-import com.yqz.openblog.security.CurrentUser;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class CommentService {
@@ -36,7 +40,7 @@ public class CommentService {
         this.userRepository = userRepository;
     }
 
-    public PageResult<CommentResponse> listComments(Long articleId, int page, int size) {
+    public PageResult<CommentThreadResponse> listComments(Long articleId, int page, int size) {
         LambdaQueryWrapper<Article> articleW = Wrappers.lambdaQuery();
         articleW.eq(Article::getId, articleId).eq(Article::getStatus, ArticleStatus.PUBLISHED);
         Article article = articleMapper.selectOne(articleW);
@@ -48,19 +52,81 @@ public class CommentService {
         LambdaQueryWrapper<Comment> commentW = Wrappers.lambdaQuery();
         commentW.eq(Comment::getArticleId, article.getId())
                 .eq(Comment::getStatus, CommentStatus.APPROVED)
+                .isNull(Comment::getParentId)
                 .orderByAsc(Comment::getCreatedAt);
         IPage<Comment> p = commentMapper.selectPage(mpPage, commentW);
 
-        List<CommentResponse> items = p.getRecords().stream().map(this::mapComment).toList();
+        List<Comment> top = p.getRecords();
+        if (top.isEmpty()) {
+            return new PageResult<>(List.of(), page, size, p.getTotal());
+        }
+
+        // 分层批量拉取子回复（最多 5 层：顶层 + 4 级回复）
+        Set<Long> frontier = new HashSet<>(top.stream().map(Comment::getId).toList());
+        List<Comment> descendants = new ArrayList<>();
+        for (int depth = 0; depth < 4; depth++) {
+            if (frontier.isEmpty()) break;
+            List<Comment> layer = commentMapper.selectList(
+                    Wrappers.lambdaQuery(Comment.class)
+                            .eq(Comment::getArticleId, article.getId())
+                            .eq(Comment::getStatus, CommentStatus.APPROVED)
+                            .in(Comment::getParentId, frontier)
+                            .orderByAsc(Comment::getCreatedAt));
+            if (layer.isEmpty()) break;
+            descendants.addAll(layer);
+            frontier = new HashSet<>(layer.stream().map(Comment::getId).toList());
+        }
+
+        List<Comment> all = new ArrayList<>(top.size() + descendants.size());
+        all.addAll(top);
+        all.addAll(descendants);
+
+        Map<Long, CommentThreadResponse> nodeById = new HashMap<>();
+        Set<Long> userIds = new HashSet<>();
+        for (Comment c : all) {
+            nodeById.put(c.getId(), toNode(c));
+            userIds.add(c.getUserId());
+        }
+
+        Map<Long, User> userById = new HashMap<>();
+        for (User u : userRepository.findAllById(userIds)) {
+            userById.put(u.getId(), u);
+        }
+        for (Comment c : all) {
+            CommentThreadResponse node = nodeById.get(c.getId());
+            if (node == null) continue;
+            User u = userById.get(c.getUserId());
+            node.setUser(toUser(u, c.getUserId()));
+        }
+
+        // 挂载 replies
+        for (Comment c : descendants) {
+            Long pid = c.getParentId();
+            if (pid == null) continue;
+            CommentThreadResponse parent = nodeById.get(pid);
+            CommentThreadResponse child = nodeById.get(c.getId());
+            if (parent == null || child == null) continue;
+            parent.getReplies().add(child);
+        }
+
+        // 每个节点的 replies 按时间排序（稳定）
+        Comparator<CommentThreadResponse> byTime = Comparator
+                .comparing(CommentThreadResponse::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(CommentThreadResponse::getId, Comparator.nullsLast(Comparator.naturalOrder()));
+        for (CommentThreadResponse n : nodeById.values()) {
+            if (n.getReplies() != null && n.getReplies().size() > 1) {
+                n.getReplies().sort(byTime);
+            }
+        }
+
+        List<CommentThreadResponse> items = top.stream().map(c -> nodeById.get(c.getId())).toList();
         return new PageResult<>(items, page, size, p.getTotal());
     }
 
-    private CommentResponse mapComment(Comment c) {
-        CommentResponse resp = new CommentResponse();
+    private CommentThreadResponse toNode(Comment c) {
+        CommentThreadResponse resp = new CommentThreadResponse();
         resp.setId(c.getId());
         resp.setArticleId(c.getArticleId());
-        resp.setUserId(c.getUserId());
-        resp.setUserNickname(userRepository.findById(c.getUserId()).map(User::getNickname).orElse(null));
         resp.setParentId(c.getParentId());
         resp.setContent(c.getContent());
         resp.setCreatedAt(c.getCreatedAt());
@@ -68,7 +134,22 @@ public class CommentService {
         return resp;
     }
 
-    public CommentResponse createTopLevel(Long articleId, Long uid, CommentCreateRequest req) {
+    private CommentUserResponse toUser(User u, Long uid) {
+        CommentUserResponse cu = new CommentUserResponse();
+        cu.setId(uid);
+        if (u == null) {
+            cu.setNickname(null);
+            cu.setAvatarUrl(null);
+            return cu;
+        }
+        String nn = u.getNickname();
+        if (nn == null || nn.isBlank()) nn = u.getUsername();
+        cu.setNickname(nn);
+        cu.setAvatarUrl(u.getAvatarUrl());
+        return cu;
+    }
+
+    public CommentThreadResponse createTopLevel(Long articleId, Long uid, CommentCreateRequest req) {
         LambdaQueryWrapper<Article> articleW = Wrappers.lambdaQuery();
         articleW.eq(Article::getId, articleId).eq(Article::getStatus, ArticleStatus.PUBLISHED);
         Article article = articleMapper.selectOne(articleW);
@@ -88,10 +169,12 @@ public class CommentService {
 
         article.setCommentCount(article.getCommentCount() + 1);
         articleMapper.updateById(article);
-        return mapComment(c);
+        CommentThreadResponse node = toNode(c);
+        node.setUser(toUser(userRepository.findById(uid).orElse(null), uid));
+        return node;
     }
 
-    public CommentResponse reply(Long commentId, Long uid, CommentCreateRequest req) {
+    public CommentThreadResponse reply(Long commentId, Long uid, CommentCreateRequest req) {
         ensureUserActive(uid);
 
         Comment parent = commentMapper.selectOne(
@@ -126,7 +209,9 @@ public class CommentService {
         article.setCommentCount(article.getCommentCount() + 1);
         articleMapper.updateById(article);
 
-        return mapComment(c);
+        CommentThreadResponse node = toNode(c);
+        node.setUser(toUser(userRepository.findById(uid).orElse(null), uid));
+        return node;
     }
 
     private int calcDepth(Long commentId) {
