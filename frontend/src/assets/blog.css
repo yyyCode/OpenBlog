@@ -1,5 +1,6 @@
 :root {
   --container: 1120px;
+  --page-pad: 26px;
   --bg: #ffffff;
   --text: #2c2c2c;
   --muted: #7a7a7a;
@@ -46,7 +47,7 @@ body {
 .blog-container {
   max-width: none;
   margin: 0;
-  padding: 26px 26px 60px;
+  padding: 26px var(--page-pad) 60px;
   text-align: left;
   color: var(--text);
 }
@@ -527,6 +528,133 @@ body {
   font-size: 13px;
   font-weight: 650;
   color: var(--text);
+}
+
+/* 首页：最新文章 + 订阅 */
+.home-section {
+  margin-top: 26px;
+}
+
+.home-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.home-section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.home-section-more {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.home-section-more:hover {
+  color: var(--text);
+}
+
+.home-latest-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 1024px) {
+  .home-latest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .home-latest-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-newsletter {
+  margin-top: 26px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
+}
+
+[data-theme='dark'] .home-newsletter {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.home-newsletter-inner {
+  padding: 24px 18px;
+  text-align: center;
+}
+
+.home-newsletter-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.home-newsletter-sub {
+  margin: 10px auto 0;
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.home-newsletter-form {
+  margin: 16px auto 0;
+  max-width: 520px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-newsletter-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  color: var(--text);
+}
+
+[data-theme='dark'] .home-newsletter-input {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.home-newsletter-input:focus {
+  border-color: rgba(170, 59, 255, 0.45);
+  box-shadow: 0 0 0 4px rgba(170, 59, 255, 0.08);
+}
+
+.home-newsletter-btn {
+  border: 1px solid var(--border);
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+[data-theme='dark'] .home-newsletter-btn {
+  background: #e5e7eb;
+  color: #111;
 }
 
 /* 全部文章（主从布局）：左侧侧边栏 + 右侧正文 */
@@ -1239,8 +1367,8 @@ body {
   box-sizing: border-box;
   padding-top: max(10px, env(safe-area-inset-top, 0px));
   padding-bottom: 10px;
-  padding-left: max(18px, env(safe-area-inset-left, 0px));
-  padding-right: max(18px, env(safe-area-inset-right, 0px));
+  padding-left: max(var(--page-pad), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--page-pad), env(safe-area-inset-right, 0px));
   background: rgba(255, 255, 255, 0.42);
   backdrop-filter: saturate(1.15) blur(16px);
   -webkit-backdrop-filter: saturate(1.15) blur(16px);
