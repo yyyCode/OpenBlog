@@ -8,6 +8,7 @@ import AllArticlesView from '../views/AllArticlesView.vue'
 import AdminLoginView from '../views/AdminLoginView.vue'
 import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
+import AboutView from '../views/AboutView.vue'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
 import ConsoleProfileView from '../views/ConsoleProfileView.vue'
@@ -28,6 +29,11 @@ const routes = [
     path: '/all',
     name: 'allArticles',
     component: AllArticlesView
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: AboutView
   },
   {
     path: '/console/login',

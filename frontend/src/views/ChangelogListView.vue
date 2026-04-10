@@ -1,6 +1,6 @@
 <template>
   <div class="blog-container">
-    <div class="page-grid">
+    <div>
       <div>
         <div v-if="loading" class="card">
           <div class="card-body" style="padding: 22px">加载中...</div>
@@ -30,34 +30,22 @@
           </div>
         </div>
       </div>
-
-      <div class="right-rail">
-        <ProfileCard :profile="profile" />
-        <BlogInfoCard />
-        <AdminEntryCard />
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import ProfileCard from '../components/ProfileCard.vue'
-import BlogInfoCard from '../components/BlogInfoCard.vue'
-import AdminEntryCard from '../components/AdminEntryCard.vue'
 import { fetchChangelogList } from '../api/changelog'
-import { fetchPublicProfile } from '../api/profile'
 
 const loading = ref(true)
 const items = ref([])
-const profile = ref(null)
 
 onMounted(async () => {
   loading.value = true
   try {
     const res = await fetchChangelogList(0, 50)
     items.value = res?.items || []
-    profile.value = await fetchPublicProfile()
   } finally {
     loading.value = false
   }

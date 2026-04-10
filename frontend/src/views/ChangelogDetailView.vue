@@ -1,6 +1,6 @@
 <template>
   <div class="blog-container">
-    <div class="page-grid">
+    <div>
       <div>
         <div v-if="loading" class="card">
           <div class="card-body" style="padding: 22px">加载中...</div>
@@ -22,12 +22,6 @@
           </div>
         </div>
       </div>
-
-      <div class="right-rail">
-        <ProfileCard :profile="profile" />
-        <BlogInfoCard />
-        <AdminEntryCard />
-      </div>
     </div>
   </div>
 </template>
@@ -39,22 +33,16 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 
 import { fetchChangelogDetail } from '../api/changelog'
-import ProfileCard from '../components/ProfileCard.vue'
-import BlogInfoCard from '../components/BlogInfoCard.vue'
-import AdminEntryCard from '../components/AdminEntryCard.vue'
-import { fetchPublicProfile } from '../api/profile'
 
 const route = useRoute()
 const loading = ref(true)
 const entry = ref({})
-const profile = ref(null)
 
 async function load() {
   loading.value = true
   try {
     const id = route.params.id
     entry.value = await fetchChangelogDetail(id)
-    profile.value = await fetchPublicProfile()
   } catch {
     entry.value = {}
   } finally {

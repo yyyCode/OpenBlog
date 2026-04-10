@@ -1,6 +1,6 @@
 <template>
   <div class="blog-container all-articles-page">
-    <div class="all-layout-3">
+    <div class="all-layout">
       <!-- 左侧：头像 + 搜索 + 文章列表 -->
       <aside class="all-sidebar">
 
@@ -68,13 +68,6 @@
           <CommentSection v-if="selectedArticle?.id" :article-id="selectedArticle.id" />
         </div>
       </main>
-
-      <!-- 右侧固定：头像/个性签名 -->
-      <aside class="right-rail">
-        <ProfileCard :profile="profile" />
-        <BlogInfoCard />
-        <AdminEntryCard />
-      </aside>
     </div>
   </div>
 </template>
@@ -85,11 +78,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
-import ProfileCard from '../components/ProfileCard.vue'
-import BlogInfoCard from '../components/BlogInfoCard.vue'
-import AdminEntryCard from '../components/AdminEntryCard.vue'
 import CommentSection from '../components/CommentSection.vue'
-import { fetchPublicProfile } from '../api/profile'
 
 const loadingList = ref(true)
 const loadingDetail = ref(true)
@@ -99,13 +88,10 @@ const allArticles = ref([])
 
 const selectedId = ref(null)
 const selectedArticle = ref({})
-const profile = ref(null)
 
 onMounted(async () => {
   try {
     loadingList.value = true
-
-    profile.value = await fetchPublicProfile()
 
     const resp = await fetchArticles({ page: 0, size: 200 })
     allArticles.value = resp?.items || []

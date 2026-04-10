@@ -1,6 +1,6 @@
 <template>
   <div class="blog-container">
-    <div class="page-grid">
+    <div class="article-detail-wrap">
       <div>
         <div v-if="loading" class="card">
           <div class="card-body" style="padding: 22px">加载中...</div>
@@ -35,12 +35,6 @@
           <CommentSection v-if="article?.id" :article-id="article.id" />
         </div>
       </div>
-
-      <div class="right-rail">
-        <ProfileCard :profile="profile" />
-        <BlogInfoCard />
-        <AdminEntryCard />
-      </div>
     </div>
   </div>
 </template>
@@ -52,24 +46,17 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 
 import { fetchArticleDetail, coverUrl } from '../api/article'
-import ProfileCard from '../components/ProfileCard.vue'
-import BlogInfoCard from '../components/BlogInfoCard.vue'
-import AdminEntryCard from '../components/AdminEntryCard.vue'
 import CommentSection from '../components/CommentSection.vue'
-import { fetchPublicProfile } from '../api/profile'
 
 const route = useRoute()
 const loading = ref(true)
 const article = ref({})
-const profile = ref(null)
 
 onMounted(async () => {
   loading.value = true
   try {
     const id = route.params.id
     article.value = await fetchArticleDetail(id)
-
-    profile.value = await fetchPublicProfile()
   } finally {
     loading.value = false
   }

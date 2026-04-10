@@ -1,23 +1,37 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import BlogHeader from './components/BlogHeader.vue'
 import WelcomeGate from './components/WelcomeGate.vue'
 import BackToTop from './components/BackToTop.vue'
+import WidgetsDrawer from './components/WidgetsDrawer.vue'
 import { postSiteVisit } from './api/site'
+import { fetchPublicProfile } from './api/profile'
 
 const route = useRoute()
 const isConsole = computed(() => route.path.startsWith('/console'))
+const widgetsOpen = ref(false)
+const profile = ref(null)
 
 onMounted(() => {
   postSiteVisit().catch(() => {})
+})
+
+onMounted(async () => {
+  if (isConsole.value) return
+  try {
+    profile.value = await fetchPublicProfile()
+  } catch {
+    profile.value = null
+  }
 })
 </script>
 
 <template>
   <div class="blog-app">
     <WelcomeGate v-if="!isConsole" />
-    <BlogHeader v-if="!isConsole" />
+    <BlogHeader v-if="!isConsole" @toggle-widgets="widgetsOpen = !widgetsOpen" />
+    <WidgetsDrawer v-if="!isConsole" :open="widgetsOpen" :profile="profile" @close="widgetsOpen = false" />
     <BackToTop v-if="!isConsole" />
     <router-view />
   </div>
