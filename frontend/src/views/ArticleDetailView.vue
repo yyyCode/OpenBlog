@@ -1,40 +1,39 @@
 <template>
-  <div class="blog-container">
+  <div class="blog-container article-detail-page">
     <div class="article-detail-wrap">
-      <div>
-        <div v-if="loading" class="card">
-          <div class="card-body" style="padding: 22px">加载中...</div>
-        </div>
+      <div v-if="loading" class="article-detail-loading">加载中...</div>
 
-        <div v-else>
-          <div class="card">
-            <div class="article-content">
-              <div v-if="!article?.id" style="padding: 20px 0">文章不存在</div>
+      <template v-else>
+        <article v-if="article?.id" class="article-reader">
+          <router-link class="article-back" to="/all">
+            <span class="article-back-chev" aria-hidden="true">‹</span>
+            返回博客
+          </router-link>
 
-              <div v-else>
-                <div style="margin-bottom: 14px">
-                  <img
-                    v-if="article.coverMediaKey"
-                    :src="coverUrl(article.coverMediaKey)"
-                    alt="cover"
-                    style="width: 100%; max-height: 340px; object-fit: cover; border-radius: 12px"
-                  />
-                </div>
+          <p class="article-kicker-meta">
+            <span>{{ formatDate(article.publishedAt) }}</span>
+            <span class="article-kicker-dot">·</span>
+            <span>{{ readMinutes }} 分钟</span>
+            <template v-if="categoryLabel">
+              <span class="article-kicker-dot">·</span>
+              <span>{{ categoryLabel }}</span>
+            </template>
+          </p>
 
-                <h1 class="article-hero-title">{{ article.title }}</h1>
-                <div class="article-hero-meta">
-                  发布于 {{ formatDate(article.publishedAt) }} · 作者 {{ article.authorNickname || '' }} · 阅读
-                  {{ article.viewCount ?? 0 }}
-                </div>
+          <h1 class="article-reader-title">{{ article.title }}</h1>
+          <p v-if="article.summary" class="article-reader-lead">{{ article.summary }}</p>
 
-                <div class="markdown-body article-markdown" v-html="html" />
-              </div>
-            </div>
-          </div>
+          <figure v-if="article.coverMediaKey" class="article-reader-cover">
+            <img :src="coverUrl(article.coverMediaKey)" alt="" />
+          </figure>
 
-          <CommentSection v-if="article?.id" :article-id="article.id" />
-        </div>
-      </div>
+          <div class="markdown-body article-markdown article-markdown--body" v-html="html" />
+        </article>
+
+        <div v-else class="article-detail-empty">文章不存在</div>
+
+        <CommentSection v-if="article?.id" :article-id="article.id" />
+      </template>
     </div>
   </div>
 </template>
@@ -65,9 +64,22 @@ onMounted(async () => {
 const html = computed(() => {
   const md = article.value.contentMarkdown || ''
   const raw = marked.parse(md)
-  // MVP：做基础消毒，避免把恶意 HTML 直接注入
   return DOMPurify.sanitize(raw)
 })
+
+/** 后端若将来返回分类名则展示 */
+const categoryLabel = computed(() => {
+  const a = article.value
+  return a?.categoryName || a?.categoryLabel || ''
+})
+
+const readMinutes = computed(() => estimateReadMinutes(article.value?.contentMarkdown))
+
+function estimateReadMinutes(md) {
+  if (!md || typeof md !== 'string') return 1
+  const chars = md.replace(/\s+/g, '').length
+  return Math.max(1, Math.round(chars / 450))
+}
 
 function formatDate(v) {
   if (!v) return ''
@@ -78,4 +90,3 @@ function formatDate(v) {
   }
 }
 </script>
-
