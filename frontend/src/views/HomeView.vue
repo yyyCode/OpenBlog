@@ -47,7 +47,7 @@
             </div>
           </div>
 
-          <section class="home-section">
+          <section class="home-section home-section-latest">
             <div class="home-section-head">
               <h2 class="home-section-title">最新文章</h2>
               <router-link class="home-section-more" to="/all">查看全部 →</router-link>
