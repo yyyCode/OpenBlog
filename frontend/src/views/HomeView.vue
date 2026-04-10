@@ -57,7 +57,20 @@
               <div class="card-body" style="padding: 22px; color: var(--muted)">暂无文章</div>
             </div>
             <div v-else class="home-latest-grid">
-              <ArticleCard v-for="a in latestArticles" :key="a.id" :article="a" />
+              <div v-for="a in latestArticles" :key="a.id" class="home-post-card" @click="go(a.id)">
+                <div class="home-post-cover">
+                  <img v-if="a.coverMediaKey" :src="coverUrl(a.coverMediaKey)" alt="cover" />
+                </div>
+                <div class="home-post-body">
+                  <div class="home-post-meta">
+                    <span>{{ formatDate(a.publishedAt) }}</span>
+                    <span>·</span>
+                    <span>{{ a.authorNickname || '作者' }}</span>
+                  </div>
+                  <div class="home-post-title">{{ a.title }}</div>
+                  <div class="home-post-excerpt">{{ a.summary || '' }}</div>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -87,7 +100,6 @@
 import { onMounted, ref } from 'vue'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
-import ArticleCard from '../components/ArticleCard.vue'
 import { useRouter } from 'vue-router'
 import { showMessage } from '../utils/message'
 
