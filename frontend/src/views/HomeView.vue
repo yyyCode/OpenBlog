@@ -4,8 +4,8 @@
       <div class="home-hero-inner">
         <h1 class="home-hero-title">设计，创造，<br />思考未来</h1>
         <p class="home-hero-sub">
-          探索设计、技术和创造力的交汇点。<br />
-          分享关于用户体验、产品设计和数字创新的见解。
+          探索 AI、设计与技术的交集<br />
+          分享关于智能交互、AI 驱动产品与数字创新的实战经验。
         </p>
       </div>
     </section>

@@ -1,7 +1,7 @@
 <template>
   <header class="site-top-bar" role="banner">
     <div class="site-top-bar-inner">
-      <router-link class="site-brand" to="/">思考空间</router-link>
+      <router-link class="site-brand" to="/">烧仙草冰室</router-link>
 
       <nav class="site-nav" aria-label="主导航">
         <button
