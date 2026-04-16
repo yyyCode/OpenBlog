@@ -838,6 +838,9 @@ body {
   .all-layout-3 {
     grid-template-columns: 1fr;
   }
+  .blog-container.all-articles-page .right-rail {
+    display: none;
+  }
 }
 
 .all-sidebar {
@@ -912,6 +915,18 @@ body {
 
 .all-main {
   min-width: 0;
+  /* 让正文卡片在右侧区域内居中展示（避免三列占位导致正文变窄） */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.blog-container.all-articles-page .all-main .all-main-inner {
+  width: min(720px, 100%);
+}
+
+.blog-container.all-articles-page .all-main .card {
+  width: min(720px, 100%);
 }
 
 /* 不要用 overflow:hidden 裁切头像：历史上负 margin 与横幅重叠，现无横幅时会把头像顶部切掉 */

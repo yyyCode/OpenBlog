@@ -1,6 +1,6 @@
 <template>
   <div class="blog-container all-articles-page">
-    <div class="all-layout-3">
+    <div class="all-layout">
       <!-- 左侧：头像 + 搜索 + 文章列表 -->
       <aside class="all-sidebar">
 
@@ -44,7 +44,7 @@
           <div class="card-body" style="padding: 22px; color: var(--muted)">请选择一篇文章</div>
         </div>
 
-        <div v-else>
+        <div v-else class="all-main-inner">
           <div class="card">
             <div class="article-content">
               <div v-if="selectedArticle.coverMediaKey" style="margin-bottom: 14px">
@@ -68,9 +68,6 @@
           <CommentSection v-if="selectedArticle?.id" :article-id="selectedArticle.id" />
         </div>
       </main>
-
-      <!-- 右侧占位：让中间正文列在大屏时实现居中 -->
-      <div class="right-rail" aria-hidden="true" />
     </div>
   </div>
 </template>
