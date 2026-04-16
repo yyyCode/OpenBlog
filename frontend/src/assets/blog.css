@@ -1350,6 +1350,11 @@ body {
   color: var(--accent);
 }
 
+/* 文章详情页：同时有“博客/目录”两个左侧按钮，避免重叠 */
+.article-detail-page .toc-fab {
+  top: calc(50% + 54px);
+}
+
 .toc-overlay {
   position: fixed;
   inset: 0;
@@ -1442,6 +1447,118 @@ body {
 }
 
 .toc-item:focus-visible {
+  outline: 2px solid rgba(170, 59, 255, 0.6);
+  outline-offset: 2px;
+}
+
+/* 全部文章：文章列表抽屉（默认仅左侧按钮） */
+.articles-fab {
+  position: fixed;
+  left: max(14px, env(safe-area-inset-left, 0px));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9997;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.articles-fab:hover {
+  border-color: rgba(170, 59, 255, 0.45);
+  color: var(--accent);
+}
+
+.articles-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.16);
+  z-index: 10000;
+}
+
+[data-theme='dark'] .articles-overlay {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.articles-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100svh;
+  width: min(360px, calc(100vw - 56px));
+  background: rgba(255, 255, 255, 0.72);
+  border-right: 1px solid var(--border);
+  backdrop-filter: saturate(1.15) blur(18px);
+  -webkit-backdrop-filter: saturate(1.15) blur(18px);
+  z-index: 10001;
+  transform: translateX(-102%);
+  transition: transform 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme='dark'] .articles-drawer {
+  background: rgba(18, 18, 20, 0.82);
+}
+
+.articles-drawer.open {
+  transform: translateX(0);
+}
+
+.articles-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.articles-drawer-title {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+
+.articles-drawer-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.articles-drawer-close:hover {
+  color: var(--text);
+}
+
+.articles-drawer-search {
+  padding: 12px 14px 6px;
+}
+
+.articles-drawer-body {
+  padding: 10px 14px 14px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.articles-drawer-item {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
+.articles-drawer-item:focus-visible {
   outline: 2px solid rgba(170, 59, 255, 0.6);
   outline-offset: 2px;
 }
