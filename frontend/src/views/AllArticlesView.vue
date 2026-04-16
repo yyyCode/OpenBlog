@@ -45,7 +45,7 @@
       aria-controls="articles-drawer"
       @click="openList"
     >
-      博客
+      目录
     </button>
 
     <div v-if="listOpen" class="articles-overlay" @click="closeList" />
@@ -54,10 +54,10 @@
       class="articles-drawer"
       :class="{ open: listOpen }"
       role="dialog"
-      aria-label="博客文章列表"
+      aria-label="文章目录"
     >
       <div class="articles-drawer-head">
-        <div class="articles-drawer-title">博客</div>
+        <div class="articles-drawer-title">目录</div>
         <button class="articles-drawer-close" type="button" aria-label="关闭文章列表" @click="closeList">
           ×
         </button>

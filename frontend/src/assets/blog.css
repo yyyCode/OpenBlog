@@ -1350,11 +1350,6 @@ body {
   color: var(--accent);
 }
 
-/* 文章详情页：同时有“博客/目录”两个左侧按钮，避免重叠 */
-.article-detail-page .toc-fab {
-  top: calc(50% + 54px);
-}
-
 .toc-overlay {
   position: fixed;
   inset: 0;

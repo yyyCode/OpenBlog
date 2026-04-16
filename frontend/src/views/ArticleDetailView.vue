@@ -36,54 +36,6 @@
       </template>
     </div>
 
-    <!-- 外挂式文章列表：左侧抽屉 -->
-    <button
-      class="articles-fab"
-      type="button"
-      :aria-expanded="listOpen ? 'true' : 'false'"
-      aria-controls="articles-drawer"
-      @click="openList"
-    >
-      博客
-    </button>
-
-    <div v-if="listOpen" class="articles-overlay" @click="closeList" />
-    <aside
-      id="articles-drawer"
-      class="articles-drawer"
-      :class="{ open: listOpen }"
-      role="dialog"
-      aria-label="博客文章列表"
-    >
-      <div class="articles-drawer-head">
-        <div class="articles-drawer-title">博客</div>
-        <button class="articles-drawer-close" type="button" aria-label="关闭文章列表" @click="closeList">
-          ×
-        </button>
-      </div>
-
-      <div class="articles-drawer-search">
-        <input v-model="keyword" type="text" class="search-input" placeholder="find something..." />
-      </div>
-
-      <div class="articles-drawer-body">
-        <div v-if="loadingList" class="sidebar-hint" style="color: var(--muted)">加载中...</div>
-        <div v-else-if="listItems.length === 0" class="sidebar-hint" style="color: var(--muted)">暂无文章</div>
-
-        <button
-          v-for="a in listItems"
-          :key="a.id"
-          class="sidebar-item articles-drawer-item"
-          :class="{ active: String(a.id) === String(route.params.id) }"
-          type="button"
-          @click="goArticle(a.id)"
-        >
-          <div class="sidebar-item-title">{{ a.title }}</div>
-          <div class="sidebar-item-date">{{ formatDate(a.publishedAt) }}</div>
-        </button>
-      </div>
-    </aside>
-
     <!-- 外挂式目录：左侧抽屉 -->
     <button
       v-if="tocItems.length"
@@ -127,16 +79,15 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 
-import { fetchArticleDetail, fetchArticles, coverUrl } from '../api/article'
+import { fetchArticleDetail, coverUrl } from '../api/article'
 import CommentSection from '../components/CommentSection.vue'
 
 const route = useRoute()
-const router = useRouter()
 const loading = ref(true)
 const article = ref({})
 const html = ref('')
@@ -152,43 +103,6 @@ onMounted(async () => {
     loading.value = false
   }
 })
-
-const listOpen = ref(false)
-const loadingList = ref(true)
-const keyword = ref('')
-const allArticles = ref([])
-
-onMounted(async () => {
-  try {
-    loadingList.value = true
-    const resp = await fetchArticles({ page: 0, size: 200 })
-    allArticles.value = resp?.items || []
-  } finally {
-    loadingList.value = false
-  }
-})
-
-const listItems = computed(() => {
-  const k = (keyword.value || '').trim().toLowerCase()
-  if (!k) return allArticles.value
-  return allArticles.value.filter(a => (a.title || '').toLowerCase().includes(k))
-})
-
-function openList() {
-  listOpen.value = true
-}
-
-function closeList() {
-  listOpen.value = false
-}
-
-function goArticle(id) {
-  closeList()
-  tocOpen.value = false
-  router.push(`/article/${id}`).then(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' })
-  })
-}
 
 watchEffect(() => {
   const md = article.value?.contentMarkdown || ''
@@ -236,7 +150,6 @@ function jumpToHeading(id) {
 
 function onKeyDown(e) {
   if (e.key === 'Escape') {
-    if (listOpen.value) listOpen.value = false
     if (tocOpen.value) tocOpen.value = false
   }
 }
