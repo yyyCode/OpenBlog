@@ -1,6 +1,6 @@
 <template>
   <div class="blog-container all-articles-page">
-    <div class="all-layout">
+    <div class="all-layout-3">
       <!-- 左侧：头像 + 搜索 + 文章列表 -->
       <aside class="all-sidebar">
 
@@ -68,6 +68,9 @@
           <CommentSection v-if="selectedArticle?.id" :article-id="selectedArticle.id" />
         </div>
       </main>
+
+      <!-- 右侧占位：让中间正文列在大屏时实现居中 -->
+      <div class="right-rail" aria-hidden="true" />
     </div>
   </div>
 </template>
