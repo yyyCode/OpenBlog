@@ -35,11 +35,51 @@
         <CommentSection v-if="article?.id" :article-id="article.id" />
       </template>
     </div>
+
+    <!-- 外挂式目录：左侧抽屉 -->
+    <button
+      v-if="tocItems.length"
+      class="toc-fab"
+      type="button"
+      :aria-expanded="tocOpen ? 'true' : 'false'"
+      aria-controls="article-toc-drawer"
+      @click="tocOpen = true"
+    >
+      目录
+    </button>
+
+    <div v-if="tocOpen" class="toc-overlay" @click="tocOpen = false" />
+    <aside
+      id="article-toc-drawer"
+      class="toc-drawer"
+      :class="{ open: tocOpen }"
+      role="dialog"
+      aria-label="文章目录"
+    >
+      <div class="toc-drawer-head">
+        <div class="toc-drawer-title">目录</div>
+        <button class="toc-drawer-close" type="button" aria-label="关闭目录" @click="tocOpen = false">
+          ×
+        </button>
+      </div>
+      <nav class="toc-drawer-body" aria-label="目录导航">
+        <button
+          v-for="it in tocItems"
+          :key="it.id"
+          class="toc-item"
+          type="button"
+          :style="{ paddingLeft: `${8 + Math.max(0, it.level - 1) * 12}px` }"
+          @click="jumpToHeading(it.id)"
+        >
+          {{ it.text }}
+        </button>
+      </nav>
+    </aside>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
@@ -50,6 +90,9 @@ import CommentSection from '../components/CommentSection.vue'
 const route = useRoute()
 const loading = ref(true)
 const article = ref({})
+const html = ref('')
+const tocItems = ref([])
+const tocOpen = ref(false)
 
 onMounted(async () => {
   loading.value = true
@@ -61,19 +104,39 @@ onMounted(async () => {
   }
 })
 
-const html = computed(() => {
-  const md = article.value.contentMarkdown || ''
-  const raw = marked.parse(md)
-  return DOMPurify.sanitize(raw)
+watchEffect(() => {
+  const md = article.value?.contentMarkdown || ''
+  const items = []
+
+  const renderer = new marked.Renderer()
+  const slugger = new marked.Slugger()
+
+  renderer.heading = (text, level, raw) => {
+    const id = slugger.slug(String(raw || text || ''))
+    const plain = String(text || '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (plain) items.push({ id, level, text: plain })
+    return `<h${level} id="${id}">${text}</h${level}>`
+  }
+
+  const rawHtml = marked.parse(md, { renderer })
+  html.value = DOMPurify.sanitize(rawHtml)
+  tocItems.value = items
+
+  if (!items.length) tocOpen.value = false
 })
 
 /** 后端若将来返回分类名则展示 */
-const categoryLabel = computed(() => {
-  const a = article.value
-  return a?.categoryName || a?.categoryLabel || ''
-})
+const categoryLabel = ref('')
+const readMinutes = ref(1)
 
-const readMinutes = computed(() => estimateReadMinutes(article.value?.contentMarkdown))
+watchEffect(() => {
+  const a = article.value
+  categoryLabel.value = a?.categoryName || a?.categoryLabel || ''
+  readMinutes.value = estimateReadMinutes(a?.contentMarkdown)
+})
 
 function estimateReadMinutes(md) {
   if (!md || typeof md !== 'string') return 1
@@ -89,4 +152,20 @@ function formatDate(v) {
     return ''
   }
 }
+
+function jumpToHeading(id) {
+  tocOpen.value = false
+  requestAnimationFrame(() => {
+    const el = document.getElementById(id)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
+
+function onKeyDown(e) {
+  if (e.key === 'Escape' && tocOpen.value) tocOpen.value = false
+}
+
+onMounted(() => window.addEventListener('keydown', onKeyDown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeyDown))
 </script>
