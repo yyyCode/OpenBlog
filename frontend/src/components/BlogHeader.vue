@@ -19,6 +19,14 @@
         <router-link class="site-nav-link" to="/about" :class="{ active: isActive('/about') }">关于</router-link>
         <a
           class="site-nav-link"
+          href="http://ai.wecode.xin/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          AI平台
+        </a>
+        <a
+          class="site-nav-link"
           href="https://github.com/yyyCode/OpenBlog.git"
           target="_blank"
           rel="noopener noreferrer"
