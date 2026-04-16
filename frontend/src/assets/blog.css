@@ -1229,22 +1229,21 @@ body {
   background: #1a1a1a;
 }
 
-/* 文章详情：正文 + 右侧大纲两栏 */
-.article-detail-page .article-detail-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 24px;
-  align-items: start;
-}
-
+/* 文章详情：正文保持居中阅读列，右侧大纲悬浮在空白区 */
 .article-detail-page .article-detail-wrap {
-  min-width: 0;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .article-toc-rail {
-  position: sticky;
+  position: fixed;
+  right: max(16px, calc((100vw - var(--container)) / 2));
   top: 86px;
-  align-self: start;
+  width: 320px;
+  height: calc(100svh - 86px - 26px);
+  overflow: hidden;
+  z-index: 900;
+  pointer-events: auto;
 }
 
 .article-toc-card {
@@ -1272,7 +1271,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: calc(100svh - 86px - 24px);
+  max-height: 100%;
 }
 
 .article-toc-item {
@@ -1391,9 +1390,6 @@ body {
 }
 
 @media (max-width: 1024px) {
-  .article-detail-page .article-detail-grid {
-    grid-template-columns: 1fr;
-  }
   .article-toc-rail {
     display: none;
   }

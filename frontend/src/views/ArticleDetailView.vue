@@ -1,61 +1,59 @@
 <template>
   <div class="blog-container article-detail-page">
-    <div class="article-detail-grid">
-      <div class="article-detail-wrap">
-        <div v-if="loading" class="article-detail-loading">加载中...</div>
+    <div class="article-detail-wrap">
+      <div v-if="loading" class="article-detail-loading">加载中...</div>
 
-        <template v-else>
-          <article v-if="article?.id" class="article-reader">
-            <router-link class="article-back" to="/all">
-              <span class="article-back-chev" aria-hidden="true">‹</span>
-              返回博客
-            </router-link>
+      <template v-else>
+        <article v-if="article?.id" class="article-reader">
+          <router-link class="article-back" to="/all">
+            <span class="article-back-chev" aria-hidden="true">‹</span>
+            返回博客
+          </router-link>
 
-            <p class="article-kicker-meta">
-              <span>{{ formatDate(article.publishedAt) }}</span>
+          <p class="article-kicker-meta">
+            <span>{{ formatDate(article.publishedAt) }}</span>
+            <span class="article-kicker-dot">·</span>
+            <span>{{ readMinutes }} 分钟</span>
+            <template v-if="categoryLabel">
               <span class="article-kicker-dot">·</span>
-              <span>{{ readMinutes }} 分钟</span>
-              <template v-if="categoryLabel">
-                <span class="article-kicker-dot">·</span>
-                <span>{{ categoryLabel }}</span>
-              </template>
-            </p>
+              <span>{{ categoryLabel }}</span>
+            </template>
+          </p>
 
-            <h1 class="article-reader-title">{{ article.title }}</h1>
-            <p v-if="article.summary" class="article-reader-lead">{{ article.summary }}</p>
+          <h1 class="article-reader-title">{{ article.title }}</h1>
+          <p v-if="article.summary" class="article-reader-lead">{{ article.summary }}</p>
 
-            <figure v-if="article.coverMediaKey" class="article-reader-cover">
-              <img :src="coverUrl(article.coverMediaKey)" alt="" />
-            </figure>
+          <figure v-if="article.coverMediaKey" class="article-reader-cover">
+            <img :src="coverUrl(article.coverMediaKey)" alt="" />
+          </figure>
 
-            <div class="markdown-body article-markdown article-markdown--body" v-html="html" />
-          </article>
+          <div class="markdown-body article-markdown article-markdown--body" v-html="html" />
+        </article>
 
-          <div v-else class="article-detail-empty">文章不存在</div>
+        <div v-else class="article-detail-empty">文章不存在</div>
 
-          <CommentSection v-if="article?.id" :article-id="article.id" />
-        </template>
-      </div>
-
-      <!-- 右侧：文章大纲（标题目录） -->
-      <aside v-if="tocItems.length" class="article-toc-rail" aria-label="文章大纲">
-        <div class="article-toc-card">
-          <div class="article-toc-title">大纲</div>
-          <nav class="article-toc-body" aria-label="大纲导航">
-            <button
-              v-for="it in tocItems"
-              :key="it.id"
-              class="article-toc-item"
-              type="button"
-              :style="{ paddingLeft: `${10 + Math.max(0, it.level - 1) * 12}px` }"
-              @click="jumpToHeading(it.id)"
-            >
-              {{ it.text }}
-            </button>
-          </nav>
-        </div>
-      </aside>
+        <CommentSection v-if="article?.id" :article-id="article.id" />
+      </template>
     </div>
+
+    <!-- 右侧：文章大纲（标题目录） -->
+    <aside v-if="tocItems.length" class="article-toc-rail" aria-label="文章大纲">
+      <div class="article-toc-card">
+        <div class="article-toc-title">大纲</div>
+        <nav class="article-toc-body" aria-label="大纲导航">
+          <button
+            v-for="it in tocItems"
+            :key="it.id"
+            class="article-toc-item"
+            type="button"
+            :style="{ paddingLeft: `${10 + Math.max(0, it.level - 1) * 12}px` }"
+            @click="jumpToHeading(it.id)"
+          >
+            {{ it.text }}
+          </button>
+        </nav>
+      </div>
+    </aside>
   </div>
 </template>
 
