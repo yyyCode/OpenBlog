@@ -1,7 +1,22 @@
 <template>
   <header class="site-top-bar" role="banner">
     <div class="site-top-bar-inner">
-      <router-link class="site-brand" to="/">烧仙草冰室</router-link>
+      <router-link class="site-brand" to="/" aria-label="烧仙草冰室，返回首页">
+        <span class="site-brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- cup -->
+            <path d="M7 6h10l-1.2 14.2a2 2 0 0 1-2 1.8H10.2a2 2 0 0 1-2-1.8L7 6z" />
+            <!-- rim -->
+            <path d="M6.2 6h11.6" />
+            <!-- ice cubes -->
+            <path d="M10 9.2h2.6v2.6H10z" />
+            <path d="M13.6 10.6h2.6v2.6h-2.6z" />
+            <!-- grass jelly layer -->
+            <path d="M9.2 15.2c1.1-.8 2.4-.8 3.5 0s2.4.8 3.5 0" />
+          </svg>
+        </span>
+        <span class="site-brand-text">烧仙草冰室</span>
+      </router-link>
 
       <nav class="site-nav" aria-label="主导航">
         <button
@@ -11,12 +26,21 @@
           aria-label="打开个人信息侧栏"
           title="个人信息"
         >
-          <span class="site-nav-widgets-ico" aria-hidden="true">☰</span>
+          <span class="site-nav-ico" aria-hidden="true"><Menu /></span>
           <span class="site-nav-widgets-text">个人</span>
         </button>
-        <router-link class="site-nav-link" to="/" :class="{ active: isActive('/') }">首页</router-link>
-        <router-link class="site-nav-link" to="/all" :class="{ active: isActive('/all') }">博客</router-link>
-        <router-link class="site-nav-link" to="/about" :class="{ active: isActive('/about') }">关于</router-link>
+        <router-link class="site-nav-link" to="/" :class="{ active: isActive('/') }">
+          <span class="site-nav-ico" aria-hidden="true"><House /></span>
+          首页
+        </router-link>
+        <router-link class="site-nav-link" to="/all" :class="{ active: isActive('/all') }">
+          <span class="site-nav-ico" aria-hidden="true"><Notebook /></span>
+          博客
+        </router-link>
+        <router-link class="site-nav-link" to="/about" :class="{ active: isActive('/about') }">
+          <span class="site-nav-ico" aria-hidden="true"><InfoFilled /></span>
+          关于
+        </router-link>
         <div ref="dropdownRoot" class="site-nav-dropdown">
           <button
             type="button"
@@ -25,6 +49,7 @@
             aria-haspopup="menu"
             @click.stop="toggleDropdown"
           >
+            <span class="site-nav-ico" aria-hidden="true"><MagicStick /></span>
             AI实验室 <span class="site-nav-dropdown-caret" aria-hidden="true">▾</span>
           </button>
 
@@ -47,9 +72,14 @@
           target="_blank"
           rel="noopener noreferrer"
         >
+          <span class="site-nav-ico" aria-hidden="true"><Link /></span>
           源码
         </a>
         <button type="button" class="site-nav-link site-nav-link-btn" @click="onToggle">
+          <span class="site-nav-ico" aria-hidden="true">
+            <Sunny v-if="isDark" />
+            <Moon v-else />
+          </span>
           {{ isDark ? '浅色' : '深色' }}
         </button>
       </nav>
@@ -61,6 +91,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { toggleTheme as applyToggle } from '../theme'
+import { House, InfoFilled, Link, MagicStick, Menu, Moon, Notebook, Sunny } from '@element-plus/icons-vue'
 
 const isDark = ref(false)
 const route = useRoute()
