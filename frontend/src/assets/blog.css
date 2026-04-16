@@ -787,47 +787,46 @@ body {
   .blog-container.all-articles-page {
     /* 底部与顶部对称，避免整页再出一层滚动条 */
     padding-bottom: 26px;
+    /* 外挂式目录：正文不再受容器宽度限制 */
+    max-width: none;
   }
 
-  .blog-container.all-articles-page .all-layout-3 {
-    align-items: stretch;
-    /* 顶栏 + 容器上下 padding（与 .right-rail 的 sticky top 大致一致） */
-    height: calc(100svh - 86px - 52px);
-    min-height: 0;
-    max-height: calc(100svh - 86px - 52px);
+  /* 外挂式目录：左侧悬浮，不参与布局 */
+  .blog-container.all-articles-page .all-layout {
+    display: block;
   }
 
   .blog-container.all-articles-page .all-sidebar {
-    position: relative;
+    position: fixed;
+    left: max(16px, calc((100vw - var(--container)) / 2));
+    top: 86px;
+    width: 320px;
+    height: calc(100svh - 86px - 26px);
     min-height: 0;
-    max-height: 100%;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
+    z-index: 900;
+    background: transparent;
+    pointer-events: auto;
   }
 
   .blog-container.all-articles-page .sidebar-list {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: none;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
+  /* 正文：居中且更宽 */
   .blog-container.all-articles-page .all-main {
-    min-height: 0;
-    max-height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
-  .blog-container.all-articles-page .right-rail {
-    position: relative;
-    top: auto;
-    min-height: 0;
-    max-height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+  .blog-container.all-articles-page .all-main .all-main-inner,
+  .blog-container.all-articles-page .all-main .card {
+    width: min(980px, calc(100vw - 64px));
   }
 }
 
@@ -915,18 +914,6 @@ body {
 
 .all-main {
   min-width: 0;
-  /* 让正文卡片在右侧区域内居中展示（避免三列占位导致正文变窄） */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.blog-container.all-articles-page .all-main .all-main-inner {
-  width: min(720px, 100%);
-}
-
-.blog-container.all-articles-page .all-main .card {
-  width: min(720px, 100%);
 }
 
 /* 不要用 overflow:hidden 裁切头像：历史上负 margin 与横幅重叠，现无横幅时会把头像顶部切掉 */
