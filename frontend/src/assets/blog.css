@@ -1229,10 +1229,72 @@ body {
   background: #1a1a1a;
 }
 
-/* 文章详情：居中阅读列 + 顶部信息区 */
+/* 文章详情：正文 + 右侧大纲两栏 */
+.article-detail-page .article-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
 .article-detail-page .article-detail-wrap {
-  max-width: 720px;
-  margin: 0 auto;
+  min-width: 0;
+}
+
+.article-toc-rail {
+  position: sticky;
+  top: 86px;
+  align-self: start;
+}
+
+.article-toc-card {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  backdrop-filter: saturate(1.06) blur(18px);
+  -webkit-backdrop-filter: saturate(1.06) blur(18px);
+  overflow: hidden;
+}
+
+.article-toc-title {
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+
+.article-toc-body {
+  padding: 10px 10px 14px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: calc(100svh - 86px - 24px);
+}
+
+.article-toc-item {
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.article-toc-item:hover {
+  background: rgba(170, 59, 255, 0.08);
+  border-color: rgba(170, 59, 255, 0.14);
+}
+
+.article-toc-item:focus-visible {
+  outline: 2px solid rgba(170, 59, 255, 0.6);
+  outline-offset: 2px;
 }
 
 .article-detail-loading,
@@ -1328,122 +1390,13 @@ body {
   margin-top: 56px;
 }
 
-.toc-fab {
-  position: fixed;
-  left: max(14px, env(safe-area-inset-left, 0px));
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 9997;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 750;
-  cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-}
-
-.toc-fab:hover {
-  border-color: rgba(170, 59, 255, 0.45);
-  color: var(--accent);
-}
-
-.toc-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.16);
-  z-index: 10000;
-}
-
-[data-theme='dark'] .toc-overlay {
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.toc-drawer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100svh;
-  width: min(360px, calc(100vw - 56px));
-  background: rgba(255, 255, 255, 0.72);
-  border-right: 1px solid var(--border);
-  backdrop-filter: saturate(1.15) blur(18px);
-  -webkit-backdrop-filter: saturate(1.15) blur(18px);
-  z-index: 10001;
-  transform: translateX(-102%);
-  transition: transform 0.22s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-[data-theme='dark'] .toc-drawer {
-  background: rgba(18, 18, 20, 0.82);
-}
-
-.toc-drawer.open {
-  transform: translateX(0);
-}
-
-.toc-drawer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.toc-drawer-title {
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--text);
-  letter-spacing: 0.06em;
-}
-
-.toc-drawer-close {
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 22px;
-  line-height: 1;
-  padding: 2px 6px;
-}
-
-.toc-drawer-close:hover {
-  color: var(--text);
-}
-
-.toc-drawer-body {
-  padding: 10px 10px 14px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.toc-item {
-  text-align: left;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.toc-item:hover {
-  background: rgba(170, 59, 255, 0.08);
-  border-color: rgba(170, 59, 255, 0.14);
-}
-
-.toc-item:focus-visible {
-  outline: 2px solid rgba(170, 59, 255, 0.6);
-  outline-offset: 2px;
+@media (max-width: 1024px) {
+  .article-detail-page .article-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .article-toc-rail {
+    display: none;
+  }
 }
 
 /* 全部文章：文章列表抽屉（默认仅左侧按钮） */
