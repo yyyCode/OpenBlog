@@ -43,6 +43,13 @@ public class Article {
     @Column
     private Instant publishedAt;
 
+    /**
+     * 定时发布的预约时间（UTC Instant）。当 status=SCHEDULED 时该字段必填。
+     * 到点后由后台定时任务把文章置为 PUBLISHED，并把 publishedAt=scheduledAt。
+     */
+    @Column
+    private Instant scheduledAt;
+
     @Column
     private Instant submittedAt;
 
@@ -162,6 +169,14 @@ public class Article {
 
     public void setSubmittedAt(Instant submittedAt) {
         this.submittedAt = submittedAt;
+    }
+
+    public Instant getScheduledAt() {
+        return scheduledAt;
+    }
+
+    public void setScheduledAt(Instant scheduledAt) {
+        this.scheduledAt = scheduledAt;
     }
 
     public Instant getReviewedAt() {

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS articles (
   category_id BIGINT NULL,
   status VARCHAR(16) NOT NULL,
   published_at TIMESTAMP(6) NULL,
+  scheduled_at TIMESTAMP(6) NULL,
   submitted_at TIMESTAMP(6) NULL,
   reviewed_at TIMESTAMP(6) NULL,
   rejected_reason VARCHAR(512) NULL,
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS articles (
   updated_at TIMESTAMP(6) NOT NULL,
   KEY idx_articles_author_id (author_id),
   KEY idx_articles_status_published_at (status, published_at),
+  KEY idx_articles_status_scheduled_at (status, scheduled_at),
   KEY idx_articles_title (title),
   CONSTRAINT fk_articles_author
     FOREIGN KEY (author_id) REFERENCES users(id)

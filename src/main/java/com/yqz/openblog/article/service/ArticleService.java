@@ -207,14 +207,45 @@ public class ArticleService {
         if (a.getTitle() == null || a.getTitle().trim().isEmpty() || a.getContentMarkdown() == null || a.getContentMarkdown().trim().isEmpty()) {
             throw new BizException(4002, "标题和正文不能为空");
         }
-        a.setStatus(ArticleStatus.PUBLISHED);
-        a.setPublishedAt(publishedAt == null ? Instant.now() : publishedAt);
+        Instant now = Instant.now();
+        // 未来时间：按“定时发布”处理（文章在到点前不可见）
+        if (publishedAt != null && publishedAt.isAfter(now)) {
+            a.setStatus(ArticleStatus.SCHEDULED);
+            a.setScheduledAt(publishedAt);
+            a.setPublishedAt(null);
+        } else {
+            a.setStatus(ArticleStatus.PUBLISHED);
+            a.setPublishedAt(publishedAt == null ? now : publishedAt);
+            a.setScheduledAt(null);
+        }
         a.setSubmittedAt(null);
         a.setReviewedAt(null);
         a.setRejectedReason(null);
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
         return mapListItem(a);
+    }
+
+    /**
+     * 定时任务扫描到点文章并发布。
+     *
+     * @return 本轮成功发布数量（可能为 0）
+     */
+    public int publishDueScheduled(int batchSize) {
+        int limit = Math.max(1, Math.min(batchSize, 500));
+        Instant now = Instant.now();
+        List<Long> ids = articleMapper.listDueScheduledIds(now, limit);
+        if (ids.isEmpty()) return 0;
+
+        int published = 0;
+        for (Long id : ids) {
+            int updated = articleMapper.publishScheduledIfDue(id, now);
+            if (updated > 0) {
+                published++;
+                publishedContentCache.evict(id);
+            }
+        }
+        return published;
     }
 
     public void unpublishOrDelete(Long authorId, Long articleId) {
@@ -229,12 +260,13 @@ public class ArticleService {
             return;
         }
         a.setStatus(ArticleStatus.DELETED);
+        a.setScheduledAt(null);
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
     }
 
     public PageResult<ArticleListItemResponse> listMine(Long authorId, int page, int size) {
-        List<ArticleStatus> statuses = List.of(ArticleStatus.DRAFT, ArticleStatus.PUBLISHED);
+        List<ArticleStatus> statuses = List.of(ArticleStatus.DRAFT, ArticleStatus.SCHEDULED, ArticleStatus.PUBLISHED);
         Page<Article> mpPage = new Page<>(page + 1L, size);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getAuthorId, authorId)
