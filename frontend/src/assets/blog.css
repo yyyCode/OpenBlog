@@ -1237,7 +1237,8 @@ body {
 
 .article-toc-rail {
   position: fixed;
-  right: max(16px, calc((100vw - var(--container)) / 2));
+  /* 贴近视口最右侧，避免和居中的正文重叠 */
+  right: max(16px, env(safe-area-inset-right, 0px));
   top: 86px;
   width: 320px;
   height: calc(100svh - 86px - 26px);
