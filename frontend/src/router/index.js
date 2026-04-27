@@ -9,6 +9,7 @@ import AdminLoginView from '../views/AdminLoginView.vue'
 import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 import AboutView from '../views/AboutView.vue'
+import FeedbackView from '../views/FeedbackView.vue'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
 import ConsoleProfileView from '../views/ConsoleProfileView.vue'
@@ -35,6 +36,11 @@ const routes = [
     path: '/about',
     name: 'about',
     component: AboutView
+  },
+  {
+    path: '/feedback',
+    name: 'feedback',
+    component: FeedbackView
   },
   {
     path: '/console/login',
