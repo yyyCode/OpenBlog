@@ -74,6 +74,15 @@
             </span>
             评论
           </router-link>
+          <router-link to="/console/feedback" class="console-nav-item" active-class="active">
+            <span class="console-nav-ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16v16H4z" />
+                <path d="M22 6l-10 7L2 6" />
+              </svg>
+            </span>
+            问题反馈
+          </router-link>
           <router-link to="/console/attachments" class="console-nav-item" active-class="active">
             <span class="console-nav-ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
