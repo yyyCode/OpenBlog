@@ -17,7 +17,6 @@ import ConsoleChangelogView from '../views/ConsoleChangelogView.vue'
 import ConsoleAttachmentsView from '../views/ConsoleAttachmentsView.vue'
 import ConsoleCommentsView from '../views/ConsoleCommentsView.vue'
 import ConsoleSystemView from '../views/ConsoleSystemView.vue'
-import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 
 const routes = [
   {
@@ -45,7 +44,6 @@ const routes = [
       { path: 'articles/manage', name: 'consoleArticleManage', component: ConsoleArticleManageView },
       { path: 'articles/new', name: 'consoleArticleCompose', component: ConsoleArticleComposeView },
       { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
-      { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
       { path: 'system', name: 'consoleSystem', component: ConsoleSystemView }

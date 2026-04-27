@@ -198,10 +198,8 @@ async function saveChangelog() {
   } catch (e) {
     const apiCode = e?.code
     const httpStatus = e?.httpStatus
-    const traceId = e?.traceId ? `traceId ${e.traceId}` : ''
     const prefix = apiCode ? `错误码 ${apiCode}` : httpStatus ? `HTTP ${httpStatus}` : ''
-    const head = [prefix, traceId].filter(Boolean).join('，')
-    changelogError.value = head ? `${head}：${e?.message || '保存失败'}` : e?.message || '保存失败'
+    changelogError.value = prefix ? `${prefix}：${e?.message || '保存失败'}` : e?.message || '保存失败'
     changelogSuccess.value = ''
   }
 }
@@ -218,10 +216,8 @@ async function removeChangelog() {
   } catch (e) {
     const apiCode = e?.code
     const httpStatus = e?.httpStatus
-    const traceId = e?.traceId ? `traceId ${e.traceId}` : ''
     const prefix = apiCode ? `错误码 ${apiCode}` : httpStatus ? `HTTP ${httpStatus}` : ''
-    const head = [prefix, traceId].filter(Boolean).join('，')
-    changelogError.value = head ? `${head}：${e?.message || '删除失败'}` : e?.message || '删除失败'
+    changelogError.value = prefix ? `${prefix}：${e?.message || '删除失败'}` : e?.message || '删除失败'
     changelogSuccess.value = ''
   }
 }

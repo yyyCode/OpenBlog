@@ -7,8 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authorization.AuthorizationDeniedException;
 
 /**
  * 统一异常处理（MVP）。
@@ -29,15 +27,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> onValidation(MethodArgumentNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(4001, "参数校验失败"));
-    }
-
-    /**
-     * 方法级鉴权（@PreAuthorize）失败会抛出 AuthorizationDeniedException；
-     * 以前会落到兜底 Exception -> 5001，导致前端误判为“服务器异常”。
-     */
-    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
-    public ResponseEntity<ApiResponse<Object>> onAccessDenied(Exception ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(4030, "无权限"));
     }
 
     @ExceptionHandler(Exception.class)

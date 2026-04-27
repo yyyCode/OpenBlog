@@ -10,8 +10,7 @@ function resolveApiBase() {
   const v = import.meta.env.VITE_API_BASE
   if (v === '') return ''
   if (v != null && v !== '') return v
-  // 开发环境默认走同域 /api（由 Vite proxy 转到本机后端），避免误连远端导致 token/权限不一致
-  return ''
+  return import.meta.env.DEV ? 'http://8.138.32.217:8082' : ''
 }
 
 export const API_BASE = resolveApiBase()
@@ -70,14 +69,12 @@ export async function request(path, options = {}) {
     const err = new Error(msg)
     err.code = json.code
     err.httpStatus = res.status
-    err.traceId = json.traceId
     throw err
   }
 
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status}`)
     err.httpStatus = res.status
-    err.traceId = json?.traceId
     throw err
   }
 
