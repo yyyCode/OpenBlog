@@ -2,12 +2,7 @@
   <header class="site-top-bar" role="banner">
     <div class="site-top-bar-inner">
       <router-link to="/" class="site-brand" aria-label="返回首页">
-        <span class="site-brand-logo" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2l9 7v11a2 2 0 0 1-2 2h-5v-7H10v7H5a2 2 0 0 1-2-2V9z" />
-          </svg>
-        </span>
-        <span class="site-brand-text">OpenBlog</span>
+        <span class="site-brand-text">烧仙草冰室</span>
       </router-link>
 
       <nav class="site-nav" aria-label="站点导航">
@@ -39,15 +34,6 @@
           </span>
           问题反馈
         </router-link>
-
-        <button type="button" class="site-nav-link site-nav-link-btn site-nav-widgets-btn" @click="$emit('toggle-widgets')">
-          <span class="site-nav-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          </span>
-          <span class="site-nav-widgets-text">挂件</span>
-        </button>
 
         <a class="site-nav-link" href="https://github.com/yyyCode/OpenBlog.git" target="_blank" rel="noopener noreferrer">
           <span class="site-nav-ico" aria-hidden="true">
@@ -93,5 +79,4 @@ function onToggle() {
   applyToggle()
   sync()
 }
-
 </script>
