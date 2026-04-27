@@ -31,7 +31,7 @@ public class AuthSecurityProperties {
         /**
          * 是否要求登录/注册前先完成「滑到尽头」验证（Redis 记录一次性凭证）。
          */
-        private boolean enabled = true;
+        private boolean enabled = false;
         /**
          * challenge / 通过标记有效时间（秒）。
          */
