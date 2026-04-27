@@ -1976,12 +1976,10 @@ body {
   gap: 16px;
 }
 
-/* 兼容旧样式：不再使用，但保留 class 以免其他页面引用时报错 */
-.site-top-actions,
-.top-action-btn,
-.theme-toggle {
-  display: none;
-}
+/* 兼容旧样式：
+   早期版本用 .site-top-actions / .top-action-btn / .theme-toggle 组织顶栏。
+   现在顶栏已切换到 .site-brand / .site-nav，但仍可能有页面引用旧 class。
+   这里不要再强制隐藏，否则会导致顶栏“看不见”。 */
 
 .back-to-top-wrap {
   position: fixed;
