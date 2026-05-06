@@ -172,6 +172,25 @@ mvn -DskipTests package
 
 详细放行规则见 `SecurityConfig`。
 
+### 双 Token 与无感刷新（设计说明）
+
+**后端（无需单独端口）**
+
+- 登录成功返回 **Access Token**（短效）与 **Refresh Token**（长效），均由 `openblog.jwt.*` 配置过期时间（见上文配置表）。
+- 换发接口：`POST /api/v1/auth/refresh`，请求体为 `{ "refreshToken": "<refresh_jwt>" }`，成功时返回新的 **accessToken** 与 **refreshToken**（与登录接口同一 `AuthResponse` 结构）。
+- 与登录、文章等接口共用 **`server.port` 同一端口**；不存在「刷新专用端口」。
+
+**前端（Vue，`vue/src`）**
+
+- **`vue/src/auth/session.js`**：`isConsoleSessionValid()` 在 **access 已过期但 refresh 仍有效** 时也视为已登录，避免仅因短 token 过期被路由误判下线。
+- **`vue/src/api/http.js`**
+  - **`refreshSessionTokens()`**：直连 `/api/v1/auth/refresh` 换发双 token，**不走** `request()`，避免递归；并发多次刷新合并为 **同一 Promise**（互斥）。
+  - **`request(..., { withAuth: true })` 发起前**：若 refresh 仍可用，且「无 access」或 **access 剩余有效期不足约 90 秒」，则**主动刷新**，减少首包 401。
+  - **收到 HTTP 401**：在带鉴权请求上 **自动刷新一次并重试原请求**（带 `_refreshRetried` 标记，防止死循环）；刷新仍失败则 `clearAuth()`，在 `/console` 下跳转控制台登录。
+- **`vue/src/api/media.js`**：上传走原生 `fetch`，在 **401** 时调用 `refreshSessionTokens()` 后 **重传一次**（与 JSON 接口策略一致）。
+
+**小结**：后端只提供 REST 路径；无感刷新由前端在**同一 API 基址**上组合「主动刷新 + 401 重试 + 并发合并」完成。
+
 ---
 
 ## 测试
