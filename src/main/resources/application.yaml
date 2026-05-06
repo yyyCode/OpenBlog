@@ -5,9 +5,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://8.138.32.217:3306/openblog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
+    url: jdbc:mysql://10.21.32.85:3307/openblog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
     username: root
-    password: 12345678aa
+    password: admin123
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
@@ -25,11 +25,12 @@ spring:
       # 阅读量滑动窗口、登录锁、文章正文缓存等；正文缓存读/写失败时自动仅走 MySQL。
       # 阅读量/站点访问的滑动窗口去重依赖 Redis；连不上时应用会降级为直接写 MySQL（无去重）。
       # 若 26739 连接失败，请检查：本机/服务器防火墙、云安全组、Redis 是否监听 0.0.0.0、地址与端口是否正确。
-      host: 8.138.32.217
-      port: 26739
+      host: 10.21.32.85
+      port: 6379
       # 若 Redis 设置了 requirepass，在此填写密码
       # password: your_redis_password
       timeout: 3s
+      password: admin123
 
 mybatis-plus:
   configuration:
