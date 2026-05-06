@@ -29,7 +29,7 @@ public class UserAdminController {
     }
 
     @GetMapping("/admin/users/pending")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<List<PendingUserResponse>> listPendingReaders() {
         List<User> users = userMapper.selectList(
                 Wrappers.lambdaQuery(User.class)
@@ -41,7 +41,7 @@ public class UserAdminController {
     }
 
     @PostMapping("/admin/users/{userId}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<Void> approveReader(@PathVariable("userId") Long userId) {
         User u = userMapper.selectById(userId);
         if (u == null) {

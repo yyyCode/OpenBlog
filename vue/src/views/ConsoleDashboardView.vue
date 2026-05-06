@@ -77,6 +77,17 @@
             <span class="console-quick-label">个人中心</span>
             <span class="console-quick-chev" aria-hidden="true">›</span>
           </router-link>
+          <router-link v-if="showUserReview" to="/console/users/pending" class="console-quick-tile">
+            <span class="console-quick-ico">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <path d="M20 8v6M23 11h-6" />
+              </svg>
+            </span>
+            <span class="console-quick-label">用户审核</span>
+            <span class="console-quick-chev" aria-hidden="true">›</span>
+          </router-link>
           <a href="/" class="console-quick-tile" target="_blank" rel="noreferrer">
             <span class="console-quick-ico">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -158,12 +169,18 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchSiteStats } from '../api/site'
-import { fetchMyArticles } from '../api/admin'
+import { fetchMyArticles, fetchMe } from '../api/admin'
 
 const stats = ref(null)
 const myArticleTotal = ref(0)
+const me = ref(null)
+
+const showUserReview = computed(() => {
+  const r = me.value?.role
+  return r === 'ADMIN' || r === 'AUTHOR'
+})
 
 function fmtNum(v) {
   if (v == null || Number.isNaN(Number(v))) return '—'
@@ -175,6 +192,11 @@ async function load() {
     stats.value = await fetchSiteStats()
   } catch {
     stats.value = null
+  }
+  try {
+    me.value = await fetchMe()
+  } catch {
+    me.value = null
   }
   try {
     const mine = await fetchMyArticles(0, 1)

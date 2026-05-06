@@ -93,6 +93,21 @@
           </router-link>
 
           <div class="console-nav-group-title">系统</div>
+          <router-link
+            v-if="showUserReviewNav"
+            to="/console/users/pending"
+            class="console-nav-item"
+            active-class="active"
+          >
+            <span class="console-nav-ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="8.5" cy="7" r="4" />
+                <path d="M20 8v6M23 11h-6" />
+              </svg>
+            </span>
+            用户审核
+          </router-link>
           <router-link to="/console/profile" class="console-nav-item" active-class="active">
             <span class="console-nav-ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -178,6 +193,12 @@ const roleLabel = computed(() => {
   if (r === 'AUTHOR') return '作者'
   if (r === 'READER') return '读者'
   return '用户'
+})
+
+/** 作者与管理员均可处理前台读者注册审核 */
+const showUserReviewNav = computed(() => {
+  const r = me.value?.role
+  return r === 'ADMIN' || r === 'AUTHOR'
 })
 
 async function loadMe() {
