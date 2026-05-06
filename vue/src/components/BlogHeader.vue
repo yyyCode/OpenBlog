@@ -35,7 +35,25 @@
           问题反馈
         </router-link>
 
-        <a class="site-nav-link" href="https://github.com/yyyCode/OpenBlog.git" target="_blank" rel="noopener noreferrer">
+        <div class="site-nav-auth" aria-label="账户">
+          <template v-if="me">
+            <span class="site-nav-user-name" :title="displayName">{{ displayName }}</span>
+            <button type="button" class="site-nav-link site-nav-link-btn site-nav-pill-outline" @click="logout">
+              退出
+            </button>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="site-nav-link site-nav-pill-outline">登录</router-link>
+            <router-link to="/register" class="site-nav-link site-nav-pill-solid">注册</router-link>
+          </template>
+        </div>
+
+        <a
+          class="site-nav-link site-nav-link-sm-hide"
+          href="https://github.com/yyyCode/OpenBlog.git"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span class="site-nav-ico" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path
@@ -61,11 +79,49 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { toggleTheme as applyToggle } from '../theme'
+import { fetchMe } from '../api/admin'
+import { clearAuth, getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
+
 defineEmits(['toggle-widgets'])
 
+const route = useRoute()
+const router = useRouter()
 const isDark = ref(false)
+const me = ref(null)
+
+const displayName = computed(() => {
+  const m = me.value
+  if (!m) return ''
+  const n = (m.nickname || '').trim()
+  return n || m.username || '用户'
+})
+
+function tokenLooksValid() {
+  const t = getStoredAccessToken()
+  return Boolean(t && isLikelyJwt(t) && !isJwtExpired(t))
+}
+
+async function loadMe() {
+  if (!tokenLooksValid()) {
+    me.value = null
+    return
+  }
+  try {
+    me.value = await fetchMe()
+  } catch {
+    me.value = null
+  }
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    loadMe()
+  }
+)
 
 function sync() {
   isDark.value = document.documentElement.getAttribute('data-theme') === 'dark'
@@ -73,7 +129,18 @@ function sync() {
 
 onMounted(() => {
   sync()
+  loadMe()
 })
+
+function logout() {
+  clearAuth()
+  me.value = null
+  if (route.path.startsWith('/console')) {
+    router.push('/console/login')
+  } else {
+    router.push('/')
+  }
+}
 
 function onToggle() {
   applyToggle()

@@ -47,3 +47,18 @@ export function isConsoleSessionValid() {
   if (!token || !isLikelyJwt(token) || isJwtExpired(token)) return false
   return true
 }
+
+/** JWT payload 中的 role（ADMIN / AUTHOR / READER） */
+export function getAccessTokenRole() {
+  const token = getStoredAccessToken()
+  if (!token) return null
+  const payload = parseJwtPayload(token)
+  const r = payload?.role
+  return typeof r === 'string' ? r : null
+}
+
+/** 是否可进入 /console（与后台发文能力一致） */
+export function canAccessConsole() {
+  const r = getAccessTokenRole()
+  return r === 'ADMIN' || r === 'AUTHOR'
+}

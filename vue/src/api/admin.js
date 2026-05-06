@@ -7,6 +7,18 @@ export function login(account, password) {
   })
 }
 
+/** 前台会员注册（与控制台管理员登录入口分离） */
+export function register(payload) {
+  const { username, email, password, nickname } = payload
+  const body = { username, email, password }
+  const nick = typeof nickname === 'string' ? nickname.trim() : ''
+  if (nick) body.nickname = nick
+  return request('/api/v1/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(body)
+  })
+}
+
 export function fetchMe() {
   return request('/api/v1/users/me', { method: 'GET', withAuth: true })
 }

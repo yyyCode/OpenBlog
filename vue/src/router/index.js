@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { clearAuth, isConsoleSessionValid } from '../auth/session'
+import { clearAuth, isConsoleSessionValid, canAccessConsole } from '../auth/session'
 
 import HomeView from '../views/HomeView.vue'
 import ArticleDetailView from '../views/ArticleDetailView.vue'
@@ -10,6 +10,8 @@ import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 import AboutView from '../views/AboutView.vue'
 import FeedbackView from '../views/FeedbackView.vue'
+import SiteLoginView from '../views/SiteLoginView.vue'
+import SiteRegisterView from '../views/SiteRegisterView.vue'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
 import ConsoleProfileView from '../views/ConsoleProfileView.vue'
@@ -41,6 +43,16 @@ const routes = [
     path: '/feedback',
     name: 'feedback',
     component: FeedbackView
+  },
+  {
+    path: '/login',
+    name: 'siteLogin',
+    component: SiteLoginView
+  },
+  {
+    path: '/register',
+    name: 'siteRegister',
+    component: SiteRegisterView
   },
   {
     path: '/console/login',
@@ -110,9 +122,12 @@ router.beforeEach((to) => {
   const isLoginPage = to.path === '/console/login'
 
   if (isLoginPage) {
-    if (isConsoleSessionValid()) {
+    if (isConsoleSessionValid() && canAccessConsole()) {
       const r = to.query.redirect
       return { path: safeConsoleRedirect(typeof r === 'string' ? r : '') }
+    }
+    if (isConsoleSessionValid() && !canAccessConsole()) {
+      return { path: '/' }
     }
     return true
   }
@@ -120,6 +135,9 @@ router.beforeEach((to) => {
   if (!isConsoleSessionValid()) {
     clearAuth()
     return { path: '/console/login', query: { redirect: to.fullPath } }
+  }
+  if (!canAccessConsole()) {
+    return { path: '/' }
   }
   return true
 })

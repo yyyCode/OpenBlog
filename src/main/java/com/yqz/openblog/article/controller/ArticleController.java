@@ -13,7 +13,7 @@ import com.yqz.openblog.security.CurrentUser;
 
 import jakarta.validation.Valid;
 
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -45,12 +45,14 @@ public class ArticleController {
     }
 
     @PostMapping("/articles")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<ArticleListItemResponse> createDraft(@RequestBody @Valid ArticleCreateRequest req) {
         Long uid = currentUser.userId();
         return ApiResponse.ok(articleService.createDraft(uid, req));
     }
 
     @PutMapping("/articles/{articleId}")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<ArticleListItemResponse> updateArticle(@PathVariable("articleId") Long articleId,
                                                                @RequestBody @Valid ArticleUpdateRequest req) {
         Long uid = currentUser.userId();
@@ -58,6 +60,7 @@ public class ArticleController {
     }
 
     @PostMapping("/articles/{articleId}/publish")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<ArticleListItemResponse> submitForReview(@PathVariable("articleId") Long articleId,
                                                                 @RequestBody(required = false) ArticlePublishRequest req) {
         Long uid = currentUser.userId();
@@ -65,6 +68,7 @@ public class ArticleController {
     }
 
     @PostMapping("/articles/{articleId}/unpublish")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<Void> unpublish(@PathVariable("articleId") Long articleId) {
         Long uid = currentUser.userId();
         articleService.unpublishOrDelete(uid, articleId);
@@ -72,6 +76,7 @@ public class ArticleController {
     }
 
     @DeleteMapping("/articles/{articleId}")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<Void> deleteArticle(@PathVariable("articleId") Long articleId) {
         Long uid = currentUser.userId();
         articleService.unpublishOrDelete(uid, articleId);
@@ -79,6 +84,7 @@ public class ArticleController {
     }
 
     @GetMapping("/users/me/articles")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<PageResult<ArticleListItemResponse>> listMine(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -87,6 +93,7 @@ public class ArticleController {
     }
 
     @GetMapping("/users/me/articles/{articleId}")
+    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<ArticleDetailResponse> detailMine(@PathVariable("articleId") Long articleId,
                                                           HttpServletRequest request) {
         Long uid = currentUser.userId();

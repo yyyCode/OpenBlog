@@ -76,8 +76,8 @@ public class AuthService {
         user.setEmail(req.getEmail());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         user.setNickname(req.getNickname());
-        // 个人博客模式：默认作者角色（无审核/无管理员审核流程）
-        user.setRole(UserRole.AUTHOR);
+        // 前台自助注册：读者账号（与管理员/作者在库中共存；控制台与发文权限见接口鉴权）
+        user.setRole(UserRole.READER);
         user.setStatus("ACTIVE");
         userMapper.insert(user);
     }

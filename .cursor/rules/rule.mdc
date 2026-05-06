@@ -8,4 +8,10 @@ alwaysApply: true
 
 
 后端规则：
+后端代码修改只修改要求的内容，不要做任何额外修改和处理
 
+
+项目设计：
+后端语言为java
+主框架为Springboot
+orm框架使用mybatis-plus
