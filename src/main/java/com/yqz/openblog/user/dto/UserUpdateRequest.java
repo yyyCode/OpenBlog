@@ -1,7 +1,7 @@
 package com.yqz.openblog.user.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import com.yqz.openblog.user.validation.AllowedMailbox;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class UserUpdateRequest {
@@ -15,8 +15,8 @@ public class UserUpdateRequest {
     @Size(max = 512)
     private String avatarUrl;
 
-    @Email
     @Size(max = 64)
+    @Pattern(regexp = AllowedMailbox.REGEXP_OPTIONAL, message = AllowedMailbox.MESSAGE)
     private String email;
 
     public String getUsername() {

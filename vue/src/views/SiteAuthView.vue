@@ -62,7 +62,8 @@
 
             <div class="field">
               <div class="label">邮箱</div>
-              <input v-model="email" class="input" type="email" autocomplete="email" />
+              <input v-model="email" class="input" type="email" autocomplete="email" inputmode="email" />
+              <p class="site-auth-email-hint">{{ ALLOWED_EMAIL_MESSAGE }}</p>
             </div>
 
             <div class="field">
@@ -94,6 +95,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { login, register } from '../api/admin'
 import { getAccessTokenRole } from '../auth/session'
 import { showMessage } from '../utils/message'
+import { ALLOWED_EMAIL_MESSAGE, isAllowedMailboxEmail } from '../utils/allowedEmail'
 
 const router = useRouter()
 const route = useRoute()
@@ -167,6 +169,10 @@ async function doRegister() {
   }
   if (!em) {
     registerError.value = '请填写邮箱'
+    return
+  }
+  if (!isAllowedMailboxEmail(em)) {
+    registerError.value = ALLOWED_EMAIL_MESSAGE
     return
   }
   if (pw.length < 6) {

@@ -28,7 +28,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> onValidation(MethodArgumentNotValidException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(4001, "参数校验失败"));
+        var fe = ex.getBindingResult().getFieldError();
+        String msg =
+                fe != null && fe.getDefaultMessage() != null && !fe.getDefaultMessage().isBlank()
+                        ? fe.getDefaultMessage()
+                        : "参数校验失败";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.fail(4001, msg));
     }
 
     /**

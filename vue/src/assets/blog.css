@@ -1999,6 +1999,13 @@ body {
   margin-bottom: 18px;
 }
 
+.site-auth-email-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .site-auth-footer {
   margin-top: 18px;
   text-align: center;
