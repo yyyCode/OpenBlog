@@ -49,7 +49,7 @@ public class ArticleService {
         resp.setCoverMediaKey(a.getCoverMediaKey());
         resp.setAuthorId(a.getAuthorId());
         User author = userMapper.selectById(a.getAuthorId());
-        resp.setAuthorNickname(author == null ? null : author.getNickname());
+        resp.setAuthorNickname(author == null ? null : author.getUsername());
         resp.setPublishedAt(a.getPublishedAt());
         resp.setStatus(a.getStatus());
         resp.setLikeCount(a.getLikeCount());
@@ -68,7 +68,7 @@ public class ArticleService {
         resp.setCoverMediaKey(a.getCoverMediaKey());
         resp.setAuthorId(a.getAuthorId());
         User author = userMapper.selectById(a.getAuthorId());
-        resp.setAuthorNickname(author == null ? null : author.getNickname());
+        resp.setAuthorNickname(author == null ? null : author.getUsername());
         resp.setPublishedAt(a.getPublishedAt());
         resp.setStatus(a.getStatus());
         resp.setLikeCount(a.getLikeCount());

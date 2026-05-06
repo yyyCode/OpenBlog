@@ -24,15 +24,9 @@
           </div>
         </div>
 
-        <div class="grid2">
-          <div class="field">
-            <div class="label">用户名</div>
-            <input v-model="form.username" class="input" type="text" />
-          </div>
-          <div class="field">
-            <div class="label">昵称</div>
-            <input v-model="form.nickname" class="input" type="text" />
-          </div>
+        <div class="field">
+          <div class="label">用户名</div>
+          <input v-model="form.username" class="input" type="text" />
         </div>
 
         <div class="field">
@@ -58,7 +52,6 @@ const success = ref('')
 
 const form = ref({
   username: '',
-  nickname: '',
   bio: '',
   avatarUrl: ''
 })
@@ -66,7 +59,6 @@ const form = ref({
 async function loadMe() {
   const me = await fetchMe()
   form.value.username = me.username || ''
-  form.value.nickname = me.nickname || ''
   form.value.bio = me.bio || ''
   form.value.avatarUrl = me.avatarUrl || ''
 }
@@ -77,7 +69,6 @@ async function saveProfile() {
   try {
     await updateMe({
       username: form.value.username,
-      nickname: form.value.nickname,
       bio: form.value.bio,
       avatarUrl: form.value.avatarUrl
     })

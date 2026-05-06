@@ -5,7 +5,6 @@ import com.yqz.openblog.user.entity.UserRole;
 public class MeResponse {
     private Long userId;
     private String username;
-    private String nickname;
     private String avatarUrl;
     private String bio;
     private UserRole role;
@@ -24,14 +23,6 @@ public class MeResponse {
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
     }
 
     public String getAvatarUrl() {

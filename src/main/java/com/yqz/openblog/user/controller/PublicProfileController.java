@@ -31,14 +31,14 @@ public class PublicProfileController {
     @GetMapping("/profile")
     public ApiResponse<PublicProfileResponse> profile() {
         // 如果前端携带了 JWT，则优先返回“当前登录用户”的公开信息
-        // 这样在管理员/作者编辑后，前台页面也能立刻反映你改的昵称/签名/头像。
+        // 这样在管理员/作者编辑后，前台页面也能立刻反映你改的用户名/签名/头像。
         Long uid = currentUser.userId();
         if (uid != null) {
             User u = userMapper.selectById(uid);
             if (u != null) {
                 PublicProfileResponse resp = new PublicProfileResponse();
                 resp.setUserId(u.getId());
-                resp.setNickname(u.getNickname());
+                resp.setUsername(u.getUsername());
                 resp.setAvatarUrl(mediaService.normalizePublicMediaUrl(u.getAvatarUrl()));
                 resp.setBio(u.getBio());
                 return ApiResponse.ok(resp);
@@ -69,7 +69,7 @@ public class PublicProfileController {
 
         PublicProfileResponse resp = new PublicProfileResponse();
         resp.setUserId(u.getId());
-        resp.setNickname(u.getNickname());
+        resp.setUsername(u.getUsername());
         resp.setAvatarUrl(mediaService.normalizePublicMediaUrl(u.getAvatarUrl()));
         resp.setBio(u.getBio());
         return ApiResponse.ok(resp);

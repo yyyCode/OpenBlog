@@ -18,7 +18,7 @@
         <div class="profile-avatar-spacer" aria-hidden="true" />
       </div>
 
-      <div class="profile-name">{{ profile?.nickname || 'FUNKY' }}</div>
+      <div class="profile-name">{{ profile?.username || '—' }}</div>
       <div class="profile-signature">{{ profile?.bio || '平凡的一枚程序员' }}</div>
 
       <div class="profile-menu">

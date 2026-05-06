@@ -35,19 +35,6 @@
           问题反馈
         </router-link>
 
-        <div class="site-nav-auth" aria-label="账户">
-          <template v-if="me">
-            <span class="site-nav-user-name" :title="displayName">{{ displayName }}</span>
-            <button type="button" class="site-nav-link site-nav-link-btn site-nav-pill-outline" @click="logout">
-              退出
-            </button>
-          </template>
-          <template v-else>
-            <router-link to="/login" class="site-nav-link site-nav-pill-outline">登录</router-link>
-            <router-link to="/register" class="site-nav-link site-nav-pill-solid">注册</router-link>
-          </template>
-        </div>
-
         <a
           class="site-nav-link site-nav-link-sm-hide"
           href="https://github.com/yyyCode/OpenBlog.git"
@@ -73,6 +60,18 @@
           <span class="site-nav-ico" aria-hidden="true">{{ isDark ? '☀' : '☽' }}</span>
           {{ isDark ? '浅色' : '深色' }}
         </button>
+
+        <div class="site-nav-auth site-nav-auth-trailing" aria-label="账户">
+          <template v-if="me">
+            <span class="site-nav-user-name" :title="displayName">{{ displayName }}</span>
+            <button type="button" class="site-nav-link site-nav-link-btn site-nav-pill-outline" @click="logout">
+              退出
+            </button>
+          </template>
+          <router-link v-else to="/login" class="site-nav-link site-nav-pill-solid site-nav-auth-entry">
+            登录/注册
+          </router-link>
+        </div>
       </nav>
     </div>
   </header>
@@ -95,8 +94,7 @@ const me = ref(null)
 const displayName = computed(() => {
   const m = me.value
   if (!m) return ''
-  const n = (m.nickname || '').trim()
-  return n || m.username || '用户'
+  return (m.username || '').trim() || '用户'
 })
 
 function tokenLooksValid() {

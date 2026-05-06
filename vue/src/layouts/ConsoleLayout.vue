@@ -122,7 +122,7 @@
             alt=""
           />
           <div class="console-user-meta">
-            <div class="console-user-name">{{ me?.nickname || me?.username || '用户' }}</div>
+            <div class="console-user-name">{{ me?.username || '用户' }}</div>
             <div class="console-user-role">{{ roleLabel }}</div>
           </div>
         </div>

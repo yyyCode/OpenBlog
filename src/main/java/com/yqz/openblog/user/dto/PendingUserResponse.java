@@ -1,10 +1,13 @@
 package com.yqz.openblog.user.dto;
 
-public class PublicProfileResponse {
+import java.time.Instant;
+
+public class PendingUserResponse {
+
     private Long userId;
     private String username;
-    private String avatarUrl;
-    private String bio;
+    private String email;
+    private Instant createdAt;
 
     public Long getUserId() {
         return userId;
@@ -22,20 +25,19 @@ public class PublicProfileResponse {
         this.username = username;
     }
 
-    public String getAvatarUrl() {
-        return avatarUrl;
+    public String getEmail() {
+        return email;
     }
 
-    public void setAvatarUrl(String avatarUrl) {
-        this.avatarUrl = avatarUrl;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public String getBio() {
-        return bio;
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
-    public void setBio(String bio) {
-        this.bio = bio;
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 }
-

@@ -9,9 +9,6 @@ public class UserUpdateRequest {
     @Size(min = 3, max = 32)
     private String username;
 
-    @Size(max = 32)
-    private String nickname;
-
     @Size(max = 512)
     private String bio;
 
@@ -28,14 +25,6 @@ public class UserUpdateRequest {
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
     }
 
     public String getBio() {

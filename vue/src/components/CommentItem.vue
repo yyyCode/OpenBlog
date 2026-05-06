@@ -63,7 +63,7 @@ const timeLabel = computed(() => formatTime(props.comment?.createdAt))
 
 const canDelete = computed(() => {
   const uid = props.comment?.user?.id
-  const meId = props.me?.id
+  const meId = props.me?.userId
   const isAdmin = props.me?.role === 'ADMIN'
   return Boolean((meId && uid && meId === uid) || isAdmin)
 })

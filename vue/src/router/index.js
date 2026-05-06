@@ -10,8 +10,7 @@ import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 import AboutView from '../views/AboutView.vue'
 import FeedbackView from '../views/FeedbackView.vue'
-import SiteLoginView from '../views/SiteLoginView.vue'
-import SiteRegisterView from '../views/SiteRegisterView.vue'
+import SiteAuthView from '../views/SiteAuthView.vue'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
 import ConsoleProfileView from '../views/ConsoleProfileView.vue'
@@ -46,13 +45,16 @@ const routes = [
   },
   {
     path: '/login',
-    name: 'siteLogin',
-    component: SiteLoginView
+    name: 'siteAuth',
+    component: SiteAuthView
   },
   {
     path: '/register',
     name: 'siteRegister',
-    component: SiteRegisterView
+    redirect: (to) => ({
+      path: '/login',
+      query: { ...to.query, tab: 'register' }
+    })
   },
   {
     path: '/console/login',

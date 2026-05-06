@@ -75,10 +75,11 @@ public class AuthService {
         user.setUsername(req.getUsername());
         user.setEmail(req.getEmail());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        user.setNickname(req.getNickname());
+        // 昵称已弃用：对外展示统一使用用户名
+        user.setNickname(null);
         // 前台自助注册：读者账号（与管理员/作者在库中共存；控制台与发文权限见接口鉴权）
         user.setRole(UserRole.READER);
-        user.setStatus("ACTIVE");
+        user.setStatus("PENDING");
         userMapper.insert(user);
     }
 
@@ -96,6 +97,9 @@ public class AuthService {
             throw new BizException(clientErrorCode(), "账号或密码错误");
         }
 
+        if ("PENDING".equals(user.getStatus())) {
+            throw new BizException(4014, "账号待管理员审核通过后方可登录");
+        }
         if (!"ACTIVE".equals(user.getStatus())) {
             loginLockoutService.recordPasswordFailure(ipSeg);
             throw new BizException(4011, "账号已被封禁");
@@ -143,9 +147,7 @@ public class AuthService {
         if (user == null) {
             throw new BizException(4041, "用户不存在");
         }
-        if (!"ACTIVE".equals(user.getStatus())) {
-            throw new BizException(4011, "账号已被封禁");
-        }
+        assertUserAccountActive(user);
 
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
@@ -169,10 +171,10 @@ public class AuthService {
         if (user == null) {
             throw new BizException(4041, "用户不存在");
         }
+        assertUserAccountActive(user);
         MeResponse resp = new MeResponse();
         resp.setUserId(user.getId());
         resp.setUsername(user.getUsername());
-        resp.setNickname(user.getNickname());
         resp.setAvatarUrl(mediaService.normalizePublicMediaUrl(user.getAvatarUrl()));
         resp.setBio(user.getBio());
         resp.setRole(user.getRole());
@@ -188,6 +190,7 @@ public class AuthService {
         if (user == null) {
             throw new BizException(4041, "用户不存在");
         }
+        assertUserAccountActive(user);
 
         if (req.getUsername() != null && !req.getUsername().trim().isEmpty()) {
             String newUsername = req.getUsername().trim();
@@ -196,10 +199,6 @@ public class AuthService {
                 throw new BizException(4090, "用户名已存在");
             }
             user.setUsername(newUsername);
-        }
-
-        if (req.getNickname() != null) {
-            user.setNickname(req.getNickname());
         }
 
         if (req.getBio() != null) {
@@ -221,6 +220,15 @@ public class AuthService {
 
         userMapper.updateById(user);
         return me();
+    }
+
+    private void assertUserAccountActive(User user) {
+        if ("PENDING".equals(user.getStatus())) {
+            throw new BizException(4014, "账号待管理员审核通过后方可登录");
+        }
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new BizException(4011, "账号已被封禁");
+        }
     }
 
     // MVP：错误码占位（后续你可按文档替换成统一 code 表）

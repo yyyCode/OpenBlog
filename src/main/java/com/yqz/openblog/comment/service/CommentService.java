@@ -160,9 +160,7 @@ public class CommentService {
             cu.setAvatarUrl(null);
             return cu;
         }
-        String nn = u.getNickname();
-        if (nn == null || nn.isBlank()) nn = u.getUsername();
-        cu.setNickname(nn);
+        cu.setNickname(u.getUsername());
         cu.setAvatarUrl(u.getAvatarUrl());
         return cu;
     }

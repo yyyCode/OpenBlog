@@ -33,6 +33,7 @@ public class User {
     @Column(nullable = false, length = 120)
     private String passwordHash;
 
+    /** 已弃用：展示名统一用 username，保留列仅为兼容旧数据 */
     @Column(length = 32)
     private String nickname;
 
@@ -47,7 +48,7 @@ public class User {
     private UserRole role;
 
     @Column(nullable = false, length = 16)
-    private String status; // ACTIVE/BANNED
+    private String status; // ACTIVE / BANNED / PENDING（前台注册待审核）
 
     @Column(nullable = false)
     @TableField(fill = FieldFill.INSERT)

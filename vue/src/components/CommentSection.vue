@@ -144,7 +144,7 @@ async function loadMore() {
 
 function goLogin() {
   const redirect = window.location.pathname + window.location.search
-  router.push({ path: '/console/login', query: { redirect } })
+  router.push({ path: '/login', query: { redirect } })
 }
 
 async function postTopLevel() {

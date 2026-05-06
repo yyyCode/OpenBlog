@@ -19,9 +19,6 @@ public class RegisterRequest {
     @Size(min = 6, max = 72)
     private String password;
 
-    @Size(max = 32)
-    private String nickname;
-
     private String sliderChallengeId;
 
     public String getUsername() {
@@ -46,14 +43,6 @@ public class RegisterRequest {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setNickname(String nickname) {
-        this.nickname = nickname;
     }
 
     public String getSliderChallengeId() {
