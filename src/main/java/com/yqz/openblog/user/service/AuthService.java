@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.yqz.openblog.security.JwtService;
 import com.yqz.openblog.security.TokenHashUtil;
 import com.yqz.openblog.user.dto.AuthResponse;
+import com.yqz.openblog.user.dto.ChangePasswordRequest;
 import com.yqz.openblog.user.dto.MeResponse;
 import com.yqz.openblog.user.dto.RegisterRequest;
 import com.yqz.openblog.user.dto.LoginRequest;
@@ -26,6 +27,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class AuthService {
@@ -181,6 +183,21 @@ public class AuthService {
         return resp;
     }
 
+    public void changePassword(ChangePasswordRequest req) {
+        String email = req.getEmail().trim();
+        User user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getEmail, email));
+        if (user == null) {
+            throw new BizException(clientErrorCode(), "邮箱未注册");
+        }
+        if ("BANNED".equals(user.getStatus())) {
+            throw new BizException(4011, "账号已被封禁");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        userMapper.updateById(user);
+        revokeAllRefreshTokens(user.getId());
+    }
+
     public MeResponse updateMe(UserUpdateRequest req) {
         Long uid = currentUser.userId();
         if (uid == null) {
@@ -220,6 +237,18 @@ public class AuthService {
 
         userMapper.updateById(user);
         return me();
+    }
+
+    private void revokeAllRefreshTokens(Long userId) {
+        Instant now = Instant.now();
+        List<RefreshToken> tokens = refreshTokenMapper.selectList(
+                Wrappers.lambdaQuery(RefreshToken.class)
+                        .eq(RefreshToken::getUserId, userId)
+                        .isNull(RefreshToken::getRevokedAt));
+        for (RefreshToken token : tokens) {
+            token.revoke(now);
+            refreshTokenMapper.updateById(token);
+        }
     }
 
     private void assertUserAccountActive(User user) {

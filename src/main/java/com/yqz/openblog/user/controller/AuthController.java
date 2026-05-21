@@ -2,6 +2,7 @@ package com.yqz.openblog.user.controller;
 
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.user.dto.AuthResponse;
+import com.yqz.openblog.user.dto.ChangePasswordRequest;
 import com.yqz.openblog.user.dto.LoginRequest;
 import com.yqz.openblog.user.dto.SliderChallengeResponse;
 import com.yqz.openblog.user.dto.SliderCompleteRequest;
@@ -55,6 +56,12 @@ public class AuthController {
     @PostMapping("/auth/refresh")
     public ApiResponse<AuthResponse> refresh(@RequestBody @Valid RefreshRequest req) {
         return ApiResponse.ok(authService.refresh(req));
+    }
+
+    @PostMapping("/auth/change-password")
+    public ApiResponse<Void> changePassword(@RequestBody @Valid ChangePasswordRequest req) {
+        authService.changePassword(req);
+        return ApiResponse.ok();
     }
 
     @GetMapping("/users/me")

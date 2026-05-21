@@ -16,6 +16,14 @@ export function register(payload) {
   })
 }
 
+/** 通过注册邮箱验证后修改密码（无需登录） */
+export function changePassword(email, newPassword) {
+  return request('/api/v1/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, newPassword })
+  })
+}
+
 export function fetchMe() {
   return request('/api/v1/users/me', { method: 'GET', withAuth: true })
 }

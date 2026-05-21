@@ -22,6 +22,10 @@
           <button class="btn primary" style="width: 100%; margin-top: 14px" @click="doLogin">
             登录
           </button>
+
+          <div class="site-auth-footer" style="margin-top: 14px">
+            <router-link class="site-auth-link" to="/login?tab=change-password">忘记密码？修改密码</router-link>
+          </div>
         </div>
       </div>
     </div>

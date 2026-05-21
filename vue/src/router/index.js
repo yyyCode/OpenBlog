@@ -21,6 +21,7 @@ import ConsoleAttachmentsView from '../views/ConsoleAttachmentsView.vue'
 import ConsoleCommentsView from '../views/ConsoleCommentsView.vue'
 import ConsoleSystemView from '../views/ConsoleSystemView.vue'
 import ConsolePendingUsersView from '../views/ConsolePendingUsersView.vue'
+import ConsoleUsersView from '../views/ConsoleUsersView.vue'
 import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 
 const routes = [
@@ -75,6 +76,7 @@ const routes = [
       { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
+      { path: 'users', name: 'consoleUsers', component: ConsoleUsersView },
       { path: 'users/pending', name: 'consolePendingUsers', component: ConsolePendingUsersView },
       { path: 'system', name: 'consoleSystem', component: ConsoleSystemView }
     ]
