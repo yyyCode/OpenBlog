@@ -11,7 +11,14 @@ docker stop "$NAME" 2>/dev/null || true
 docker rm "$NAME" 2>/dev/null || true
 docker rmi "$NAME" 2>/dev/null || true
 
-docker build -t "$NAME" "$DIR"
+IMAGE_TAR="$DIR/openblog-web.tar.gz"
+if [ -f "$IMAGE_TAR" ]; then
+  echo "Loading pre-built image from CI..."
+  gunzip -c "$IMAGE_TAR" | docker load
+else
+  echo "Building image locally (manual deploy)..."
+  docker build -t "$NAME" "$DIR"
+fi
 
 docker run -d \
   -p "${HOST_PORT}:80" \
