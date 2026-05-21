@@ -13,6 +13,7 @@ on:
   push:
     branches:
       - master
+      - web-refactor
 
 jobs:
   build-and-deploy:
@@ -34,17 +35,17 @@ jobs:
           cache: "maven"
 
       - name: Build backend (Maven)
-        run: mvn -B -ntp package -DskipTests
+        run: mvn -B -ntp package -DskipTests -pl OpenBlog-business -am
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: vue/package-lock.json
 
       - name: Install frontend dependencies and build
-        working-directory: frontend
+        working-directory: vue
         run: |
           npm ci
           npm run build
@@ -52,26 +53,33 @@ jobs:
       - name: Prepare release bundle for server
         run: |
           mkdir -p release
-          cp -r frontend/dist release/dist
-          cp frontend/Dockerfile frontend/docker.sh frontend/nginx.conf release/
+          cp -r vue/dist release/dist
+          cp vue/Dockerfile vue/docker.sh vue/nginx.conf release/
+
+      # 在 GitHub Runner 构建镜像并导出，避免国内服务器直连 Docker Hub 拉取 nginx:alpine 超时
+      - name: Build Docker image on runner
+        run: |
+          docker build -t openblog-web release/
+          docker save openblog-web | gzip > release/openblog-web.tar.gz
 
       - name: Deploy files to server
         uses: easingthemes/ssh-deploy@v5.1.1
         with:
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
           ARGS: "-rlgoDzvc --delete --exclude=dist/.user.ini"
-          SOURCE: "release/dist release/Dockerfile release/docker.sh release/nginx.conf"
+          SOURCE: "release/dist release/Dockerfile release/docker.sh release/nginx.conf release/openblog-web.tar.gz"
           REMOTE_HOST: ${{ secrets.SERVER_REMOTE_HOST }}
           REMOTE_USER: ${{ secrets.SERVER_REMOTE_USER }}
           TARGET: ${{ secrets.SERVER_TARGET }}
           SCRIPT_BEFORE: ls -la
 
       - name: Run Docker commands on server
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_REMOTE_HOST }}
           username: ${{ secrets.SERVER_REMOTE_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 30m
           script: |
             cd ${{ secrets.SERVER_TARGET }}
             sh docker.sh
