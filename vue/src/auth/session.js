@@ -15,19 +15,6 @@ export function getStoredAccessToken() {
   return s.length > 0 ? s : null
 }
 
-export function getStoredRefreshToken() {
-  const t = localStorage.getItem('refreshToken')
-  if (typeof t !== 'string') return null
-  const s = t.trim()
-  return s.length > 0 ? s : null
-}
-
-/** refresh JWT 仍有效且未过期 */
-export function hasUsableRefreshToken() {
-  const rt = getStoredRefreshToken()
-  return Boolean(rt && isLikelyJwt(rt) && !isJwtExpired(rt))
-}
-
 /** 是否为标准 JWT 外形（header.payload.sig） */
 export function isLikelyJwt(token) {
   return typeof token === 'string' && token.split('.').length === 3
@@ -55,11 +42,10 @@ export function clearAuth() {
   localStorage.removeItem('refreshToken')
 }
 
-/** 控制台/带鉴权前台：access 有效，或仍可用 refresh 换发（无感刷新入口） */
 export function isConsoleSessionValid() {
-  const access = getStoredAccessToken()
-  if (access && isLikelyJwt(access) && !isJwtExpired(access)) return true
-  return hasUsableRefreshToken()
+  const token = getStoredAccessToken()
+  if (!token || !isLikelyJwt(token) || isJwtExpired(token)) return false
+  return true
 }
 
 /** JWT payload 中的 role（ADMIN / AUTHOR / READER） */

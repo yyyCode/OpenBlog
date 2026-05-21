@@ -1,5 +1,5 @@
 import { getStoredAccessToken } from '../auth/session'
-import { API_BASE, refreshSessionTokens } from './http'
+import { API_BASE } from './http'
 
 function getAuthHeader() {
   const token = getStoredAccessToken()
@@ -8,17 +8,23 @@ function getAuthHeader() {
 }
 
 export async function uploadMedia(file) {
-  let { res, json } = await doUploadWithFile(file)
+  const fd = new FormData()
+  fd.append('file', file)
 
-  if (res.status === 401) {
-    try {
-      await refreshSessionTokens()
-      ;({ res, json } = await doUploadWithFile(file))
-    } catch {
-      const err = new Error('登录已失效')
-      err.httpStatus = 401
-      throw err
-    }
+  const res = await fetch(`${API_BASE}/api/v1/media/upload`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeader()
+    },
+    body: fd
+  })
+
+  const text = await res.text()
+  let json = null
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch {
+    json = null
   }
 
   if (!res.ok) {
@@ -33,27 +39,5 @@ export async function uploadMedia(file) {
   }
 
   return json?.data ?? json
-}
-
-function doUploadWithFile(file) {
-  const fd = new FormData()
-  fd.append('file', file)
-
-  return fetch(`${API_BASE}/api/v1/media/upload`, {
-    method: 'POST',
-    headers: {
-      ...getAuthHeader()
-    },
-    body: fd
-  }).then(async (res) => {
-    const text = await res.text()
-    let json = null
-    try {
-      json = text ? JSON.parse(text) : null
-    } catch {
-      json = null
-    }
-    return { res, json }
-  })
 }
 

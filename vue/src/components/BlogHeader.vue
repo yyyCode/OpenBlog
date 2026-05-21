@@ -82,7 +82,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toggleTheme as applyToggle } from '../theme'
 import { fetchMe } from '../api/admin'
-import { clearAuth, isConsoleSessionValid } from '../auth/session'
+import { clearAuth, getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
 
 defineEmits(['toggle-widgets'])
 
@@ -98,7 +98,8 @@ const displayName = computed(() => {
 })
 
 function tokenLooksValid() {
-  return isConsoleSessionValid()
+  const t = getStoredAccessToken()
+  return Boolean(t && isLikelyJwt(t) && !isJwtExpired(t))
 }
 
 async function loadMe() {
