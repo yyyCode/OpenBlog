@@ -35,7 +35,7 @@ jobs:
           cache: "maven"
 
       - name: Build backend (Maven)
-        run: mvn -B -ntp package -DskipTests
+        run: mvn -B -ntp package -DskipTests -pl OpenBlog-business -am
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
