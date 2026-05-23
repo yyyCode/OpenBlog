@@ -1,7 +1,6 @@
 package com.yqz.openblog.media.controller;
 
 import com.yqz.openblog.common.ApiResponse;
-import com.yqz.openblog.media.MediaProperties;
 import com.yqz.openblog.media.dto.MediaUploadResponse;
 import com.yqz.openblog.media.dto.ThumbInfoResponse;
 import com.yqz.openblog.media.entity.Media;
@@ -13,8 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 @RestController
 @RequestMapping("/api/v1/media")
@@ -22,11 +19,9 @@ import java.nio.file.Path;
 public class MediaController {
 
     private final MediaService mediaService;
-    private final MediaProperties mediaProperties;
 
-    public MediaController(MediaService mediaService, MediaProperties mediaProperties) {
+    public MediaController(MediaService mediaService) {
         this.mediaService = mediaService;
-        this.mediaProperties = mediaProperties;
     }
 
     @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -51,14 +46,9 @@ public class MediaController {
 
     private void serveFile(String key, boolean thumb, HttpServletResponse response) throws IOException {
         Media media = mediaService.getByKey(key);
-
-        Path localRoot = Path.of(mediaProperties.getRootPath())
-                .resolve(thumb ? "thumb" : "original")
-                .resolve(key);
-        byte[] bytes = Files.readAllBytes(localRoot);
+        byte[] bytes = mediaService.readFileBytes(key, thumb);
         response.setContentType(media.getContentType());
         response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=86400");
         response.getOutputStream().write(bytes);
     }
 }
-

@@ -21,7 +21,7 @@ public class Media {
     private Long id;
 
     @Column(name = "storage_type", nullable = false, length = 16)
-    private String storageType; // LOCAL
+    private String storageType; // LOCAL | MINIO
 
     @Column(name = "storage_key", nullable = false, length = 64, unique = true)
     private String storageKey; // UUID
