@@ -22,7 +22,7 @@
               <path d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </span>
-          全部文章
+          文章
         </router-link>
 
         <router-link to="/feedback" class="site-nav-link" active-class="active">
@@ -32,7 +32,7 @@
               <path d="M22 8l-10 7L2 8" />
             </svg>
           </span>
-          问题反馈
+          反馈
         </router-link>
 
         <a
