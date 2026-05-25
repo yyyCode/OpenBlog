@@ -16,6 +16,44 @@
 
         </button>
 
+        <button class="btn" type="button" @click="triggerImportMd" :disabled="saving">
+
+          导入 MD
+
+        </button>
+
+        <button
+
+          class="btn"
+
+          type="button"
+
+          :disabled="!selectedId || saving"
+
+          @click="exportMd"
+
+          :style="{ opacity: selectedId && !saving ? 1 : 0.6 }"
+
+        >
+
+          导出 MD
+
+        </button>
+
+        <input
+
+          ref="mdFileInput"
+
+          type="file"
+
+          accept=".md,text/markdown"
+
+          style="display: none"
+
+          @change="onMdFilePicked"
+
+        />
+
         <button class="btn primary" type="button" @click="saveDraft" :disabled="saving" :style="{ opacity: saving ? 0.7 : 1 }">
 
           保存草稿/更新
@@ -256,7 +294,11 @@ import {
 
   deleteMyArticle,
 
+  exportArticleMd,
+
   fetchMyArticleDetail,
+
+  importArticleMd,
 
   publishArticle,
 
@@ -313,6 +355,8 @@ const loadingDetail = ref(false)
 const selectedId = ref(null)
 
 const categoryOptions = ref([])
+
+const mdFileInput = ref(null)
 
 
 
@@ -469,6 +513,126 @@ async function onPickCover(e) {
   const resp = await uploadMedia(file)
 
   form.value.coverMediaKey = resp.key
+
+}
+
+
+
+function triggerImportMd() {
+
+  if (saving.value) return
+
+  mdFileInput.value?.click()
+
+}
+
+
+
+async function onMdFilePicked(e) {
+
+  const file = e.target.files?.[0]
+
+  e.target.value = ''
+
+  if (!file || saving.value) return
+
+  articleError.value = ''
+
+  articleSuccess.value = ''
+
+  saving.value = true
+
+  try {
+
+    if (selectedId.value) {
+
+      await importArticleMd(file, { mode: 'update', articleId: selectedId.value })
+
+      await loadEditor(selectedId.value)
+
+      articleSuccess.value = '已从 Markdown 更新当前文章'
+
+    } else {
+
+      const created = await importArticleMd(file, { mode: 'create' })
+
+      selectedId.value = created.id
+
+      router.replace({ path: '/console/articles/new', query: { id: String(created.id) } })
+
+      await loadEditor(created.id)
+
+      articleSuccess.value = '已从 Markdown 创建草稿'
+
+    }
+
+  } catch (err) {
+
+    const apiCode = err?.code
+
+    const httpStatus = err?.httpStatus
+
+    const prefix = apiCode ? `错误码 ${apiCode}` : httpStatus ? `HTTP ${httpStatus}` : ''
+
+    articleError.value = prefix ? `${prefix}：${err?.message || '导入失败'}` : err?.message || '导入失败'
+
+    articleSuccess.value = ''
+
+  } finally {
+
+    saving.value = false
+
+  }
+
+}
+
+
+
+async function exportMd() {
+
+  if (!selectedId.value || saving.value) return
+
+  articleError.value = ''
+
+  articleSuccess.value = ''
+
+  saving.value = true
+
+  try {
+
+    const { blob, filename } = await exportArticleMd(selectedId.value)
+
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+
+    a.href = url
+
+    a.download = filename || 'article.md'
+
+    a.click()
+
+    URL.revokeObjectURL(url)
+
+    articleSuccess.value = '已导出 Markdown'
+
+  } catch (err) {
+
+    const apiCode = err?.code
+
+    const httpStatus = err?.httpStatus
+
+    const prefix = apiCode ? `错误码 ${apiCode}` : httpStatus ? `HTTP ${httpStatus}` : ''
+
+    articleError.value = prefix ? `${prefix}：${err?.message || '导出失败'}` : err?.message || '导出失败'
+
+    articleSuccess.value = ''
+
+  } finally {
+
+    saving.value = false
+
+  }
 
 }
 
