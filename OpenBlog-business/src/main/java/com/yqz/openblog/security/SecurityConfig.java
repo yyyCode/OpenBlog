@@ -66,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/profile").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/changelog").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/changelog/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/feedback").permitAll()
                         // Public articles/comments
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()

@@ -17,6 +17,9 @@ public class ArticleListItemResponse {
     private Long viewCount;
     private Long favoriteCount;
     private Long commentCount;
+    private Long categoryId;
+    private String categoryName;
+    private java.util.List<String> categoryPath;
 
     public Long getId() {
         return id;
@@ -112,6 +115,30 @@ public class ArticleListItemResponse {
 
     public void setCommentCount(Long commentCount) {
         this.commentCount = commentCount;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public java.util.List<String> getCategoryPath() {
+        return categoryPath;
+    }
+
+    public void setCategoryPath(java.util.List<String> categoryPath) {
+        this.categoryPath = categoryPath;
     }
 }
 

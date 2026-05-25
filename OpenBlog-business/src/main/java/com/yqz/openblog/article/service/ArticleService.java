@@ -9,18 +9,21 @@ import com.yqz.openblog.article.entity.*;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
+import com.yqz.openblog.category.service.CategoryService;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserMapper;
-import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.springframework.stereotype.Service;
 
 @Service
 public class ArticleService {
@@ -29,16 +32,19 @@ public class ArticleService {
     private final UserMapper userMapper;
     private final ArticleViewService articleViewService;
     private final ArticlePublishedContentCacheService publishedContentCache;
+    private final CategoryService categoryService;
 
     public ArticleService(
             ArticleMapper articleMapper,
             UserMapper userMapper,
             ArticleViewService articleViewService,
-            ArticlePublishedContentCacheService publishedContentCache) {
+            ArticlePublishedContentCacheService publishedContentCache,
+            CategoryService categoryService) {
         this.articleMapper = articleMapper;
         this.userMapper = userMapper;
         this.articleViewService = articleViewService;
         this.publishedContentCache = publishedContentCache;
+        this.categoryService = categoryService;
     }
 
     public ArticleListItemResponse mapListItem(Article a) {
@@ -56,6 +62,7 @@ public class ArticleService {
         resp.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
         resp.setFavoriteCount(a.getFavoriteCount());
         resp.setCommentCount(a.getCommentCount());
+        applyCategory(resp, a.getCategoryId());
         return resp;
     }
 
@@ -77,7 +84,22 @@ public class ArticleService {
         resp.setCommentCount(a.getCommentCount());
         resp.setCreatedAt(a.getCreatedAt());
         resp.setUpdatedAt(a.getUpdatedAt());
+        applyCategory(resp, a.getCategoryId());
         return resp;
+    }
+
+    private void applyCategory(ArticleListItemResponse resp, Long categoryId) {
+        CategoryService.CategoryMeta meta = categoryService.resolveMeta(categoryId);
+        resp.setCategoryId(meta.getCategoryId());
+        resp.setCategoryName(meta.getCategoryName());
+        resp.setCategoryPath(meta.getCategoryPath());
+    }
+
+    private void applyCategory(ArticleDetailResponse resp, Long categoryId) {
+        CategoryService.CategoryMeta meta = categoryService.resolveMeta(categoryId);
+        resp.setCategoryId(meta.getCategoryId());
+        resp.setCategoryName(meta.getCategoryName());
+        resp.setCategoryPath(meta.getCategoryPath());
     }
 
     /**
@@ -96,6 +118,9 @@ public class ArticleService {
         r.setStatus(p.getStatus());
         r.setCreatedAt(p.getCreatedAt());
         r.setUpdatedAt(p.getUpdatedAt());
+        r.setCategoryId(p.getCategoryId());
+        r.setCategoryName(p.getCategoryName());
+        r.setCategoryPath(p.getCategoryPath());
         r.setLikeCount(a.getLikeCount() == null ? 0L : a.getLikeCount());
         r.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
         r.setFavoriteCount(a.getFavoriteCount() == null ? 0L : a.getFavoriteCount());
@@ -103,11 +128,18 @@ public class ArticleService {
         return r;
     }
 
-    public PageResult<ArticleListItemResponse> listPublished(int page, int size) {
+    public PageResult<ArticleListItemResponse> listPublished(int page, int size, Long categoryId) {
         Page<Article> mpPage = new Page<>(page + 1L, size);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getStatus, ArticleStatus.PUBLISHED)
                 .orderByDesc(Article::getPublishedAt);
+        if (categoryId != null) {
+            Set<Long> ids = categoryService.collectSelfAndDescendantIds(categoryId);
+            if (ids.isEmpty()) {
+                return new PageResult<>(List.of(), page, size, 0L);
+            }
+            w.in(Article::getCategoryId, ids);
+        }
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
         List<ArticleListItemResponse> items = p.getRecords().stream().map(this::mapListItem).toList();
         return new PageResult<>(items, page, size, p.getTotal());
@@ -124,6 +156,7 @@ public class ArticleService {
         Optional<ArticlePublishedContentCachePayload> cached = publishedContentCache.get(id);
         if (cached.isPresent()) {
             resp = mergePublishedDetailFromCache(cached.get(), a);
+            applyCategory(resp, a.getCategoryId());
         } else {
             resp = mapDetail(a);
             publishedContentCache.put(id, ArticlePublishedContentCachePayload.fromDetail(resp));
@@ -162,6 +195,7 @@ public class ArticleService {
         a.setSummary(req.getSummary());
         a.setContentMarkdown(req.getContentMarkdown());
         a.setCoverMediaKey(req.getCoverMediaKey());
+        categoryService.validateCategoryId(req.getCategoryId());
         a.setCategoryId(req.getCategoryId());
         a.setStatus(ArticleStatus.DRAFT);
         a.setLikeCount(0L);
@@ -187,6 +221,7 @@ public class ArticleService {
         a.setSummary(req.getSummary());
         a.setContentMarkdown(req.getContentMarkdown());
         a.setCoverMediaKey(req.getCoverMediaKey());
+        categoryService.validateCategoryId(req.getCategoryId());
         a.setCategoryId(req.getCategoryId());
         articleMapper.updateById(a);
         if (a.getStatus() == ArticleStatus.PUBLISHED) {

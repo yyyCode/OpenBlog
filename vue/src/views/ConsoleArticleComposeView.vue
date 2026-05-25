@@ -120,6 +120,24 @@
 
           </div>
 
+          <div class="field">
+
+            <div class="label">分类（可选）</div>
+
+            <select v-model="form.categoryId" class="input">
+
+              <option :value="null">未分类</option>
+
+              <option v-for="c in categoryOptions" :key="c.id" :value="c.id">
+
+                {{ categoryLabel(c) }}
+
+              </option>
+
+            </select>
+
+          </div>
+
         </div>
 
 
@@ -252,6 +270,8 @@ import { uploadMedia } from '../api/media'
 
 import { coverUrl } from '../api/article'
 
+import { fetchCategories } from '../api/category'
+
 
 
 const route = useRoute()
@@ -278,7 +298,9 @@ const form = ref({
 
   contentMarkdown: '',
 
-  coverMediaKey: null
+  coverMediaKey: null,
+
+  categoryId: null
 
 })
 
@@ -289,6 +311,8 @@ const publishAtInput = ref('')
 const loadingDetail = ref(false)
 
 const selectedId = ref(null)
+
+const categoryOptions = ref([])
 
 
 
@@ -325,6 +349,8 @@ function resetEditor() {
   form.value.contentMarkdown = ''
 
   form.value.coverMediaKey = null
+
+  form.value.categoryId = null
 
   publishAtInput.value = ''
 
@@ -393,6 +419,8 @@ async function loadEditor(id) {
     form.value.contentMarkdown = detail.contentMarkdown || ''
 
     form.value.coverMediaKey = detail.coverMediaKey || null
+
+    form.value.categoryId = detail.categoryId ?? null
 
     publishAtInput.value = toLocalDatetimeInput(detail.publishedAt)
 
@@ -464,7 +492,7 @@ async function saveDraft() {
 
     coverMediaKey: form.value.coverMediaKey,
 
-    categoryId: null
+    categoryId: form.value.categoryId
 
   }
 
@@ -640,7 +668,18 @@ watch(
 
 
 
+function categoryLabel(c) {
+  const path = c?.path
+  if (Array.isArray(path) && path.length > 0) return path.join(' / ')
+  return c?.name || ''
+}
+
 onMounted(async () => {
+  try {
+    categoryOptions.value = await fetchCategories()
+  } catch {
+    categoryOptions.value = []
+  }
 
   const id = normalizeId(route.query.id)
 

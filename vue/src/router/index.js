@@ -16,6 +16,7 @@ import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
 import ConsoleProfileView from '../views/ConsoleProfileView.vue'
 import ConsoleArticleManageView from '../views/ConsoleArticleManageView.vue'
 import ConsoleArticleComposeView from '../views/ConsoleArticleComposeView.vue'
+import ConsoleCategoriesView from '../views/ConsoleCategoriesView.vue'
 import ConsoleChangelogView from '../views/ConsoleChangelogView.vue'
 import ConsoleAttachmentsView from '../views/ConsoleAttachmentsView.vue'
 import ConsoleCommentsView from '../views/ConsoleCommentsView.vue'
@@ -72,6 +73,7 @@ const routes = [
       { path: 'articles', redirect: '/console/articles/manage' },
       { path: 'articles/manage', name: 'consoleArticleManage', component: ConsoleArticleManageView },
       { path: 'articles/new', name: 'consoleArticleCompose', component: ConsoleArticleComposeView },
+      { path: 'categories', name: 'consoleCategories', component: ConsoleCategoriesView },
       { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
       { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
