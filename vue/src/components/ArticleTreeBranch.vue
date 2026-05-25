@@ -8,7 +8,6 @@
     >
       <span class="article-tree-chev" aria-hidden="true">{{ isExpanded ? '▾' : '▸' }}</span>
       <span class="article-tree-group-label">{{ group.label }}</span>
-      <span v-if="group.articleCount" class="article-tree-group-count">{{ group.articleCount }}</span>
     </button>
 
     <div v-show="isExpanded" class="article-tree-group-body">
@@ -18,7 +17,6 @@
         :group="child"
         :current-id="currentId"
         :expanded-map="expandedMap"
-        :force-expand="forceExpand"
         @toggle="$emit('toggle', $event)"
         @select="$emit('select', $event)"
       />
@@ -45,14 +43,12 @@ defineOptions({ name: 'ArticleTreeBranch' })
 const props = defineProps({
   group: { type: Object, required: true },
   currentId: { type: [String, Number], default: null },
-  expandedMap: { type: Object, required: true },
-  forceExpand: { type: Boolean, default: false }
+  expandedMap: { type: Object, required: true }
 })
 
 defineEmits(['toggle', 'select'])
 
 const isExpanded = computed(() => {
-  if (props.forceExpand) return true
   return props.expandedMap[props.group.key] !== false
 })
 </script>

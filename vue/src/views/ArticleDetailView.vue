@@ -8,7 +8,6 @@
           :articles="allArticles"
           :current-id="route.params.id"
           :loading="loadingList"
-          :show-head="true"
           @select="goArticle"
         />
       </div>
@@ -21,9 +20,10 @@
       type="button"
       :aria-expanded="treeOpen ? 'true' : 'false'"
       aria-controls="article-tree-drawer"
+      aria-label="打开文章导航"
       @click="openTree"
     >
-      目录
+      ☰
     </button>
 
     <div v-if="isMobile && treeOpen" class="articles-overlay" @click="closeTree" />
@@ -80,7 +80,6 @@
     <!-- 右侧：文章大纲 -->
     <aside v-if="tocItems.length" class="article-toc-rail" aria-label="文章大纲">
       <div class="article-toc-card">
-        <div class="article-toc-title">大纲</div>
         <nav class="article-toc-body" aria-label="大纲导航">
           <button
             v-for="it in tocItems"
