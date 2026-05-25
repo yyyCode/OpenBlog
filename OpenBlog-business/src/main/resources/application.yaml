@@ -58,7 +58,7 @@ openblog:
   jwt:
     secret: "PLEASE_CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_32_PLUS_CHARS"
     issuer: openblog
-    access-token-expire-seconds: 900
+    access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 2592000
   storage:
     # 存储类型：local（本地磁盘）| minio（对象存储，本地与服务器共用同一 MinIO 即可访问相同图片）
