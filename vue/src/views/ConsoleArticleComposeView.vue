@@ -10,6 +10,18 @@
 
       <div class="compose-header-actions">
 
+        <button class="btn" type="button" @click="triggerInsertImage" :disabled="saving">
+
+          插入图片
+
+        </button>
+
+        <button class="btn" type="button" @click="openMediaBrowser" :disabled="saving">
+
+          媒体库
+
+        </button>
+
         <button class="btn" type="button" @click="togglePreview">
 
           {{ previewOpen ? '关闭预览' : '预览' }}
@@ -51,6 +63,20 @@
           style="display: none"
 
           @change="onMdFilePicked"
+
+        />
+
+        <input
+
+          ref="imageInput"
+
+          type="file"
+
+          accept="image/*"
+
+          style="display: none"
+
+          @change="onPickInsertImage"
 
         />
 
@@ -184,7 +210,23 @@
 
           <div class="label">正文 Markdown</div>
 
-          <textarea v-model="form.contentMarkdown" class="textarea compose-textarea" placeholder="开始写作吧..." />
+          <textarea
+
+            ref="editorTextarea"
+
+            v-model="form.contentMarkdown"
+
+            class="textarea compose-textarea"
+
+            placeholder="开始写作吧...支持 Ctrl+V 粘贴图片、拖拽图片到编辑区"
+
+            @paste="onEditorPaste"
+
+            @drop.prevent="onEditorDrop"
+
+            @dragover.prevent
+
+          />
 
         </div>
 
@@ -270,6 +312,76 @@
 
     </Teleport>
 
+
+
+    <Teleport to="body">
+
+      <div v-if="mediaBrowserOpen" class="media-browser-overlay" role="dialog" aria-label="媒体库">
+
+        <header class="media-browser-toolbar">
+
+          <div class="media-browser-toolbar-title">媒体库 — 点击图片插入到编辑器</div>
+
+          <button type="button" class="btn" @click="mediaBrowserOpen = false">关闭</button>
+
+        </header>
+
+        <div class="media-browser-body">
+
+          <div v-if="mediaLoading" class="media-browser-status">加载中...</div>
+
+          <div v-else-if="mediaError" class="media-browser-status error">{{ mediaError }}</div>
+
+          <template v-else>
+
+            <div v-if="mediaList.length === 0" class="media-browser-status">暂无上传的图片</div>
+
+            <div class="media-browser-grid">
+
+              <div
+
+                v-for="m in mediaList"
+
+                :key="m.key"
+
+                class="media-browser-card"
+
+                @click="selectFromBrowser(m)"
+
+              >
+
+                <img :src="m.thumbUrl" :alt="m.key" loading="lazy" />
+
+                <div class="media-browser-card-info">
+
+                  <span class="media-browser-card-dims">{{ m.width }}x{{ m.height }}</span>
+
+                  <span class="media-browser-card-size">{{ formatSize(m.size) }}</span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="media-browser-pager">
+
+              <button class="btn" :disabled="mediaPage <= 0" @click="loadMediaPage(mediaPage - 1)">上一页</button>
+
+              <span class="media-browser-page-num">{{ mediaPage + 1 }}</span>
+
+              <button class="btn" :disabled="mediaList.length < mediaPageSize" @click="loadMediaPage(mediaPage + 1)">下一页</button>
+
+            </div>
+
+          </template>
+
+        </div>
+
+      </div>
+
+    </Teleport>
+
   </div>
 
 </template>
@@ -308,7 +420,7 @@ import {
 
 } from '../api/admin'
 
-import { uploadMedia } from '../api/media'
+import { uploadMedia, fetchMediaList } from '../api/media'
 
 import { coverUrl } from '../api/article'
 
@@ -358,6 +470,26 @@ const categoryOptions = ref([])
 
 const mdFileInput = ref(null)
 
+const editorTextarea = ref(null)
+
+const imageInput = ref(null)
+
+
+
+// media browser state
+
+const mediaBrowserOpen = ref(false)
+
+const mediaList = ref([])
+
+const mediaLoading = ref(false)
+
+const mediaError = ref('')
+
+const mediaPage = ref(0)
+
+const mediaPageSize = 20
+
 
 
 const pageTitle = computed(() => (selectedId.value ? '编辑文章' : '新建文章'))
@@ -399,6 +531,242 @@ function resetEditor() {
   publishAtInput.value = ''
 
   previewOpen.value = false
+
+}
+
+
+
+function insertTextAtCursor(text) {
+
+  const el = editorTextarea.value
+
+  if (!el) {
+
+    form.value.contentMarkdown += text
+
+    return
+
+  }
+
+  const start = el.selectionStart
+
+  const end = el.selectionEnd
+
+  const before = form.value.contentMarkdown.slice(0, start)
+
+  const after = form.value.contentMarkdown.slice(end)
+
+  form.value.contentMarkdown = before + text + after
+
+  // restore cursor after inserted text
+
+  requestAnimationFrame(() => {
+
+    const pos = start + text.length
+
+    el.setSelectionRange(pos, pos)
+
+    el.focus()
+
+  })
+
+}
+
+
+
+async function uploadAndInsert(file) {
+
+  articleError.value = ''
+
+  const uploadingText = '![上传中...]()'
+
+  insertTextAtCursor(uploadingText)
+
+  const placeholderStart = form.value.contentMarkdown.indexOf(uploadingText)
+
+  try {
+
+    const resp = await uploadMedia(file)
+
+    const md = `![${file.name || 'image'}](${resp.url})`
+
+    if (placeholderStart >= 0) {
+
+      const before = form.value.contentMarkdown.slice(0, placeholderStart)
+
+      const after = form.value.contentMarkdown.slice(placeholderStart + uploadingText.length)
+
+      form.value.contentMarkdown = before + md + after
+
+    } else {
+
+      form.value.contentMarkdown = form.value.contentMarkdown.replace(uploadingText, md)
+
+    }
+
+  } catch (err) {
+
+    if (placeholderStart >= 0) {
+
+      const before = form.value.contentMarkdown.slice(0, placeholderStart)
+
+      const after = form.value.contentMarkdown.slice(placeholderStart + uploadingText.length)
+
+      form.value.contentMarkdown = before + after
+
+    } else {
+
+      form.value.contentMarkdown = form.value.contentMarkdown.replace(uploadingText, '')
+
+    }
+
+    articleError.value = err?.message || '图片上传失败'
+
+  }
+
+}
+
+
+
+function triggerInsertImage() {
+
+  if (saving.value) return
+
+  imageInput.value?.click()
+
+}
+
+
+
+async function onPickInsertImage(e) {
+
+  const file = e.target.files?.[0]
+
+  e.target.value = ''
+
+  if (!file) return
+
+  await uploadAndInsert(file)
+
+}
+
+
+
+async function onEditorPaste(e) {
+
+  const items = e.clipboardData?.items
+
+  if (!items) return
+
+  for (const item of items) {
+
+    if (item.type.startsWith('image/')) {
+
+      e.preventDefault()
+
+      const file = item.getAsFile()
+
+      if (file) await uploadAndInsert(file)
+
+      return
+
+    }
+
+  }
+
+}
+
+
+
+async function onEditorDrop(e) {
+
+  const files = e.dataTransfer?.files
+
+  if (!files || files.length === 0) return
+
+  for (const file of files) {
+
+    if (file.type.startsWith('image/')) {
+
+      await uploadAndInsert(file)
+
+      return
+
+    }
+
+  }
+
+}
+
+
+
+async function openMediaBrowser() {
+
+  if (saving.value) return
+
+  mediaBrowserOpen.value = true
+
+  mediaPage.value = 0
+
+  mediaError.value = ''
+
+  await loadMediaPage(0)
+
+}
+
+
+
+async function loadMediaPage(page) {
+
+  mediaLoading.value = true
+
+  mediaError.value = ''
+
+  try {
+
+    const data = await fetchMediaList(page, mediaPageSize)
+
+    mediaList.value = data?.records || []
+
+    mediaPage.value = page
+
+  } catch (err) {
+
+    mediaError.value = err?.message || '加载失败'
+
+    mediaList.value = []
+
+  } finally {
+
+    mediaLoading.value = false
+
+  }
+
+}
+
+
+
+function selectFromBrowser(m) {
+
+  const md = `![${m.key}](${m.url})`
+
+  insertTextAtCursor(md)
+
+  mediaBrowserOpen.value = false
+
+}
+
+
+
+function formatSize(bytes) {
+
+  if (bytes == null) return ''
+
+  if (bytes < 1024) return bytes + ' B'
+
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
 
 }
 
@@ -1092,6 +1460,160 @@ onMounted(async () => {
     padding: 12px 16px;
 
   }
+
+}
+
+
+
+/* media browser */
+
+.media-browser-overlay {
+
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 210;
+
+  display: flex;
+
+  flex-direction: column;
+
+  background: var(--bg, #ffffff);
+
+  color: var(--text, #111827);
+
+}
+
+.media-browser-toolbar {
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: 12px 24px;
+
+  border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.12));
+
+  background: var(--card, #ffffff);
+
+}
+
+.media-browser-toolbar-title {
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+}
+
+.media-browser-body {
+
+  flex: 1;
+
+  overflow: auto;
+
+  padding: 24px;
+
+}
+
+.media-browser-status {
+
+  text-align: center;
+
+  padding: 40px 0;
+
+  color: var(--console-muted, var(--muted));
+
+}
+
+.media-browser-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+
+  gap: 12px;
+
+}
+
+.media-browser-card {
+
+  border: 2px solid var(--border, rgba(15, 23, 42, 0.08));
+
+  border-radius: 8px;
+
+  overflow: hidden;
+
+  cursor: pointer;
+
+  transition: border-color 0.15s;
+
+  background: var(--card, #ffffff);
+
+}
+
+.media-browser-card:hover {
+
+  border-color: var(--primary, #2563eb);
+
+}
+
+.media-browser-card img {
+
+  display: block;
+
+  width: 100%;
+
+  height: 120px;
+
+  object-fit: cover;
+
+}
+
+.media-browser-card-info {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  padding: 6px 8px;
+
+  font-size: 11px;
+
+  color: var(--console-muted, var(--muted));
+
+}
+
+.media-browser-pager {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 12px;
+
+  margin-top: 20px;
+
+}
+
+.media-browser-page-num {
+
+  font-size: 13px;
+
+  color: var(--console-muted, var(--muted));
+
+  min-width: 32px;
+
+  text-align: center;
 
 }
 

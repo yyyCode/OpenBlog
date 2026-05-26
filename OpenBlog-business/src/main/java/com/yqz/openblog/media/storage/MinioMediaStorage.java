@@ -7,6 +7,7 @@ import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,24 @@ public class MinioMediaStorage implements MediaStorage {
     @Override
     public byte[] readThumb(String key) throws IOException {
         return readObject(THUMB_PREFIX + key);
+    }
+
+    @Override
+    public void delete(String key) throws IOException {
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucket())
+                            .object(ORIGINAL_PREFIX + key)
+                            .build());
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucket())
+                            .object(THUMB_PREFIX + key)
+                            .build());
+        } catch (Exception e) {
+            throw new IOException("删除 MinIO 文件失败: " + key, e);
+        }
     }
 
     private void putObject(String objectName, Path file, String contentType) throws IOException {

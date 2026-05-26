@@ -2,6 +2,7 @@ package com.yqz.openblog.media.service;
 
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.media.MediaProperties;
+import com.yqz.openblog.media.dto.MediaListItemResponse;
 import com.yqz.openblog.media.dto.MediaUploadResponse;
 import com.yqz.openblog.media.dto.ThumbInfoResponse;
 import com.yqz.openblog.media.entity.Media;
@@ -11,7 +12,9 @@ import com.yqz.openblog.media.storage.MediaStorage;
 import com.yqz.openblog.media.storage.MinioMediaStorage;
 import com.yqz.openblog.media.storage.LocalMediaStorage;
 import com.yqz.openblog.security.CurrentUser;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -23,8 +26,10 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class MediaService {
@@ -185,6 +190,47 @@ public class MediaService {
         resp.setWidth(media.getThumbWidth());
         resp.setHeight(media.getThumbHeight());
         return resp;
+    }
+
+    public IPage<MediaListItemResponse> listMyMedia(int page, int size) {
+        Long uid = currentUser.userId();
+        Page<Media> mpPage = new Page<>(page + 1L, size);
+        IPage<Media> p = mediaMapper.selectPage(mpPage,
+                Wrappers.lambdaQuery(Media.class)
+                        .eq(Media::getUploadedBy, uid)
+                        .orderByDesc(Media::getCreatedAt));
+        return p.convert(this::toListItem);
+    }
+
+    public void deleteMyMedia(String key) {
+        Long uid = currentUser.userId();
+        Media media = mediaMapper.selectOne(Wrappers.lambdaQuery(Media.class)
+                .eq(Media::getStorageKey, key)
+                .eq(Media::getUploadedBy, uid));
+        if (media == null) {
+            throw new BizException(4042, "媒体不存在或无权删除");
+        }
+        try {
+            mediaFileAccess.delete(media);
+        } catch (IOException e) {
+            throw new BizException(5002, "删除媒体文件失败: " + e.getMessage());
+        }
+        mediaMapper.deleteById(media.getId());
+    }
+
+    private MediaListItemResponse toListItem(Media m) {
+        MediaListItemResponse r = new MediaListItemResponse();
+        r.setKey(m.getStorageKey());
+        r.setUrl(normalizePublicMediaUrl(m.getUrl()));
+        r.setThumbUrl(normalizePublicMediaUrl(m.getThumbUrl()));
+        r.setContentType(m.getContentType());
+        r.setSize(m.getSize());
+        r.setWidth(m.getWidth());
+        r.setHeight(m.getHeight());
+        r.setThumbWidth(m.getThumbWidth());
+        r.setThumbHeight(m.getThumbHeight());
+        r.setCreatedAt(m.getCreatedAt());
+        return r;
     }
 
     private MediaStorage activeStorage() {

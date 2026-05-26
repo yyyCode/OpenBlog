@@ -14,4 +14,6 @@ public interface MediaStorage {
     byte[] readOriginal(String key) throws IOException;
 
     byte[] readThumb(String key) throws IOException;
+
+    void delete(String key) throws IOException;
 }

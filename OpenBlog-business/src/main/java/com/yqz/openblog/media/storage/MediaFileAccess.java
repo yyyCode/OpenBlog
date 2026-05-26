@@ -24,6 +24,10 @@ public class MediaFileAccess {
         return thumb ? storage.readThumb(media.getStorageKey()) : storage.readOriginal(media.getStorageKey());
     }
 
+    public void delete(Media media) throws IOException {
+        resolve(media.getStorageType()).delete(media.getStorageKey());
+    }
+
     private MediaStorage resolve(String storageType) {
         if ("MINIO".equalsIgnoreCase(storageType)) {
             MinioMediaStorage minio = minioMediaStorage.getIfAvailable();

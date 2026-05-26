@@ -46,6 +46,12 @@ public class LocalMediaStorage implements MediaStorage {
         return Files.readAllBytes(resolveThumb(key));
     }
 
+    @Override
+    public void delete(String key) throws IOException {
+        Files.deleteIfExists(resolveOriginal(key));
+        Files.deleteIfExists(resolveThumb(key));
+    }
+
     private Path root() {
         return Path.of(properties.getRootPath()).toAbsolutePath().normalize();
     }

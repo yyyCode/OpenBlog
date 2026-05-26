@@ -1,10 +1,12 @@
 package com.yqz.openblog.media.controller;
 
 import com.yqz.openblog.common.ApiResponse;
+import com.yqz.openblog.media.dto.MediaListItemResponse;
 import com.yqz.openblog.media.dto.MediaUploadResponse;
 import com.yqz.openblog.media.dto.ThumbInfoResponse;
 import com.yqz.openblog.media.entity.Media;
 import com.yqz.openblog.media.service.MediaService;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,6 +29,19 @@ public class MediaController {
     @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<MediaUploadResponse> upload(@RequestParam("file") MultipartFile file) throws IOException {
         return ApiResponse.ok(mediaService.upload(file));
+    }
+
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<IPage<MediaListItemResponse>> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok(mediaService.listMyMedia(page, size));
+    }
+
+    @DeleteMapping(value = "/{key}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<Void> delete(@PathVariable("key") String key) {
+        mediaService.deleteMyMedia(key);
+        return ApiResponse.ok();
     }
 
     @GetMapping(value = "/{key}/thumb", produces = MediaType.APPLICATION_JSON_VALUE)
