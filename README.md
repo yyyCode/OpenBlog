@@ -9,14 +9,66 @@
 | 模块 | 说明 |
 |------|------|
 | 账号 | 注册、登录、JWT 刷新、当前用户资料查询与更新 |
-| 文章 | 草稿创建/编辑、发布、下架、删除、公开列表与详情、作者侧「我的文章」与详情 |
+| 文章 | 草稿创建/编辑、发布（支持定时发布）、下架、删除、Markdown 导入/导出、公开列表与详情、作者侧「我的文章」与详情；正文独立存储并在发布时预渲染 HTML；编辑器支持粘贴/拖拽插图、媒体库一键插入 |
+| 搜索 | MySQL FULLTEXT 索引支持文章正文搜索（`article_bodies.content_markdown`） |
 | 互动 | 文章点赞/取消、收藏/取消、关注/取消关注 |
 | 评论 | 文章下评论列表、发表评论、回复评论、删除评论 |
-| 媒体 | 上传、原图/缩略图访问、缩略图元数据查询 |
+| 媒体 | 上传、列表浏览（分页）、删除、原图/缩略图访问、缩略图元数据查询、全屏预览、一键复制 URL |
 | 首页 | 聚合数据接口（如 `/api/v1/home`） |
 | 公开资料 | `/api/v1/profile`：未登录展示站点作者信息，已登录可优先展示当前用户公开资料 |
 
 更完整的产品与接口设计可参考仓库内文档：`docs/后端功能与架构设计.md`。
+
+### 文章存储架构
+
+文章元数据（标题、摘要、状态、计数器等）与正文**分表存储**：
+
+| 表 | 存储内容 | 说明 |
+|----|---------|------|
+| `articles` | 元数据 | 列表查询轻量，不拖出正文大字段 |
+| `article_bodies` | `content_markdown`(MEDIUMTEXT) + `content_html`(MEDIUMTEXT) | 正文与渲染结果独立存储 |
+
+- **预渲染**：保存/发布时由 flexmark 将 Markdown 渲染为 HTML，前端展示直接使用，避免每次客户端解析。
+- **全文索引**：`article_bodies.content_markdown` 上建有 MySQL FULLTEXT 索引，支持正文搜索。
+- **惰性回填**：迁移后的旧文章 `content_html` 为空，首次读取时自动渲染并写回。
+- **图片等二进制资源**：通过 MinIO（或本地文件系统）独立存储，不在数据库中。
+
+### 缓存架构
+
+Redis 操作统一封装在 `OpenBlog-framework-redis` 模块中，提供 `RedisOps` 接口（内置容错）、`RedisKeys` 统一 Key 管理、滑动窗口限流器等基础能力。业务模块通过该模块间接使用 Redis，不直接依赖 `StringRedisTemplate`。
+
+已发布文章的读取链路使用 Redis 做两级缓存，减少数据库压力：
+
+| 缓存层级 | Redis Key | TTL | 说明 |
+|---------|-----------|-----|------|
+| 文章正文 | `openblog:content:article:body:{id}` | 30 min | 缓存标题、摘要、正文（Markdown + HTML）、作者、分类等相对稳定字段。计数类字段（阅读量、点赞数等）每次从数据库合并，避免缓存与数据库不一致。 |
+| 文章列表 | `openblog:content:article:list:v{version}:{categoryId}:{page}:{size}` | 5 min | 缓存已发布文章分页列表。写操作通过递增全局版本号使旧版本缓存自然过期，无需全量扫描删除。 |
+
+**Redis Key 命名规范**：`openblog:{领域}:{实体}:{用途}:{参数...}`
+
+| 领域 | 示例 Key | 用途 |
+|------|---------|------|
+| `content` | `openblog:content:article:body:{id}` | 文章正文与列表缓存 |
+| `counter` | `openblog:counter:article:view:{id}:{ip}` | 阅读量/访问量去重 |
+| `security` | `openblog:security:login:fail:{ip}` | 登录锁定、滑块验证 |
+| `ratelimit` | `openblog:ratelimit:feedback:{ip}:{date}` | 反馈提交限流 |
+
+**缓存一致性策略（Cache-Aside）**：
+
+```
+读取：先查 Redis → 命中返回 → 未命中查 MySQL 并回写 Redis
+写入：更新 MySQL → 删除 Redis 缓存 → 下次读取时自动重建
+```
+
+| 写操作 | 正文缓存 | 列表缓存 |
+|--------|---------|---------|
+| 发布文章 | 删除 | 递增版本号（全局失效） |
+| 更新已发布文章 | 删除 | 递增版本号 |
+| 删除/下架文章 | 删除 | 递增版本号 |
+| 定时发布 | 逐条删除 | 批量完成后递增版本号 |
+| 创建草稿 | 不处理 | 不处理 |
+
+**故障降级**：`RedisOps` 所有方法内置 try-catch，Redis 不可用时读侧返回空（走数据库），写侧忽略并记录日志，不影响正常业务响应。
 
 ---
 
@@ -25,18 +77,20 @@
 **后端**
 
 - Java **17**
-- Spring Boot **3.5.x**（Web、Validation、Security、Data JPA、Data Redis）
-- MyBatis-Plus **3.5.x**（与 JPA 等并存，按模块使用）
+- Spring Boot **3.5.x**（Web、Validation、Security、Data JPA）
+- MyBatis-Plus **3.5.x**（与 JPA 并存，按模块使用）
 - MySQL **8**（Hibernate `ddl-auto: update` 便于开发迭代）
-- Redis（会话/缓存等，按实现使用）
+- Redis（通过 `OpenBlog-framework-redis` 模块统一封装：`RedisOps` 操作接口、`RedisKeys` Key 管理、滑动窗口限流器）
 - JWT（jjwt **0.12.x**）
-- 本地文件存储 + 缩略图（Thumbnailator）、Caffeine 等
+- MinIO 对象存储（图片上传，可选本地文件系统回退）
+- flexmark（服务端 Markdown → HTML 预渲染）
+- 缩略图（Thumbnailator）、Caffeine 本地缓存
 
 **前端**
 
 - Vue **3**、Vue Router **4**
 - Vite **8**
-- Markdown：`marked`；HTML 消毒：`dompurify`
+- Markdown 渲染：服务端 `flexmark` 预渲染 HTML，前端 `marked` 作为回退；HTML 消毒：`dompurify`
 
 ---
 
@@ -45,6 +99,11 @@
 - **首页布局**：两栏布局，左侧为个人信息栏（吸顶），右侧为文章内容。
 - **顶栏导航**：提供主题切换、项目源码入口等快捷操作。
   - **GitHub（项目源码）**：`https://github.com/yyyCode/OpenBlog.git`
+- **文章编辑器**：
+  - Ctrl+V 粘贴截图 / 拖拽图片到编辑区，自动上传并插入 Markdown 图片语法
+  - 工具栏「插入图片」按钮可直接选文件上传
+  - 「媒体库」弹窗浏览已上传图片，点击缩略图一键插入
+- **附件管理**：缩略图网格展示、分页浏览、全屏预览、复制 URL、删除确认
 
 ---
 
@@ -52,17 +111,38 @@
 
 ```
 OpenBlog/
-├── src/main/java/          # Spring Boot 应用（包名 com.yqz.openblog）
-├── src/main/resources/
-│   └── application.yaml    # 服务端口、数据源、Redis、JWT、存储路径等
-├── frontend/               # Vue 3 前端
+├── OpenBlog-framework-redis/        # Redis 框架封装模块
+│   └── src/main/java/com/yqz/openblog/redis/
+│       ├── core/                    # RedisOps 接口、DefaultRedisOps 实现、RedisKeys
+│       ├── config/                  # RedisProperties、自动装配
+│       └── limiter/                 # SlidingWindowLimiter（ZSET 滑动窗口）
+├── OpenBlog-business/               # 业务模块（Spring Boot）
+│   └── src/main/
+│       ├── java/com/yqz/openblog/
+│       │   ├── article/            # 文章：实体、DTO、服务、导入/导出、定时发布
+│       │   │   ├── entity/         # Article, ArticleBody（正文独立存储）
+│       │   │   ├── service/        # 文章服务、缓存（正文+列表）、阅读量、导入导出
+│       │   │   └── repo/           # MyBatis-Plus Mapper + JPA Repository
+│       │   ├── category/           # 分类
+│       │   ├── changelog/          # 更新日志
+│       │   ├── comment/            # 评论
+│       │   ├── interaction/        # 互动（点赞、收藏、关注）
+│       │   ├── media/              # 媒体上传（MinIO / 本地存储 + 缩略图）
+│       │   ├── user/               # 用户、认证、JWT
+│       │   └── config/             # Spring Security、MyBatis-Plus 等配置
+│       └── resources/
+│           ├── application.yaml    # 服务端口、数据源、Redis、JWT、MinIO 等
+│           └── sql/                # 手动 SQL 脚本（迁移、参考数据）
+├── vue/                            # Vue 3 前端
 │   ├── src/
-│   │   └── api/            # HTTP 封装，默认 API 基址可通过环境变量覆盖
+│   │   ├── api/                    # HTTP 封装
+│   │   ├── views/                  # 页面组件
+│   │   └── components/             # 通用组件
 │   ├── package.json
 │   └── vite.config.js
-├── docs/                   # 架构与需求说明
-├── pom.xml
-└── mvnw / mvnw.cmd         # Maven Wrapper（可选）
+├── docs/                           # 架构与需求说明
+├── pom.xml                         # 根 POM（聚合模块）
+└── mvnw / mvnw.cmd                 # Maven Wrapper（可选）
 ```
 
 ---
@@ -88,6 +168,7 @@ OpenBlog/
 | `spring.data.redis.*` | Redis 主机、端口、超时等 |
 | `openblog.jwt.*` | JWT 密钥、签发方、Access/Refresh 过期时间（秒） |
 | `openblog.storage.*` | 本地上传根目录、`public-base-url`（对外访问文件与拼 URL 用）、缩略图长边像素 |
+| `openblog.cache.*` | 文章正文缓存 TTL（`article-published-ttl-minutes`，默认 30）、列表缓存 TTL（`article-list-ttl-minutes`，默认 5） |
 
 **务必在部署环境中：**
 
@@ -133,6 +214,8 @@ mvn spring-boot:run
 ```
 
 应用默认监听 **http://localhost:8082**。首次启动时 JPA 会根据实体自动维护表结构（`ddl-auto: update`）。
+
+> **若从旧版本升级**（此前文章正文字段在 `articles` 表中），需在启动后执行 `sql/migrate-article-body.sql` 将正文迁移到 `article_bodies` 表。旧版请求/响应格式完全兼容，迁移不会影响已发布文章的正常访问。
 
 ### 3. 启动前端
 

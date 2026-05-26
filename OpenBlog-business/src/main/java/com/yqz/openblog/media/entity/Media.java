@@ -21,7 +21,7 @@ public class Media {
     private Long id;
 
     @Column(name = "storage_type", nullable = false, length = 16)
-    private String storageType; // LOCAL
+    private String storageType; // LOCAL | MINIO
 
     @Column(name = "storage_key", nullable = false, length = 64, unique = true)
     private String storageKey; // UUID
@@ -45,6 +45,9 @@ public class Media {
 
     @Column(name = "uploaded_by")
     private Long uploadedBy;
+
+    @Column(name = "category", length = 32)
+    private String category;
 
     @Column(nullable = false)
     @TableField(fill = FieldFill.INSERT)
@@ -148,6 +151,14 @@ public class Media {
 
     public void setUploadedBy(Long uploadedBy) {
         this.uploadedBy = uploadedBy;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public Instant getCreatedAt() {

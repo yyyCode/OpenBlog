@@ -28,9 +28,6 @@ public class Article {
     @Column(length = 255)
     private String summary;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String contentMarkdown;
-
     @Column(length = 64)
     private String coverMediaKey;
 
@@ -121,14 +118,6 @@ public class Article {
 
     public void setSummary(String summary) {
         this.summary = summary;
-    }
-
-    public String getContentMarkdown() {
-        return contentMarkdown;
-    }
-
-    public void setContentMarkdown(String contentMarkdown) {
-        this.contentMarkdown = contentMarkdown;
     }
 
     public String getCoverMediaKey() {

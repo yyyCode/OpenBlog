@@ -13,6 +13,7 @@ public class ArticlePublishedContentCachePayload {
     private String title;
     private String summary;
     private String contentMarkdown;
+    private String contentHtml;
     private String coverMediaKey;
     private Long authorId;
     private String authorNickname;
@@ -20,6 +21,9 @@ public class ArticlePublishedContentCachePayload {
     private ArticleStatus status;
     private Instant createdAt;
     private Instant updatedAt;
+    private Long categoryId;
+    private String categoryName;
+    private java.util.List<String> categoryPath;
 
     public static ArticlePublishedContentCachePayload fromDetail(ArticleDetailResponse d) {
         ArticlePublishedContentCachePayload p = new ArticlePublishedContentCachePayload();
@@ -27,6 +31,7 @@ public class ArticlePublishedContentCachePayload {
         p.setTitle(d.getTitle());
         p.setSummary(d.getSummary());
         p.setContentMarkdown(d.getContentMarkdown());
+        p.setContentHtml(d.getContentHtml());
         p.setCoverMediaKey(d.getCoverMediaKey());
         p.setAuthorId(d.getAuthorId());
         p.setAuthorNickname(d.getAuthorNickname());
@@ -34,6 +39,9 @@ public class ArticlePublishedContentCachePayload {
         p.setStatus(d.getStatus());
         p.setCreatedAt(d.getCreatedAt());
         p.setUpdatedAt(d.getUpdatedAt());
+        p.setCategoryId(d.getCategoryId());
+        p.setCategoryName(d.getCategoryName());
+        p.setCategoryPath(d.getCategoryPath());
         return p;
     }
 
@@ -67,6 +75,14 @@ public class ArticlePublishedContentCachePayload {
 
     public void setContentMarkdown(String contentMarkdown) {
         this.contentMarkdown = contentMarkdown;
+    }
+
+    public String getContentHtml() {
+        return contentHtml;
+    }
+
+    public void setContentHtml(String contentHtml) {
+        this.contentHtml = contentHtml;
     }
 
     public String getCoverMediaKey() {
@@ -123,5 +139,29 @@ public class ArticlePublishedContentCachePayload {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public java.util.List<String> getCategoryPath() {
+        return categoryPath;
+    }
+
+    public void setCategoryPath(java.util.List<String> categoryPath) {
+        this.categoryPath = categoryPath;
     }
 }

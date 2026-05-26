@@ -2,7 +2,8 @@ package com.yqz.openblog.site;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.yqz.openblog.article.limiter.SlidingWindowLimiter;
+import com.yqz.openblog.redis.limiter.SlidingWindowLimiter;
+import com.yqz.openblog.redis.core.RedisKeys;
 import com.yqz.openblog.site.repo.SiteVisitCounterMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,7 @@ public class SiteVisitService {
         if (clientIp == null || clientIp.isBlank()) {
             return false;
         }
-        String redisKey = "openblog:site:view:" + clientIp;
+        String redisKey = RedisKeys.siteVisit(clientIp);
         long nowMs = System.currentTimeMillis();
         String member = nowMs + "-" + UUID.randomUUID();
 

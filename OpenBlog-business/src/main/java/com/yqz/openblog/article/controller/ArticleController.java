@@ -33,8 +33,9 @@ public class ArticleController {
     @GetMapping("/articles")
     public ApiResponse<PageResult<ArticleListItemResponse>> listPublished(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ApiResponse.ok(articleService.listPublished(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long categoryId) {
+        return ApiResponse.ok(articleService.listPublished(page, size, categoryId));
     }
 
     @GetMapping("/articles/{articleId}")

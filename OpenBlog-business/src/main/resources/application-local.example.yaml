@@ -22,4 +22,13 @@ openblog:
   jwt:
     secret: "REPLACE_WITH_LONG_RANDOM_AT_LEAST_32_CHARS"
   storage:
+    # local：读写本机目录；minio：读写远程 MinIO（与生产共用 endpoint 即可在本地看到线上图片）
+    type: minio
+    root-path: "./uploads"
     public-base-url: "http://localhost:8082"
+    thumb-long-edge: 320
+    minio:
+      endpoint: "http://127.0.0.1:9000"
+      access-key: "your_minio_access_key"
+      secret-key: "your_minio_secret_key"
+      bucket: "openblog"

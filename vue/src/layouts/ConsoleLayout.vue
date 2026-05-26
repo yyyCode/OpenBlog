@@ -57,6 +57,14 @@
             </span>
             新建文章
           </router-link>
+          <router-link to="/console/categories" class="console-nav-item" active-class="active">
+            <span class="console-nav-ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h10M4 18h16" />
+              </svg>
+            </span>
+            分类管理
+          </router-link>
           <router-link to="/console/changelog" class="console-nav-item" active-class="active">
             <span class="console-nav-ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

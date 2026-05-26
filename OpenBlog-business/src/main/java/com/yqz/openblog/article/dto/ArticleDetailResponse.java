@@ -9,6 +9,7 @@ public class ArticleDetailResponse {
     private String title;
     private String summary;
     private String contentMarkdown;
+    private String contentHtml;
     private String coverMediaKey;
     private Long authorId;
     private String authorNickname;
@@ -20,6 +21,9 @@ public class ArticleDetailResponse {
     private Long commentCount;
     private Instant createdAt;
     private Instant updatedAt;
+    private Long categoryId;
+    private String categoryName;
+    private java.util.List<String> categoryPath;
 
     public Long getId() {
         return id;
@@ -51,6 +55,14 @@ public class ArticleDetailResponse {
 
     public void setContentMarkdown(String contentMarkdown) {
         this.contentMarkdown = contentMarkdown;
+    }
+
+    public String getContentHtml() {
+        return contentHtml;
+    }
+
+    public void setContentHtml(String contentHtml) {
+        this.contentHtml = contentHtml;
     }
 
     public String getCoverMediaKey() {
@@ -139,6 +151,30 @@ public class ArticleDetailResponse {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public java.util.List<String> getCategoryPath() {
+        return categoryPath;
+    }
+
+    public void setCategoryPath(java.util.List<String> categoryPath) {
+        this.categoryPath = categoryPath;
     }
 }
 

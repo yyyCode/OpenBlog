@@ -8,6 +8,7 @@ public class MediaUploadResponse {
     private Integer height;
     private Integer thumbWidth;
     private Integer thumbHeight;
+    private String category;
 
     public String getUrl() {
         return url;
@@ -63,6 +64,14 @@ public class MediaUploadResponse {
 
     public void setThumbHeight(Integer thumbHeight) {
         this.thumbHeight = thumbHeight;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 }
 

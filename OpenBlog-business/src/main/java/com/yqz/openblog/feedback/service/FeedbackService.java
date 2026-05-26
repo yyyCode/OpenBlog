@@ -6,13 +6,14 @@ import com.yqz.openblog.feedback.dto.FeedbackCreateRequest;
 import com.yqz.openblog.feedback.dto.FeedbackListItemResponse;
 import com.yqz.openblog.feedback.entity.FeedbackEntry;
 import com.yqz.openblog.feedback.repo.FeedbackRepository;
+import com.yqz.openblog.redis.core.RedisKeys;
+import com.yqz.openblog.redis.core.RedisOps;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,14 +26,12 @@ public class FeedbackService {
 
     private static final Logger log = LoggerFactory.getLogger(FeedbackService.class);
 
-    private static final String KEY_PREFIX = "openblog:feedback:ipday:";
-
     private final FeedbackRepository feedbackRepository;
-    private final StringRedisTemplate redisTemplate;
+    private final RedisOps redisOps;
 
-    public FeedbackService(FeedbackRepository feedbackRepository, StringRedisTemplate redisTemplate) {
+    public FeedbackService(FeedbackRepository feedbackRepository, RedisOps redisOps) {
         this.feedbackRepository = feedbackRepository;
-        this.redisTemplate = redisTemplate;
+        this.redisOps = redisOps;
     }
 
     @Transactional
@@ -43,7 +42,7 @@ public class FeedbackService {
         ZoneId zone = ZoneId.systemDefault();
         LocalDate today = LocalDate.now(zone);
 
-        // 先用 Redis 进行“每天一次”快速判定；Redis 不可用时降级用 DB 判定
+        // 先用 Redis 进行"每天一次"快速判定；Redis 不可用时降级用 DB 判定
         if (!tryAcquireRedis(ipKey, today, zone)) {
             throw new BizException(4290, "同一 IP 每天只能提交一次");
         }
@@ -89,20 +88,17 @@ public class FeedbackService {
     }
 
     private boolean tryAcquireRedis(String ipKey, LocalDate day, ZoneId zone) {
-        String key = KEY_PREFIX + ipKey + ":" + day;
-        try {
-            Instant now = Instant.now();
-            Instant nextDayStart = day.plusDays(1).atStartOfDay(zone).toInstant();
-            Duration ttl = Duration.between(now, nextDayStart);
-            if (ttl.isNegative() || ttl.isZero()) {
-                ttl = Duration.ofHours(24);
-            }
-            Boolean ok = redisTemplate.opsForValue().setIfAbsent(key, "1", ttl);
-            return ok == null || ok;
-        } catch (Exception e) {
-            log.warn("feedback rate limit skipped (redis unavailable), ipKey={}", ipKey, e);
-            return true;
+        String key = RedisKeys.feedbackIpDay(ipKey, day);
+        Instant now = Instant.now();
+        Instant nextDayStart = day.plusDays(1).atStartOfDay(zone).toInstant();
+        Duration ttl = Duration.between(now, nextDayStart);
+        if (ttl.isNegative() || ttl.isZero()) {
+            ttl = Duration.ofHours(24);
         }
+        boolean ok = redisOps.setIfAbsent(key, "1", ttl);
+        if (!ok) {
+            log.info("反馈限流触发。ipKey={}, day={}", ipKey, day);
+        }
+        return ok;
     }
 }
-

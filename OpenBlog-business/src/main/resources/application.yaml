@@ -40,6 +40,8 @@ openblog:
   cache:
     # 已发布文章正文（Redis）；不可用或异常时自动仅查 MySQL
     article-published-ttl-minutes: 30
+    # 已发布文章列表页（Redis）；变更时通过版本号全局失效，短 TTL 兜底
+    article-list-ttl-minutes: 5
   site:
     version: "1.0.0"
   # 生产环境请改为前端实际域名，例如 https://blog.example.com
@@ -58,10 +60,18 @@ openblog:
   jwt:
     secret: "PLEASE_CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_32_PLUS_CHARS"
     issuer: openblog
-    access-token-expire-seconds: 900
+    access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 2592000
   storage:
+    # 存储类型：local（本地磁盘）| minio（对象存储，本地与服务器共用同一 MinIO 即可访问相同图片）
+    type: minio
     root-path: "/www/wwwroot/java/uploads/"
     # 浏览器可访问的站点根（含 https 与域名），勿写内网 IP:8082，否则 HTTPS 页会混合内容拦截图片
     public-base-url: "https://www.wecode.xin"
     thumb-long-edge: 320
+    # 当 type=minio 时填写以下配置
+    minio:
+      endpoint: "http://10.21.32.85:9000"
+      access-key: "zoRKQFmL5UjnYz5HNrbh"
+      secret-key: "3T8kopnAh4mQVLSDDgqQpxH3oSn8jhH5H0wzKlzE"
+      bucket: "openblog-document"
