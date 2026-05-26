@@ -9,6 +9,7 @@ public class ArticleDetailResponse {
     private String title;
     private String summary;
     private String contentMarkdown;
+    private String contentHtml;
     private String coverMediaKey;
     private Long authorId;
     private String authorNickname;
@@ -54,6 +55,14 @@ public class ArticleDetailResponse {
 
     public void setContentMarkdown(String contentMarkdown) {
         this.contentMarkdown = contentMarkdown;
+    }
+
+    public String getContentHtml() {
+        return contentHtml;
+    }
+
+    public void setContentHtml(String contentHtml) {
+        this.contentHtml = contentHtml;
     }
 
     public String getCoverMediaKey() {

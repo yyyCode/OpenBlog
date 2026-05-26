@@ -6,6 +6,7 @@ import com.yqz.openblog.article.dto.ArticleListItemResponse;
 import com.yqz.openblog.article.dto.ArticlePublishedContentCachePayload;
 import com.yqz.openblog.article.dto.ArticleUpdateRequest;
 import com.yqz.openblog.article.entity.*;
+import com.yqz.openblog.article.repo.ArticleBodyMapper;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
@@ -24,27 +25,34 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ArticleService {
 
     private final ArticleMapper articleMapper;
+    private final ArticleBodyMapper articleBodyMapper;
     private final UserMapper userMapper;
     private final ArticleViewService articleViewService;
     private final ArticlePublishedContentCacheService publishedContentCache;
     private final CategoryService categoryService;
+    private final MarkdownRenderer markdownRenderer;
 
     public ArticleService(
             ArticleMapper articleMapper,
+            ArticleBodyMapper articleBodyMapper,
             UserMapper userMapper,
             ArticleViewService articleViewService,
             ArticlePublishedContentCacheService publishedContentCache,
-            CategoryService categoryService) {
+            CategoryService categoryService,
+            MarkdownRenderer markdownRenderer) {
         this.articleMapper = articleMapper;
+        this.articleBodyMapper = articleBodyMapper;
         this.userMapper = userMapper;
         this.articleViewService = articleViewService;
         this.publishedContentCache = publishedContentCache;
         this.categoryService = categoryService;
+        this.markdownRenderer = markdownRenderer;
     }
 
     public ArticleListItemResponse mapListItem(Article a) {
@@ -71,7 +79,6 @@ public class ArticleService {
         resp.setId(a.getId());
         resp.setTitle(a.getTitle());
         resp.setSummary(a.getSummary());
-        resp.setContentMarkdown(a.getContentMarkdown());
         resp.setCoverMediaKey(a.getCoverMediaKey());
         resp.setAuthorId(a.getAuthorId());
         User author = userMapper.selectById(a.getAuthorId());
@@ -85,6 +92,7 @@ public class ArticleService {
         resp.setCreatedAt(a.getCreatedAt());
         resp.setUpdatedAt(a.getUpdatedAt());
         applyCategory(resp, a.getCategoryId());
+        attachBody(resp, a.getId());
         return resp;
     }
 
@@ -103,7 +111,27 @@ public class ArticleService {
     }
 
     /**
-     * 缓存命中时：正文等用缓存，计数类字段始终用当前数据库行（避免阅读量/评论数长期失真）。
+     * 从 article_bodies 加载正文，设置到响应中。
+     * 对已迁移但未渲染 HTML 的旧文章，首次读取时惰性渲染并回填。
+     */
+    private void attachBody(ArticleDetailResponse resp, Long articleId) {
+        ArticleBody body = articleBodyMapper.selectById(articleId);
+        if (body == null) {
+            return;
+        }
+        resp.setContentMarkdown(body.getContentMarkdown());
+        if (body.getContentHtml() != null && !body.getContentHtml().isBlank()) {
+            resp.setContentHtml(body.getContentHtml());
+        } else {
+            String html = markdownRenderer.render(body.getContentMarkdown());
+            int wc = markdownRenderer.estimateWordCount(body.getContentMarkdown());
+            resp.setContentHtml(html);
+            articleBodyMapper.backfillHtmlIfNull(articleId, html, wc);
+        }
+    }
+
+    /**
+     * 缓存命中时：正文等用缓存，计数类字段始终用当前数据库行。
      */
     private ArticleDetailResponse mergePublishedDetailFromCache(ArticlePublishedContentCachePayload p, Article a) {
         ArticleDetailResponse r = new ArticleDetailResponse();
@@ -111,6 +139,7 @@ public class ArticleService {
         r.setTitle(p.getTitle());
         r.setSummary(p.getSummary());
         r.setContentMarkdown(p.getContentMarkdown());
+        r.setContentHtml(p.getContentHtml());
         r.setCoverMediaKey(p.getCoverMediaKey());
         r.setAuthorId(p.getAuthorId());
         r.setAuthorNickname(p.getAuthorNickname());
@@ -188,12 +217,12 @@ public class ArticleService {
         return mapDetail(a);
     }
 
+    @Transactional
     public ArticleListItemResponse createDraft(Long authorId, ArticleCreateRequest req) {
         Article a = new Article();
         a.setAuthorId(authorId);
         a.setTitle(req.getTitle());
         a.setSummary(req.getSummary());
-        a.setContentMarkdown(req.getContentMarkdown());
         a.setCoverMediaKey(req.getCoverMediaKey());
         categoryService.validateCategoryId(req.getCategoryId());
         a.setCategoryId(req.getCategoryId());
@@ -203,9 +232,18 @@ public class ArticleService {
         a.setFavoriteCount(0L);
         a.setCommentCount(0L);
         articleMapper.insert(a);
+
+        ArticleBody body = new ArticleBody();
+        body.setArticleId(a.getId());
+        body.setContentMarkdown(req.getContentMarkdown());
+        body.setContentHtml(markdownRenderer.render(req.getContentMarkdown()));
+        body.setWordCount(markdownRenderer.estimateWordCount(req.getContentMarkdown()));
+        articleBodyMapper.insert(body);
+
         return mapListItem(a);
     }
 
+    @Transactional
     public ArticleListItemResponse updateArticle(Long authorId, Long articleId, ArticleUpdateRequest req) {
         Article a = articleMapper.selectById(articleId);
         if (a == null) {
@@ -219,17 +257,35 @@ public class ArticleService {
         }
         a.setTitle(req.getTitle());
         a.setSummary(req.getSummary());
-        a.setContentMarkdown(req.getContentMarkdown());
         a.setCoverMediaKey(req.getCoverMediaKey());
         categoryService.validateCategoryId(req.getCategoryId());
         a.setCategoryId(req.getCategoryId());
         articleMapper.updateById(a);
+
+        String renderedHtml = markdownRenderer.render(req.getContentMarkdown());
+        int wc = markdownRenderer.estimateWordCount(req.getContentMarkdown());
+        ArticleBody body = articleBodyMapper.selectById(articleId);
+        if (body == null) {
+            body = new ArticleBody();
+            body.setArticleId(articleId);
+            body.setContentMarkdown(req.getContentMarkdown());
+            body.setContentHtml(renderedHtml);
+            body.setWordCount(wc);
+            articleBodyMapper.insert(body);
+        } else {
+            body.setContentMarkdown(req.getContentMarkdown());
+            body.setContentHtml(renderedHtml);
+            body.setWordCount(wc);
+            articleBodyMapper.updateById(body);
+        }
+
         if (a.getStatus() == ArticleStatus.PUBLISHED) {
             publishedContentCache.evict(articleId);
         }
         return mapListItem(a);
     }
 
+    @Transactional
     public ArticleListItemResponse publish(Long authorId, Long articleId, Instant publishedAt) {
         Article a = articleMapper.selectById(articleId);
         if (a == null) {
@@ -239,11 +295,14 @@ public class ArticleService {
             throw new BizException(4031, "无权限");
         }
         if (a.getStatus() == ArticleStatus.DELETED) throw new BizException(4091, "当前文章不可发布");
-        if (a.getTitle() == null || a.getTitle().trim().isEmpty() || a.getContentMarkdown() == null || a.getContentMarkdown().trim().isEmpty()) {
+
+        ArticleBody body = articleBodyMapper.selectById(articleId);
+        String md = body == null ? null : body.getContentMarkdown();
+        if (a.getTitle() == null || a.getTitle().trim().isEmpty() || md == null || md.trim().isEmpty()) {
             throw new BizException(4002, "标题和正文不能为空");
         }
+
         Instant now = Instant.now();
-        // 未来时间：按“定时发布”处理（文章在到点前不可见）
         if (publishedAt != null && publishedAt.isAfter(now)) {
             a.setStatus(ArticleStatus.SCHEDULED);
             a.setScheduledAt(publishedAt);
@@ -261,11 +320,6 @@ public class ArticleService {
         return mapListItem(a);
     }
 
-    /**
-     * 定时任务扫描到点文章并发布。
-     *
-     * @return 本轮成功发布数量（可能为 0）
-     */
     public int publishDueScheduled(int batchSize) {
         int limit = Math.max(1, Math.min(batchSize, 500));
         Instant now = Instant.now();
@@ -283,6 +337,7 @@ public class ArticleService {
         return published;
     }
 
+    @Transactional
     public void unpublishOrDelete(Long authorId, Long articleId) {
         Article a = articleMapper.selectById(articleId);
         if (a == null) {

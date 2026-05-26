@@ -13,6 +13,7 @@ public class ArticlePublishedContentCachePayload {
     private String title;
     private String summary;
     private String contentMarkdown;
+    private String contentHtml;
     private String coverMediaKey;
     private Long authorId;
     private String authorNickname;
@@ -30,6 +31,7 @@ public class ArticlePublishedContentCachePayload {
         p.setTitle(d.getTitle());
         p.setSummary(d.getSummary());
         p.setContentMarkdown(d.getContentMarkdown());
+        p.setContentHtml(d.getContentHtml());
         p.setCoverMediaKey(d.getCoverMediaKey());
         p.setAuthorId(d.getAuthorId());
         p.setAuthorNickname(d.getAuthorNickname());
@@ -73,6 +75,14 @@ public class ArticlePublishedContentCachePayload {
 
     public void setContentMarkdown(String contentMarkdown) {
         this.contentMarkdown = contentMarkdown;
+    }
+
+    public String getContentHtml() {
+        return contentHtml;
+    }
+
+    public void setContentHtml(String contentHtml) {
+        this.contentHtml = contentHtml;
     }
 
     public String getCoverMediaKey() {

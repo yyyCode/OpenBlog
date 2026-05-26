@@ -160,8 +160,14 @@ watch(
 )
 
 watchEffect(() => {
-  const md = article.value?.contentMarkdown || ''
-  const rawHtml = marked.parse(md)
+  const serverHtml = article.value?.contentHtml || ''
+  let rawHtml
+  if (serverHtml) {
+    rawHtml = serverHtml
+  } else {
+    const md = article.value?.contentMarkdown || ''
+    rawHtml = marked.parse(md)
+  }
   const sanitized = DOMPurify.sanitize(rawHtml)
   const { html: htmlWithIds, toc } = buildTocAndInjectIds(sanitized)
   html.value = htmlWithIds
