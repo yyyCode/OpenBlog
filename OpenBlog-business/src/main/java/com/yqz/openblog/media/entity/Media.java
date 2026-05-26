@@ -46,6 +46,9 @@ public class Media {
     @Column(name = "uploaded_by")
     private Long uploadedBy;
 
+    @Column(name = "category", length = 32)
+    private String category;
+
     @Column(nullable = false)
     @TableField(fill = FieldFill.INSERT)
     private Instant createdAt;
@@ -148,6 +151,14 @@ public class Media {
 
     public void setUploadedBy(Long uploadedBy) {
         this.uploadedBy = uploadedBy;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     public Instant getCreatedAt() {

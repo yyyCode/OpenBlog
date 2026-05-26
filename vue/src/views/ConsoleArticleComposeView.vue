@@ -322,6 +322,14 @@
 
           <div class="media-browser-toolbar-title">媒体库 — 点击图片插入到编辑器</div>
 
+          <select v-model="mediaCategory" class="input" style="width:auto;margin:0 12px" @change="loadMediaPage(0)">
+
+            <option value="">全部分类</option>
+
+            <option v-for="c in mediaCategoryOptions" :key="c.name" :value="c.name">{{ mediaCategoryLabel(c.name) }} ({{ c.count }})</option>
+
+          </select>
+
           <button type="button" class="btn" @click="mediaBrowserOpen = false">关闭</button>
 
         </header>
@@ -420,7 +428,7 @@ import {
 
 } from '../api/admin'
 
-import { uploadMedia, fetchMediaList } from '../api/media'
+import { uploadMedia, fetchMediaList, fetchMediaCategories } from '../api/media'
 
 import { coverUrl } from '../api/article'
 
@@ -489,6 +497,10 @@ const mediaError = ref('')
 const mediaPage = ref(0)
 
 const mediaPageSize = 20
+
+const mediaCategory = ref('')
+
+const mediaCategoryOptions = ref([])
 
 
 
@@ -586,7 +598,7 @@ async function uploadAndInsert(file) {
 
   try {
 
-    const resp = await uploadMedia(file)
+    const resp = await uploadMedia(file, 'article-body')
 
     const md = `![${file.name || 'image'}](${resp.url})`
 
@@ -710,6 +722,18 @@ async function openMediaBrowser() {
 
   mediaError.value = ''
 
+  mediaCategory.value = ''
+
+  try {
+
+    mediaCategoryOptions.value = await fetchMediaCategories()
+
+  } catch {
+
+    mediaCategoryOptions.value = []
+
+  }
+
   await loadMediaPage(0)
 
 }
@@ -724,7 +748,7 @@ async function loadMediaPage(page) {
 
   try {
 
-    const data = await fetchMediaList(page, mediaPageSize)
+    const data = await fetchMediaList(page, mediaPageSize, mediaCategory.value || undefined)
 
     mediaList.value = data?.records || []
 
@@ -878,7 +902,7 @@ async function onPickCover(e) {
 
   articleError.value = ''
 
-  const resp = await uploadMedia(file)
+  const resp = await uploadMedia(file, 'article-cover')
 
   form.value.coverMediaKey = resp.key
 
@@ -1204,6 +1228,16 @@ function categoryLabel(c) {
   const path = c?.path
   if (Array.isArray(path) && path.length > 0) return path.join(' / ')
   return c?.name || ''
+}
+
+function mediaCategoryLabel(name) {
+  const map = {
+    'article-cover': '文章封面',
+    'article-body': '正文插图',
+    'general': '通用',
+    'unknown': '未分类'
+  }
+  return map[name] || name
 }
 
 onMounted(async () => {

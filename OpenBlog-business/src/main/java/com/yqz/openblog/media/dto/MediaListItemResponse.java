@@ -13,6 +13,7 @@ public class MediaListItemResponse {
     private Integer height;
     private Integer thumbWidth;
     private Integer thumbHeight;
+    private String category;
     private Instant createdAt;
 
     public String getKey() { return key; }
@@ -41,6 +42,9 @@ public class MediaListItemResponse {
 
     public Integer getThumbHeight() { return thumbHeight; }
     public void setThumbHeight(Integer thumbHeight) { this.thumbHeight = thumbHeight; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

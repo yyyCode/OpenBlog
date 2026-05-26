@@ -2,6 +2,7 @@ package com.yqz.openblog.media.service;
 
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.media.MediaProperties;
+import com.yqz.openblog.media.dto.MediaCategoryResponse;
 import com.yqz.openblog.media.dto.MediaListItemResponse;
 import com.yqz.openblog.media.dto.MediaUploadResponse;
 import com.yqz.openblog.media.dto.ThumbInfoResponse;
@@ -28,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -55,7 +57,7 @@ public class MediaService {
         this.minioMediaStorage = minioMediaStorage;
     }
 
-    public MediaUploadResponse upload(MultipartFile file) throws IOException {
+    public MediaUploadResponse upload(MultipartFile file, String category) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new BizException(4002, "文件不能为空");
         }
@@ -73,12 +75,13 @@ public class MediaService {
             throw new BizException(4002, "无法识别图片后缀");
         }
 
-        String key = UUID.randomUUID().toString() + "." + ext;
+        String cat = StringUtils.hasText(category) ? category : "general";
+        String key = cat + "/" + UUID.randomUUID().toString() + "." + ext;
         MediaStorage storage = activeStorage();
 
         Path tempDir = Files.createTempDirectory("openblog-media-");
-        Path originalPath = tempDir.resolve("original-" + key);
-        Path thumbPath = tempDir.resolve("thumb-" + key);
+        Path originalPath = tempDir.resolve("original-" + key.replace('/', '-'));
+        Path thumbPath = tempDir.resolve("thumb-" + key.replace('/', '-'));
         try {
             Files.copy(file.getInputStream(), originalPath);
 
@@ -129,6 +132,7 @@ public class MediaService {
             media.setHeight(height);
             media.setThumbWidth(thumbWidth);
             media.setThumbHeight(thumbHeight);
+            media.setCategory(cat);
             Long uid = currentUser.userId();
             media.setUploadedBy(uid);
             mediaMapper.insert(media);
@@ -141,6 +145,7 @@ public class MediaService {
             resp.setHeight(height);
             resp.setThumbWidth(thumbWidth);
             resp.setThumbHeight(thumbHeight);
+            resp.setCategory(cat);
             return resp;
         } finally {
             Files.deleteIfExists(originalPath);
@@ -192,14 +197,32 @@ public class MediaService {
         return resp;
     }
 
-    public IPage<MediaListItemResponse> listMyMedia(int page, int size) {
+    public IPage<MediaListItemResponse> listMyMedia(int page, int size, String category) {
         Long uid = currentUser.userId();
         Page<Media> mpPage = new Page<>(page + 1L, size);
-        IPage<Media> p = mediaMapper.selectPage(mpPage,
+        var w = Wrappers.lambdaQuery(Media.class)
+                .eq(Media::getUploadedBy, uid);
+        if (StringUtils.hasText(category)) {
+            w.eq(Media::getCategory, category);
+        }
+        w.orderByDesc(Media::getCreatedAt);
+        IPage<Media> p = mediaMapper.selectPage(mpPage, w);
+        return p.convert(this::toListItem);
+    }
+
+    public List<MediaCategoryResponse> listCategories() {
+        Long uid = currentUser.userId();
+        List<Media> all = mediaMapper.selectList(
                 Wrappers.lambdaQuery(Media.class)
                         .eq(Media::getUploadedBy, uid)
-                        .orderByDesc(Media::getCreatedAt));
-        return p.convert(this::toListItem);
+                        .orderByAsc(Media::getCategory));
+        Map<String, Long> grouped = all.stream()
+                .collect(Collectors.groupingBy(
+                        m -> m.getCategory() != null ? m.getCategory() : "unknown",
+                        Collectors.counting()));
+        return grouped.entrySet().stream()
+                .map(e -> new MediaCategoryResponse(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
     }
 
     public void deleteMyMedia(String key) {
@@ -229,6 +252,7 @@ public class MediaService {
         r.setHeight(m.getHeight());
         r.setThumbWidth(m.getThumbWidth());
         r.setThumbHeight(m.getThumbHeight());
+        r.setCategory(m.getCategory());
         r.setCreatedAt(m.getCreatedAt());
         return r;
     }
