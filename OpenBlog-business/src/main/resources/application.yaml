@@ -40,6 +40,8 @@ openblog:
   cache:
     # 已发布文章正文（Redis）；不可用或异常时自动仅查 MySQL
     article-published-ttl-minutes: 30
+    # 已发布文章列表页（Redis）；变更时通过版本号全局失效，短 TTL 兜底
+    article-list-ttl-minutes: 5
   site:
     version: "1.0.0"
   # 生产环境请改为前端实际域名，例如 https://blog.example.com

@@ -13,11 +13,24 @@ public class CacheProperties {
      */
     private int articlePublishedTtlMinutes = 30;
 
+    /**
+     * 已发布文章列表页在 Redis 中的 TTL（分钟）。列表页变更频率高，TTL 较短以保证新鲜度。
+     */
+    private int articleListTtlMinutes = 5;
+
     public int getArticlePublishedTtlMinutes() {
         return articlePublishedTtlMinutes;
     }
 
     public void setArticlePublishedTtlMinutes(int articlePublishedTtlMinutes) {
         this.articlePublishedTtlMinutes = articlePublishedTtlMinutes;
+    }
+
+    public int getArticleListTtlMinutes() {
+        return articleListTtlMinutes;
+    }
+
+    public void setArticleListTtlMinutes(int articleListTtlMinutes) {
+        this.articleListTtlMinutes = articleListTtlMinutes;
     }
 }

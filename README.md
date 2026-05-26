@@ -33,6 +33,32 @@
 - **惰性回填**：迁移后的旧文章 `content_html` 为空，首次读取时自动渲染并写回。
 - **图片等二进制资源**：通过 MinIO（或本地文件系统）独立存储，不在数据库中。
 
+### 缓存架构
+
+已发布文章的读取链路使用 Redis 做两级缓存，减少数据库压力：
+
+| 缓存层级 | Redis Key | TTL | 说明 |
+|---------|-----------|-----|------|
+| 文章正文 | `openblog:article:published:content:{id}` | 30 min | 缓存标题、摘要、正文（Markdown + HTML）、作者、分类等相对稳定字段。计数类字段（阅读量、点赞数等）每次从数据库合并，避免缓存与数据库不一致。 |
+| 文章列表 | `openblog:article:published:list:v{version}:{categoryId}:{page}:{size}` | 5 min | 缓存已发布文章分页列表。写操作通过递增全局版本号使旧版本缓存自然过期，无需全量扫描删除。 |
+
+**缓存一致性策略（Cache-Aside）**：
+
+```
+读取：先查 Redis → 命中返回 → 未命中查 MySQL 并回写 Redis
+写入：更新 MySQL → 删除 Redis 缓存 → 下次读取时自动重建
+```
+
+| 写操作 | 正文缓存 | 列表缓存 |
+|--------|---------|---------|
+| 发布文章 | 删除 | 递增版本号（全局失效） |
+| 更新已发布文章 | 删除 | 递增版本号 |
+| 删除/下架文章 | 删除 | 递增版本号 |
+| 定时发布 | 逐条删除 | 批量完成后递增版本号 |
+| 创建草稿 | 不处理 | 不处理 |
+
+**故障降级**：Redis 读写异常时，读侧返回空（走数据库），写侧忽略异常并记录日志，不影响正常业务响应。
+
 ---
 
 ## 技术栈
@@ -43,7 +69,7 @@
 - Spring Boot **3.5.x**（Web、Validation、Security、Data JPA、Data Redis）
 - MyBatis-Plus **3.5.x**（与 JPA 并存，按模块使用）
 - MySQL **8**（Hibernate `ddl-auto: update` 便于开发迭代）
-- Redis（文章正文缓存、阅读量滑动窗口等）
+- Redis（文章正文缓存、列表页缓存、阅读量滑动窗口去重）
 - JWT（jjwt **0.12.x**）
 - MinIO 对象存储（图片上传，可选本地文件系统回退）
 - flexmark（服务端 Markdown → HTML 预渲染）
@@ -74,7 +100,7 @@ OpenBlog/
 │       ├── java/com/yqz/openblog/
 │       │   ├── article/           # 文章：实体、DTO、服务、导入/导出、定时发布
 │       │   │   ├── entity/        # Article, ArticleBody（正文独立存储）
-│       │   │   ├── service/       # 文章服务、缓存、阅读量、MarkdownRenderer
+│       │   │   ├── service/       # 文章服务、缓存（正文+列表）、阅读量、导入导出
 │       │   │   └── repo/          # MyBatis-Plus Mapper + JPA Repository
 │       │   ├── category/          # 分类
 │       │   ├── changelog/         # 更新日志
@@ -121,6 +147,7 @@ OpenBlog/
 | `spring.data.redis.*` | Redis 主机、端口、超时等 |
 | `openblog.jwt.*` | JWT 密钥、签发方、Access/Refresh 过期时间（秒） |
 | `openblog.storage.*` | 本地上传根目录、`public-base-url`（对外访问文件与拼 URL 用）、缩略图长边像素 |
+| `openblog.cache.*` | 文章正文缓存 TTL（`article-published-ttl-minutes`，默认 30）、列表缓存 TTL（`article-list-ttl-minutes`，默认 5） |
 
 **务必在部署环境中：**
 

@@ -158,6 +158,11 @@ public class ArticleService {
     }
 
     public PageResult<ArticleListItemResponse> listPublished(int page, int size, Long categoryId) {
+        Optional<PageResult<ArticleListItemResponse>> cached = publishedContentCache.getList(categoryId, page, size);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+
         Page<Article> mpPage = new Page<>(page + 1L, size);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getStatus, ArticleStatus.PUBLISHED)
@@ -171,7 +176,9 @@ public class ArticleService {
         }
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
         List<ArticleListItemResponse> items = p.getRecords().stream().map(this::mapListItem).toList();
-        return new PageResult<>(items, page, size, p.getTotal());
+        PageResult<ArticleListItemResponse> result = new PageResult<>(items, page, size, p.getTotal());
+        publishedContentCache.putList(categoryId, page, size, result);
+        return result;
     }
 
     public ArticleDetailResponse detailPublished(Long id, String clientIp) {
@@ -281,6 +288,7 @@ public class ArticleService {
 
         if (a.getStatus() == ArticleStatus.PUBLISHED) {
             publishedContentCache.evict(articleId);
+            publishedContentCache.evictPublishedList();
         }
         return mapListItem(a);
     }
@@ -317,6 +325,7 @@ public class ArticleService {
         a.setRejectedReason(null);
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
+        publishedContentCache.evictPublishedList();
         return mapListItem(a);
     }
 
@@ -333,6 +342,9 @@ public class ArticleService {
                 published++;
                 publishedContentCache.evict(id);
             }
+        }
+        if (published > 0) {
+            publishedContentCache.evictPublishedList();
         }
         return published;
     }
@@ -353,6 +365,7 @@ public class ArticleService {
         a.setScheduledAt(null);
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
+        publishedContentCache.evictPublishedList();
     }
 
     public PageResult<ArticleListItemResponse> listMine(Long authorId, int page, int size) {
