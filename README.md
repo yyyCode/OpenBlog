@@ -35,12 +35,23 @@
 
 ### 缓存架构
 
+Redis 操作统一封装在 `OpenBlog-framework-redis` 模块中，提供 `RedisOps` 接口（内置容错）、`RedisKeys` 统一 Key 管理、滑动窗口限流器等基础能力。业务模块通过该模块间接使用 Redis，不直接依赖 `StringRedisTemplate`。
+
 已发布文章的读取链路使用 Redis 做两级缓存，减少数据库压力：
 
 | 缓存层级 | Redis Key | TTL | 说明 |
 |---------|-----------|-----|------|
-| 文章正文 | `openblog:article:published:content:{id}` | 30 min | 缓存标题、摘要、正文（Markdown + HTML）、作者、分类等相对稳定字段。计数类字段（阅读量、点赞数等）每次从数据库合并，避免缓存与数据库不一致。 |
-| 文章列表 | `openblog:article:published:list:v{version}:{categoryId}:{page}:{size}` | 5 min | 缓存已发布文章分页列表。写操作通过递增全局版本号使旧版本缓存自然过期，无需全量扫描删除。 |
+| 文章正文 | `openblog:content:article:body:{id}` | 30 min | 缓存标题、摘要、正文（Markdown + HTML）、作者、分类等相对稳定字段。计数类字段（阅读量、点赞数等）每次从数据库合并，避免缓存与数据库不一致。 |
+| 文章列表 | `openblog:content:article:list:v{version}:{categoryId}:{page}:{size}` | 5 min | 缓存已发布文章分页列表。写操作通过递增全局版本号使旧版本缓存自然过期，无需全量扫描删除。 |
+
+**Redis Key 命名规范**：`openblog:{领域}:{实体}:{用途}:{参数...}`
+
+| 领域 | 示例 Key | 用途 |
+|------|---------|------|
+| `content` | `openblog:content:article:body:{id}` | 文章正文与列表缓存 |
+| `counter` | `openblog:counter:article:view:{id}:{ip}` | 阅读量/访问量去重 |
+| `security` | `openblog:security:login:fail:{ip}` | 登录锁定、滑块验证 |
+| `ratelimit` | `openblog:ratelimit:feedback:{ip}:{date}` | 反馈提交限流 |
 
 **缓存一致性策略（Cache-Aside）**：
 
@@ -57,7 +68,7 @@
 | 定时发布 | 逐条删除 | 批量完成后递增版本号 |
 | 创建草稿 | 不处理 | 不处理 |
 
-**故障降级**：Redis 读写异常时，读侧返回空（走数据库），写侧忽略异常并记录日志，不影响正常业务响应。
+**故障降级**：`RedisOps` 所有方法内置 try-catch，Redis 不可用时读侧返回空（走数据库），写侧忽略并记录日志，不影响正常业务响应。
 
 ---
 
@@ -66,10 +77,10 @@
 **后端**
 
 - Java **17**
-- Spring Boot **3.5.x**（Web、Validation、Security、Data JPA、Data Redis）
+- Spring Boot **3.5.x**（Web、Validation、Security、Data JPA）
 - MyBatis-Plus **3.5.x**（与 JPA 并存，按模块使用）
 - MySQL **8**（Hibernate `ddl-auto: update` 便于开发迭代）
-- Redis（文章正文缓存、列表页缓存、阅读量滑动窗口去重）
+- Redis（通过 `OpenBlog-framework-redis` 模块统一封装：`RedisOps` 操作接口、`RedisKeys` Key 管理、滑动窗口限流器）
 - JWT（jjwt **0.12.x**）
 - MinIO 对象存储（图片上传，可选本地文件系统回退）
 - flexmark（服务端 Markdown → HTML 预渲染）
@@ -95,33 +106,38 @@
 
 ```
 OpenBlog/
-├── OpenBlog-business/              # 业务模块（Spring Boot）
+├── OpenBlog-framework-redis/        # Redis 框架封装模块
+│   └── src/main/java/com/yqz/openblog/redis/
+│       ├── core/                    # RedisOps 接口、DefaultRedisOps 实现、RedisKeys
+│       ├── config/                  # RedisProperties、自动装配
+│       └── limiter/                 # SlidingWindowLimiter（ZSET 滑动窗口）
+├── OpenBlog-business/               # 业务模块（Spring Boot）
 │   └── src/main/
 │       ├── java/com/yqz/openblog/
-│       │   ├── article/           # 文章：实体、DTO、服务、导入/导出、定时发布
-│       │   │   ├── entity/        # Article, ArticleBody（正文独立存储）
-│       │   │   ├── service/       # 文章服务、缓存（正文+列表）、阅读量、导入导出
-│       │   │   └── repo/          # MyBatis-Plus Mapper + JPA Repository
-│       │   ├── category/          # 分类
-│       │   ├── changelog/         # 更新日志
-│       │   ├── comment/           # 评论
-│       │   ├── interaction/       # 互动（点赞、收藏、关注）
-│       │   ├── media/             # 媒体上传（MinIO / 本地存储 + 缩略图）
-│       │   ├── user/              # 用户、认证、JWT
-│       │   └── config/            # Spring Security、MyBatis-Plus、缓存配置
+│       │   ├── article/            # 文章：实体、DTO、服务、导入/导出、定时发布
+│       │   │   ├── entity/         # Article, ArticleBody（正文独立存储）
+│       │   │   ├── service/        # 文章服务、缓存（正文+列表）、阅读量、导入导出
+│       │   │   └── repo/           # MyBatis-Plus Mapper + JPA Repository
+│       │   ├── category/           # 分类
+│       │   ├── changelog/          # 更新日志
+│       │   ├── comment/            # 评论
+│       │   ├── interaction/        # 互动（点赞、收藏、关注）
+│       │   ├── media/              # 媒体上传（MinIO / 本地存储 + 缩略图）
+│       │   ├── user/               # 用户、认证、JWT
+│       │   └── config/             # Spring Security、MyBatis-Plus 等配置
 │       └── resources/
-│           ├── application.yaml   # 服务端口、数据源、Redis、JWT、MinIO 等
-│           └── sql/               # 手动 SQL 脚本（迁移、参考数据）
-├── vue/                           # Vue 3 前端
+│           ├── application.yaml    # 服务端口、数据源、Redis、JWT、MinIO 等
+│           └── sql/                # 手动 SQL 脚本（迁移、参考数据）
+├── vue/                            # Vue 3 前端
 │   ├── src/
-│   │   ├── api/                   # HTTP 封装
-│   │   ├── views/                 # 页面组件
-│   │   └── components/            # 通用组件
+│   │   ├── api/                    # HTTP 封装
+│   │   ├── views/                  # 页面组件
+│   │   └── components/             # 通用组件
 │   ├── package.json
 │   └── vite.config.js
-├── docs/                          # 架构与需求说明
-├── pom.xml                        # 根 POM（聚合模块）
-└── mvnw / mvnw.cmd                # Maven Wrapper（可选）
+├── docs/                           # 架构与需求说明
+├── pom.xml                         # 根 POM（聚合模块）
+└── mvnw / mvnw.cmd                 # Maven Wrapper（可选）
 ```
 
 ---

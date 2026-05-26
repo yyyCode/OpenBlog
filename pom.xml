@@ -15,6 +15,7 @@
     <name>OpenBlog</name>
     <description>OpenBlog</description>
     <modules>
+        <module>OpenBlog-framework-redis</module>
         <module>OpenBlog-business</module>
     </modules>
     <properties>

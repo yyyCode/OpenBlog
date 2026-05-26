@@ -1,20 +1,20 @@
-package com.yqz.openblog.config;
+package com.yqz.openblog.redis.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * 应用级缓存参数（Redis）。
+ * Redis 缓存相关配置参数。
  */
 @ConfigurationProperties(prefix = "openblog.cache")
-public class CacheProperties {
+public class RedisProperties {
 
     /**
-     * 已发布文章正文与元数据在 Redis 中的 TTL（分钟）。Redis 不可用时自动仅走数据库。
+     * 已发布文章正文与元数据在 Redis 中的 TTL（分钟）。
      */
     private int articlePublishedTtlMinutes = 30;
 
     /**
-     * 已发布文章列表页在 Redis 中的 TTL（分钟）。列表页变更频率高，TTL 较短以保证新鲜度。
+     * 已发布文章列表页在 Redis 中的 TTL（分钟）。
      */
     private int articleListTtlMinutes = 5;
 

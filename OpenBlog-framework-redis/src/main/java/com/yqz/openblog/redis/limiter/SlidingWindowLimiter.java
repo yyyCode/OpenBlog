@@ -1,18 +1,16 @@
-package com.yqz.openblog.article.limiter;
+package com.yqz.openblog.redis.limiter;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 /**
  * 基于 Redis ZSET 的滑动窗口限流（Lua 保证原子性）。
- *
- * 逻辑：每次尝试时先删除窗口外数据，再统计窗口内数量；
- * 若数量 < limit，则把当前时间写入 ZSET 并返回 allowed=1。
+ * <p>
+ * 每次尝试时先删除窗口外数据，再统计窗口内数量；
+ * 若数量 &lt; limit，则把当前时间写入 ZSET 并返回 allowed=1。
  */
-@Component
 public class SlidingWindowLimiter {
 
     private static final long EXPIRE_EXTRA_MS = 10_000L;
@@ -42,11 +40,11 @@ public class SlidingWindowLimiter {
     }
 
     /**
-     * @param key Redis key（区分文章与 viewerKey）
+     * @param key      Redis key（区分文章与 viewerKey）
      * @param windowMs 滑动窗口大小（毫秒）
-     * @param limit 同一 viewer 在窗口内允许的次数
-     * @param nowMs 当前时间戳（毫秒）
-     * @param member ZSET 成员（保证唯一即可）
+     * @param limit    同一 viewer 在窗口内允许的次数
+     * @param nowMs    当前时间戳（毫秒）
+     * @param member   ZSET 成员（保证唯一即可）
      * @return true=允许计数，false=限流
      */
     public boolean tryAcquire(String key, long windowMs, int limit, long nowMs, String member) {
@@ -61,4 +59,3 @@ public class SlidingWindowLimiter {
         return allowed != null && allowed == 1L;
     }
 }
-

@@ -2,7 +2,8 @@ package com.yqz.openblog.article.service;
 
 import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.entity.ArticleStatus;
-import com.yqz.openblog.article.limiter.SlidingWindowLimiter;
+import com.yqz.openblog.redis.limiter.SlidingWindowLimiter;
+import com.yqz.openblog.redis.core.RedisKeys;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.yqz.openblog.article.repo.ArticleMapper;
@@ -78,7 +79,7 @@ public class ArticleViewService {
     }
 
     private String buildRedisKey(Long articleId, String clientIp) {
-        return "openblog:article:view:" + articleId + ":" + clientIp;
+        return RedisKeys.articleView(articleId, clientIp);
     }
 }
 

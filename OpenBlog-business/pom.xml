@@ -51,8 +51,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <groupId>com.yqz</groupId>
+            <artifactId>OpenBlog-framework-redis</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>
