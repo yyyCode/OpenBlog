@@ -9,38 +9,24 @@
     <div class="console-card console-inner-card attachments-panel">
       <!-- left: folder tree -->
       <aside class="attachments-sidebar">
-        <div class="attachments-sidebar-title">文件夹</div>
-        <ul class="attachments-folder-list">
-          <li
-            :class="['attachments-folder-item', { active: selectedCategory === '' }]"
-            @click="switchCategory('')"
-          >
-            <span class="attachments-folder-name">全部文件</span>
-            <span class="attachments-folder-count">{{ totalCount }}</span>
-          </li>
-          <li
-            v-for="c in categories"
-            :key="c.name"
-            :class="['attachments-folder-item', { active: selectedCategory === c.name }]"
-            @click="switchCategory(c.name)"
-          >
-            <span class="attachments-folder-name">{{ catLabel(c.name) }}</span>
-            <span class="attachments-folder-count">{{ c.count }}</span>
-          </li>
-        </ul>
-
-        <div class="attachments-sidebar-upload">
-          <button class="btn" :disabled="uploading" @click="triggerUpload">
-            {{ uploading ? '上传中...' : '上传到当前文件夹' }}
-          </button>
-          <input
-            ref="fileInput"
-            type="file"
-            accept="image/*"
-            style="display: none"
-            @change="onUploadFile"
-          />
-        </div>
+        <MediaTreeSidebar
+          :folders="folders"
+          :selected-folder-id="selectedFolderId"
+          :loading="foldersLoading"
+          :uploading="uploading"
+          @select="switchFolder"
+          @create-folder="createFolder"
+          @rename-folder="renameFolder"
+          @delete-folder="deleteFolder"
+          @upload="triggerUpload"
+        />
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          style="display: none"
+          @change="onUploadFile"
+        />
       </aside>
 
       <!-- right: file grid -->
@@ -59,7 +45,6 @@
                 <img :src="m.thumbUrl" :alt="m.key" loading="lazy" />
               </div>
               <div class="attachments-card-body">
-                <div class="attachments-card-cat">{{ catLabel(m.category) }}</div>
                 <div class="attachments-card-dims">{{ m.width }}x{{ m.height }}</div>
                 <div class="attachments-card-size">{{ formatSize(m.size) }}</div>
                 <div class="attachments-card-date">{{ formatDate(m.createdAt) }}</div>
@@ -73,8 +58,8 @@
 
           <div class="attachments-pager">
             <button class="btn" :disabled="page <= 0" @click="loadPage(page - 1)">上一页</button>
-            <span class="attachments-page-num">{{ page + 1 }}</span>
-            <button class="btn" :disabled="list.length < pageSize" @click="loadPage(page + 1)">下一页</button>
+            <span class="attachments-page-num">{{ page + 1 }} / {{ totalPages || 1 }}</span>
+            <button class="btn" :disabled="page + 1 >= totalPages" @click="loadPage(page + 1)">下一页</button>
           </div>
         </template>
       </main>
@@ -94,8 +79,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { uploadMedia, fetchMediaList, fetchMediaCategories, deleteMedia } from '../api/media'
+import { onMounted, ref } from 'vue'
+import { uploadMedia, fetchMediaList, deleteMedia } from '../api/media'
+import { fetchFolderTree, createFolder as apiCreateFolder, updateFolder, deleteFolder as apiDeleteFolder } from '../api/mediaFolder'
+import MediaTreeSidebar from '../components/MediaTreeSidebar.vue'
 
 const fileInput = ref(null)
 const uploading = ref(false)
@@ -107,26 +94,16 @@ const loading = ref(false)
 const loadError = ref('')
 const page = ref(0)
 const pageSize = 20
+const totalPages = ref(1)
 
-const categories = ref([])
-const selectedCategory = ref('')
+const folders = ref([])
+const foldersLoading = ref(false)
+const selectedFolderId = ref(null)
 
 const viewOriginal = ref(null)
 
-const totalCount = computed(() => categories.value.reduce((s, c) => s + c.count, 0))
-
-function catLabel(name) {
-  const map = {
-    'article-cover': '文章封面',
-    'article-body': '正文插图',
-    'general': '通用',
-    'unknown': '未分类'
-  }
-  return map[name] || name || '未分类'
-}
-
-function switchCategory(name) {
-  selectedCategory.value = name
+function switchFolder(folderId) {
+  selectedFolderId.value = folderId
   loadPage(0)
 }
 
@@ -142,10 +119,9 @@ async function onUploadFile(e) {
   error.value = ''
   success.value = ''
   try {
-    const cat = selectedCategory.value || 'general'
-    await uploadMedia(file, cat)
+    await uploadMedia(file, selectedFolderId.value)
     success.value = '上传成功'
-    await Promise.all([loadCategories(), loadPage(0)])
+    await Promise.all([loadFolders(), loadPage(0)])
   } catch (err) {
     error.value = err?.message || '上传失败'
   } finally {
@@ -153,11 +129,14 @@ async function onUploadFile(e) {
   }
 }
 
-async function loadCategories() {
+async function loadFolders() {
+  foldersLoading.value = true
   try {
-    categories.value = await fetchMediaCategories()
+    folders.value = await fetchFolderTree()
   } catch {
-    categories.value = []
+    folders.value = []
+  } finally {
+    foldersLoading.value = false
   }
 }
 
@@ -165,15 +144,53 @@ async function loadPage(p) {
   loading.value = true
   loadError.value = ''
   try {
-    const cat = selectedCategory.value || undefined
-    const data = await fetchMediaList(p, pageSize, cat)
+    const folderId = selectedFolderId.value ?? undefined
+    const data = await fetchMediaList(p, pageSize, folderId)
     list.value = data?.records || []
-    page.value = p
+    page.value = data?.current != null ? data.current - 1 : p
+    totalPages.value = data?.pages || 1
   } catch (err) {
     loadError.value = err?.message || '加载失败'
     list.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function createFolder({ name, parentId }) {
+  error.value = ''
+  try {
+    await apiCreateFolder({ name, parentId, sortOrder: 0 })
+    success.value = '文件夹已创建'
+    await loadFolders()
+  } catch (err) {
+    error.value = err?.message || '创建失败'
+  }
+}
+
+async function renameFolder({ id, name }) {
+  error.value = ''
+  try {
+    await updateFolder(id, { name })
+    success.value = '文件夹已重命名'
+    await loadFolders()
+  } catch (err) {
+    error.value = err?.message || '重命名失败'
+  }
+}
+
+async function deleteFolder(id) {
+  error.value = ''
+  try {
+    await apiDeleteFolder(id)
+    success.value = '文件夹已删除'
+    if (selectedFolderId.value === id) {
+      selectedFolderId.value = null
+      loadPage(0)
+    }
+    await loadFolders()
+  } catch (err) {
+    error.value = err?.message || '删除失败'
   }
 }
 
@@ -186,7 +203,7 @@ async function confirmDelete(m) {
     success.value = '删除成功'
     if (viewOriginal.value?.key === m.key) viewOriginal.value = null
     await Promise.all([
-      loadCategories(),
+      loadFolders(),
       loadPage(list.value.length <= 1 && page.value > 0 ? page.value - 1 : page.value)
     ])
   } catch (err) {
@@ -220,7 +237,7 @@ function formatDate(iso) {
 }
 
 onMounted(() => {
-  Promise.all([loadCategories(), loadPage(0)])
+  Promise.all([loadFolders(), loadPage(0)])
 })
 </script>
 
@@ -234,74 +251,11 @@ onMounted(() => {
 
 /* sidebar */
 .attachments-sidebar {
-  width: 200px;
+  width: 220px;
   flex-shrink: 0;
   border-right: 1px solid var(--border, rgba(15, 23, 42, 0.08));
-  padding: 20px 16px;
   display: flex;
   flex-direction: column;
-}
-
-.attachments-sidebar-title {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--console-muted, var(--muted));
-  margin-bottom: 12px;
-}
-
-.attachments-folder-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-}
-
-.attachments-folder-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.15s;
-  margin-bottom: 2px;
-}
-
-.attachments-folder-item:hover {
-  background: var(--bg-muted, rgba(15, 23, 42, 0.04));
-}
-
-.attachments-folder-item.active {
-  background: var(--primary, #2563eb);
-  color: #fff;
-}
-
-.attachments-folder-item.active .attachments-folder-count {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.attachments-folder-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.attachments-folder-count {
-  font-size: 11px;
-  color: var(--console-muted, var(--muted));
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.attachments-sidebar-upload {
-  margin-top: 16px;
-}
-
-.attachments-sidebar-upload .btn {
-  width: 100%;
 }
 
 /* main */
@@ -352,12 +306,6 @@ onMounted(() => {
   padding: 10px 12px;
 }
 
-.attachments-card-cat {
-  font-size: 10px;
-  color: var(--primary, #2563eb);
-  margin-bottom: 2px;
-}
-
 .attachments-card-dims {
   font-size: 12px;
   color: var(--text, #111827);
@@ -398,7 +346,7 @@ onMounted(() => {
 .attachments-page-num {
   font-size: 13px;
   color: var(--console-muted, var(--muted));
-  min-width: 32px;
+  min-width: 64px;
   text-align: center;
 }
 
@@ -448,39 +396,6 @@ onMounted(() => {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.08));
-    padding: 12px 16px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .attachments-sidebar-title {
-    display: none;
-  }
-
-  .attachments-folder-list {
-    display: flex;
-    gap: 6px;
-    flex: unset;
-  }
-
-  .attachments-folder-item {
-    padding: 4px 10px;
-    font-size: 12px;
-  }
-
-  .attachments-folder-count {
-    display: none;
-  }
-
-  .attachments-sidebar-upload {
-    margin-top: 0;
-    margin-left: auto;
-  }
-
-  .attachments-sidebar-upload .btn {
-    width: auto;
   }
 
   .attachments-main {
