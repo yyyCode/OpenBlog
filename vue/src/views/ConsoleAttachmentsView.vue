@@ -2,6 +2,11 @@
   <div class="console-page">
     <header class="console-page-header">
       <div class="console-page-title">
+        <svg class="att-title-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="m21 15-5-5L5 21"/>
+        </svg>
         <h1>附件管理</h1>
       </div>
     </header>
@@ -32,49 +37,73 @@
 
       <!-- right: file grid -->
       <main class="attachments-main">
-        <div v-if="error" class="error" style="margin-bottom: 12px">{{ error }}</div>
-        <div v-if="success" class="success" style="margin-bottom: 12px">{{ success }}</div>
+        <Transition name="toast">
+          <div v-if="error" class="att-toast att-toast--error">{{ error }}</div>
+        </Transition>
+        <Transition name="toast">
+          <div v-if="success" class="att-toast att-toast--success">{{ success }}</div>
+        </Transition>
 
-        <div v-if="loading" class="attachments-status">加载中...</div>
-        <div v-else-if="loadError" class="error" style="margin-bottom: 12px">{{ loadError }}</div>
+        <div v-if="loading" class="att-status">加载中...</div>
+        <div v-else-if="loadError" class="att-toast att-toast--error">{{ loadError }}</div>
         <template v-else>
-          <div v-if="list.length === 0" class="attachments-status">暂无图片</div>
+          <div v-if="list.length === 0" class="att-status att-status--empty">暂无图片</div>
 
-          <div class="attachments-grid">
-            <div v-for="m in list" :key="m.key" class="attachments-card">
-              <div class="attachments-card-img" @click="viewOriginal = m">
+          <div class="att-grid">
+            <article v-for="m in list" :key="m.key" class="att-card">
+              <div class="att-card-media" @click="viewOriginal = m">
                 <img :src="m.thumbUrl" :alt="m.key" loading="lazy" />
-              </div>
-              <div class="attachments-card-body">
-                <div class="attachments-card-dims">{{ m.width }}x{{ m.height }}</div>
-                <div class="attachments-card-size">{{ formatSize(m.size) }}</div>
-                <div class="attachments-card-date">{{ formatDate(m.createdAt) }}</div>
-                <div class="attachments-card-actions">
-                  <button class="btn btn-sm" @click="copyUrl(m.url)">复制URL</button>
-                  <button class="btn btn-sm btn-danger" @click="confirmDelete(m)">删除</button>
+                <div class="att-card-media-overlay">
+                  <span class="att-card-media-hint">点击预览</span>
                 </div>
               </div>
-            </div>
+              <div class="att-card-body">
+                <div class="att-card-dims">{{ m.width }} &times; {{ m.height }}</div>
+                <div class="att-card-meta">
+                  <span>{{ formatSize(m.size) }}</span>
+                  <span class="att-card-meta-sep">&middot;</span>
+                  <span>{{ formatDate(m.createdAt) }}</span>
+                </div>
+                <div class="att-card-actions">
+                  <button class="att-btn" @click="copyUrl(m.url)">复制URL</button>
+                  <button class="att-btn att-btn--delete" @click="confirmDelete(m)">删除</button>
+                </div>
+              </div>
+            </article>
           </div>
 
-          <div class="attachments-pager">
-            <button class="btn" :disabled="page <= 0" @click="loadPage(page - 1)">上一页</button>
-            <span class="attachments-page-num">{{ page + 1 }} / {{ totalPages || 1 }}</span>
-            <button class="btn" :disabled="page + 1 >= totalPages" @click="loadPage(page + 1)">下一页</button>
-          </div>
+          <nav class="att-pager">
+            <button class="att-pager-btn" :disabled="page <= 0" @click="loadPage(page - 1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              上一页
+            </button>
+            <span class="att-pager-num">{{ page + 1 }} / {{ totalPages || 1 }}</span>
+            <button class="att-pager-btn" :disabled="page + 1 >= totalPages" @click="loadPage(page + 1)">
+              下一页
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </nav>
         </template>
       </main>
     </div>
 
     <!-- full-size preview -->
     <Teleport to="body">
-      <div v-if="viewOriginal" class="attachments-preview-overlay" @click="viewOriginal = null">
-        <button class="attachments-preview-close btn" @click="viewOriginal = null">关闭</button>
-        <img :src="viewOriginal.url" :alt="viewOriginal.key" />
-        <div class="attachments-preview-info">
-          {{ viewOriginal.width }}x{{ viewOriginal.height }} · {{ formatSize(viewOriginal.size) }}
+      <Transition name="preview">
+        <div v-if="viewOriginal" class="att-preview" @click.self="viewOriginal = null">
+          <button class="att-preview-close" @click="viewOriginal = null" aria-label="关闭预览">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+          <img :src="viewOriginal.url" :alt="viewOriginal.key" class="att-preview-img" />
+          <div class="att-preview-info">
+            <span>{{ viewOriginal.key }}</span>
+            <span class="att-preview-info-sep">&middot;</span>
+            <span>{{ viewOriginal.width }} &times; {{ viewOriginal.height }}</span>
+            <span class="att-preview-info-sep">&middot;</span>
+            <span>{{ formatSize(viewOriginal.size) }}</span>
+          </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -246,6 +275,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ---- Header ---- */
+.att-title-icon {
+  color: var(--console-accent);
+  flex-shrink: 0;
+}
+
+/* ---- Layout ---- */
 .attachments-panel {
   display: flex;
   gap: 0;
@@ -253,144 +289,367 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* sidebar */
 .attachments-sidebar {
-  width: 220px;
+  width: 236px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+  border-right: 1px solid var(--console-border);
   display: flex;
   flex-direction: column;
+  background: var(--console-bg);
 }
 
-/* main */
 .attachments-main {
   flex: 1;
-  padding: 20px 24px;
+  padding: 24px 28px;
   min-width: 0;
 }
 
-.attachments-status {
+/* ---- Status ---- */
+.att-status {
   text-align: center;
-  padding: 40px 0;
-  color: var(--console-muted, var(--muted));
+  padding: 56px 0;
+  color: var(--console-muted);
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.attachments-grid {
+.att-status--empty::before {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+  background: var(--console-bg);
+  border: 1px solid var(--console-border);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5'%3E%3Crect x='3' y='3' width='18' height='18' rx='3'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpath d='m21 15-5-5L5 21'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ---- Toast messages ---- */
+.att-toast {
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.att-toast--error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.att-toast--success {
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+[data-theme='dark'] .att-toast--error {
+  color: #fca5a5;
+  background: rgba(153, 27, 27, 0.12);
+  border-color: rgba(153, 27, 27, 0.25);
+}
+
+[data-theme='dark'] .att-toast--success {
+  color: #6ee7b7;
+  background: rgba(6, 95, 70, 0.12);
+  border-color: rgba(6, 95, 70, 0.25);
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.25s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* ---- Grid ---- */
+.att-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+  gap: 18px;
 }
 
-.attachments-card {
-  border: 1px solid var(--border, rgba(15, 23, 42, 0.08));
-  border-radius: 8px;
+/* ---- Card ---- */
+.att-card {
+  border: 1px solid var(--console-border);
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--card, #ffffff);
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.attachments-card-img {
+[data-theme='dark'] .att-card {
+  background: #181a1f;
+}
+
+.att-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.07);
+  border-color: rgba(13, 148, 136, 0.28);
+}
+
+[data-theme='dark'] .att-card:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  border-color: rgba(45, 212, 191, 0.22);
+}
+
+/* ---- Card media ---- */
+.att-card-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
   cursor: pointer;
-  overflow: hidden;
-  background: #f0f0f0;
+  background: var(--console-bg);
 }
 
-.attachments-card-img img {
+.att-card-media img {
   display: block;
   width: 100%;
-  height: 140px;
+  height: 100%;
   object-fit: cover;
-  transition: transform 0.2s;
+  transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1);
 }
 
-.attachments-card-img:hover img {
-  transform: scale(1.05);
+.att-card:hover .att-card-media img {
+  transform: scale(1.06);
 }
 
-.attachments-card-body {
-  padding: 10px 12px;
-}
-
-.attachments-card-dims {
-  font-size: 12px;
-  color: var(--text, #111827);
-  font-weight: 600;
-}
-
-.attachments-card-size,
-.attachments-card-date {
-  font-size: 11px;
-  color: var(--console-muted, var(--muted));
-  margin-top: 2px;
-}
-
-.attachments-card-actions {
+.att-card-media-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.45) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+  pointer-events: none;
 }
 
-.btn-sm {
-  padding: 3px 10px;
+.att-card:hover .att-card-media-overlay {
+  opacity: 1;
+}
+
+.att-card-media-hint {
+  color: #fff;
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.btn-danger {
+/* ---- Card body ---- */
+.att-card-body {
+  padding: 12px 14px 14px;
+}
+
+.att-card-dims {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--console-text);
+  letter-spacing: -0.01em;
+}
+
+.att-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--console-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.att-card-meta-sep {
+  opacity: 0.35;
+  font-weight: 400;
+}
+
+/* ---- Card actions ---- */
+.att-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.att-btn {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--console-border);
+  background: var(--console-bg);
+  color: var(--console-text);
+  transition: all 0.15s ease;
+  font-family: inherit;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.att-btn:hover {
+  border-color: var(--console-accent);
+  color: var(--console-accent);
+  background: rgba(13, 148, 136, 0.04);
+}
+
+.att-btn--delete {
   color: #dc2626;
-  border-color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.18);
+  background: rgba(220, 38, 38, 0.03);
 }
 
-.attachments-pager {
+.att-btn--delete:hover {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.45);
+  color: #dc2626;
+}
+
+/* ---- Pagination ---- */
+.att-pager {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 16px;
+  margin-top: 32px;
 }
 
-.attachments-page-num {
+.att-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: 1px solid var(--console-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--console-text);
   font-size: 13px;
-  color: var(--console-muted, var(--muted));
-  min-width: 64px;
-  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
 }
 
-/* preview overlay */
-.attachments-preview-overlay {
+[data-theme='dark'] .att-pager-btn {
+  background: #181a1f;
+}
+
+.att-pager-btn:hover:not(:disabled) {
+  border-color: var(--console-accent);
+  color: var(--console-accent);
+}
+
+.att-pager-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.att-pager-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--console-muted);
+  min-width: 60px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Preview overlay ---- */
+.att-preview {
   position: fixed;
   inset: 0;
   z-index: 220;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.92);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 28px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
-.attachments-preview-overlay img {
-  max-width: 90vw;
-  max-height: 80vh;
-  object-fit: contain;
-}
-
-.attachments-preview-close {
+.att-preview-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 22px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.attachments-preview-close:hover {
-  border-color: #fff;
+.att-preview-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.05);
 }
 
-.attachments-preview-info {
-  margin-top: 12px;
-  color: rgba(255, 255, 255, 0.7);
+.att-preview-img {
+  max-width: 90vw;
+  max-height: 76vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.att-preview-info {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.55);
   font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
+.att-preview-info-sep {
+  opacity: 0.3;
+}
+
+/* Preview transitions */
+.preview-enter-active {
+  transition: opacity 0.22s ease;
+}
+.preview-enter-active .att-preview-img {
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+.preview-leave-active {
+  transition: opacity 0.18s ease;
+}
+.preview-enter-from {
+  opacity: 0;
+}
+.preview-enter-from .att-preview-img {
+  transform: scale(0.94);
+}
+.preview-leave-to {
+  opacity: 0;
+}
+
+/* ---- Responsive ---- */
 @media (max-width: 768px) {
   .attachments-panel {
     flex-direction: column;
@@ -399,20 +658,24 @@ onMounted(() => {
   .attachments-sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    border-bottom: 1px solid var(--console-border);
+    max-height: 42vh;
   }
 
   .attachments-main {
-    padding: 12px 16px;
+    padding: 16px;
   }
 
-  .attachments-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
+  .att-grid {
+    grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+    gap: 12px;
   }
 
-  .attachments-card-img img {
-    height: 100px;
+  .att-preview-close {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
   }
 }
 </style>
