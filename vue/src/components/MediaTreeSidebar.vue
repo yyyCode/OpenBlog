@@ -63,7 +63,7 @@
         maxlength="80"
         @keyup.enter="submitEdit"
         @keyup.escape="cancelEdit"
-        @blur="cancelEdit"
+        @blur="onEditBlur"
       />
     </div>
 
@@ -160,6 +160,13 @@ function cancelEdit() {
   editing.value = false
   editName.value = ''
   editTarget.value = null
+}
+
+function onEditBlur() {
+  if (!editing.value) return
+  const name = editName.value.trim()
+  if (name) submitEdit()
+  else cancelEdit()
 }
 
 async function submitEdit() {

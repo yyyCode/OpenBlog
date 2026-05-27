@@ -2,26 +2,26 @@
   <div class="media-tree-group">
     <button
       class="media-tree-group-head"
-      :class="{ active: group.folderId === selectedFolderId }"
+      :class="{ active: folder.folderId === selectedFolderId }"
       type="button"
       :aria-expanded="isExpanded ? 'true' : 'false'"
-      @click="$emit('select', group.folderId)"
-      @contextmenu.prevent="$emit('contextmenu', { event: $event, folder: group })"
+      @click="$emit('select', folder.folderId)"
+      @contextmenu.prevent="$emit('contextmenu', { event: $event, folder })"
     >
       <span
-        v-if="group.children.length > 0"
+        v-if="folder.children?.length > 0"
         class="media-tree-chev"
         aria-hidden="true"
-        @click.stop="$emit('toggle', group.key)"
+        @click.stop="$emit('toggle', folder.key)"
       >{{ isExpanded ? '▾' : '▸' }}</span>
       <span v-else class="media-tree-chev media-tree-chev--empty" aria-hidden="true"></span>
-      <span class="media-tree-group-label">{{ group.label }}</span>
-      <span class="media-tree-group-count">{{ group.fileCount }}</span>
+      <span class="media-tree-group-label">{{ folder.label }}</span>
+      <span class="media-tree-group-count">{{ folder.fileCount }}</span>
     </button>
 
     <div v-show="isExpanded" class="media-tree-group-body">
       <MediaTreeBranch
-        v-for="child in group.children"
+        v-for="child in folder.children"
         :key="child.key"
         :folder="child"
         :selected-folder-id="selectedFolderId"
