@@ -31,16 +31,16 @@ public class MediaController {
     @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<MediaUploadResponse> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(defaultValue = "general") String category) throws IOException {
-        return ApiResponse.ok(mediaService.upload(file, category));
+            @RequestParam(required = false) Long folderId) throws IOException {
+        return ApiResponse.ok(mediaService.upload(file, folderId));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<IPage<MediaListItemResponse>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String category) {
-        return ApiResponse.ok(mediaService.listMyMedia(page, size, category));
+            @RequestParam(required = false) Long folderId) {
+        return ApiResponse.ok(mediaService.listMyMedia(page, size, folderId));
     }
 
     @GetMapping(value = "/categories", produces = MediaType.APPLICATION_JSON_VALUE)

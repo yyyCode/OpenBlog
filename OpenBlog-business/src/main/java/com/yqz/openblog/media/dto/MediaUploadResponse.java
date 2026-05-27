@@ -9,6 +9,7 @@ public class MediaUploadResponse {
     private Integer thumbWidth;
     private Integer thumbHeight;
     private String category;
+    private Long folderId;
 
     public String getUrl() {
         return url;
@@ -72,6 +73,14 @@ public class MediaUploadResponse {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public Long getFolderId() {
+        return folderId;
+    }
+
+    public void setFolderId(Long folderId) {
+        this.folderId = folderId;
     }
 }
 

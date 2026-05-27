@@ -57,7 +57,7 @@ public class MediaService {
         this.minioMediaStorage = minioMediaStorage;
     }
 
-    public MediaUploadResponse upload(MultipartFile file, String category) throws IOException {
+    public MediaUploadResponse upload(MultipartFile file, Long folderId) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new BizException(4002, "文件不能为空");
         }
@@ -75,7 +75,7 @@ public class MediaService {
             throw new BizException(4002, "无法识别图片后缀");
         }
 
-        String cat = StringUtils.hasText(category) ? category : "general";
+        String cat = resolveFolderPrefix(folderId);
         String key = cat + "/" + UUID.randomUUID().toString() + "." + ext;
         MediaStorage storage = activeStorage();
 
@@ -133,6 +133,7 @@ public class MediaService {
             media.setThumbWidth(thumbWidth);
             media.setThumbHeight(thumbHeight);
             media.setCategory(cat);
+            media.setFolderId(folderId);
             Long uid = currentUser.userId();
             media.setUploadedBy(uid);
             mediaMapper.insert(media);
@@ -146,6 +147,7 @@ public class MediaService {
             resp.setThumbWidth(thumbWidth);
             resp.setThumbHeight(thumbHeight);
             resp.setCategory(cat);
+            resp.setFolderId(folderId);
             return resp;
         } finally {
             Files.deleteIfExists(originalPath);
@@ -197,13 +199,13 @@ public class MediaService {
         return resp;
     }
 
-    public IPage<MediaListItemResponse> listMyMedia(int page, int size, String category) {
+    public IPage<MediaListItemResponse> listMyMedia(int page, int size, Long folderId) {
         Long uid = currentUser.userId();
         Page<Media> mpPage = new Page<>(page + 1L, size);
         var w = Wrappers.lambdaQuery(Media.class)
                 .eq(Media::getUploadedBy, uid);
-        if (StringUtils.hasText(category)) {
-            w.eq(Media::getCategory, category);
+        if (folderId != null) {
+            w.eq(Media::getFolderId, folderId);
         }
         w.orderByDesc(Media::getCreatedAt);
         IPage<Media> p = mediaMapper.selectPage(mpPage, w);
@@ -223,6 +225,13 @@ public class MediaService {
         return grouped.entrySet().stream()
                 .map(e -> new MediaCategoryResponse(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    private String resolveFolderPrefix(Long folderId) {
+        if (folderId == null) {
+            return "general";
+        }
+        return "folder-" + folderId;
     }
 
     public void deleteMyMedia(String key) {
@@ -253,6 +262,7 @@ public class MediaService {
         r.setThumbWidth(m.getThumbWidth());
         r.setThumbHeight(m.getThumbHeight());
         r.setCategory(m.getCategory());
+        r.setFolderId(m.getFolderId());
         r.setCreatedAt(m.getCreatedAt());
         return r;
     }

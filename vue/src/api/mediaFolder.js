@@ -1,11 +1,11 @@
 import { request } from './http'
 
 export function fetchFolderTree() {
-  return request('/api/v1/media-folders/tree')
+  return request('/api/v1/media-folders/tree', { withAuth: true })
 }
 
 export function fetchFolderList() {
-  return request('/api/v1/media-folders')
+  return request('/api/v1/media-folders', { withAuth: true })
 }
 
 export function createFolder(payload) {

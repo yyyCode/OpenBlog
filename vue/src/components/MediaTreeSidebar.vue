@@ -7,10 +7,9 @@
 
     <div class="media-tree-body">
       <div v-if="loading" class="media-tree-hint">加载中...</div>
-      <div v-else-if="tree.length === 0" class="media-tree-hint">暂无文件夹</div>
+      <div v-else-if="loadError" class="media-tree-hint error">{{ loadError }}</div>
 
       <template v-else>
-        <!-- 全部文件 -->
         <button
           class="media-tree-root-btn"
           :class="{ active: selectedFolderId == null }"
@@ -20,6 +19,8 @@
           <span class="media-tree-group-label">全部文件</span>
           <span class="media-tree-group-count">{{ totalFileCount }}</span>
         </button>
+
+        <div v-if="tree.length === 0" class="media-tree-hint">暂无文件夹，点击右上角 + 创建</div>
 
         <MediaTreeBranch
           v-for="node in tree"
@@ -84,6 +85,7 @@ const props = defineProps({
   folders: { type: Array, default: () => [] },
   selectedFolderId: { type: [String, Number], default: null },
   loading: { type: Boolean, default: false },
+  loadError: { type: String, default: '' },
   uploading: { type: Boolean, default: false }
 })
 

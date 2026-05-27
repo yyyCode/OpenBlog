@@ -14,6 +14,7 @@ public class MediaListItemResponse {
     private Integer thumbWidth;
     private Integer thumbHeight;
     private String category;
+    private Long folderId;
     private Instant createdAt;
 
     public String getKey() { return key; }
@@ -45,6 +46,9 @@ public class MediaListItemResponse {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public Long getFolderId() { return folderId; }
+    public void setFolderId(Long folderId) { this.folderId = folderId; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

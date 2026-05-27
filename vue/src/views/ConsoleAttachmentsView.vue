@@ -13,6 +13,7 @@
           :folders="folders"
           :selected-folder-id="selectedFolderId"
           :loading="foldersLoading"
+          :load-error="foldersError"
           :uploading="uploading"
           @select="switchFolder"
           @create-folder="createFolder"
@@ -98,6 +99,7 @@ const totalPages = ref(1)
 
 const folders = ref([])
 const foldersLoading = ref(false)
+const foldersError = ref('')
 const selectedFolderId = ref(null)
 
 const viewOriginal = ref(null)
@@ -131,10 +133,12 @@ async function onUploadFile(e) {
 
 async function loadFolders() {
   foldersLoading.value = true
+  foldersError.value = ''
   try {
     folders.value = await fetchFolderTree()
-  } catch {
+  } catch (err) {
     folders.value = []
+    foldersError.value = err?.message || '文件夹加载失败'
   } finally {
     foldersLoading.value = false
   }
