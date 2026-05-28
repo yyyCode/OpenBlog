@@ -598,7 +598,7 @@ async function uploadAndInsert(file) {
 
   try {
 
-    const resp = await uploadMedia(file, 'article-body')
+    const resp = await uploadMedia(file, { category: 'article-body' })
 
     const md = `![${file.name || 'image'}](${resp.url})`
 
@@ -902,7 +902,7 @@ async function onPickCover(e) {
 
   articleError.value = ''
 
-  const resp = await uploadMedia(file, 'article-cover')
+  const resp = await uploadMedia(file, { category: 'article-cover' })
 
   form.value.coverMediaKey = resp.key
 

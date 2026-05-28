@@ -39,8 +39,9 @@ public class MediaController {
     @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<MediaUploadResponse> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) Long folderId) throws IOException {
-        return ApiResponse.ok(mediaService.upload(file, folderId));
+            @RequestParam(required = false) Long folderId,
+            @RequestParam(required = false) String category) throws IOException {
+        return ApiResponse.ok(mediaService.upload(file, folderId, category));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)

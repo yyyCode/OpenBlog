@@ -7,10 +7,21 @@ function getAuthHeader() {
   return { Authorization: `Bearer ${token}` }
 }
 
-export async function uploadMedia(file, folderId) {
+export async function uploadMedia(file, folderIdOrOptions) {
   const fd = new FormData()
   fd.append('file', file)
+  let folderId = null
+  let category = null
+  if (folderIdOrOptions != null) {
+    if (typeof folderIdOrOptions === 'object') {
+      folderId = folderIdOrOptions.folderId ?? null
+      category = folderIdOrOptions.category ?? null
+    } else {
+      folderId = folderIdOrOptions
+    }
+  }
   if (folderId != null) fd.append('folderId', folderId)
+  if (category != null) fd.append('category', category)
 
   const res = await fetch(`${API_BASE}/api/v1/media/upload`, {
     method: 'POST',
