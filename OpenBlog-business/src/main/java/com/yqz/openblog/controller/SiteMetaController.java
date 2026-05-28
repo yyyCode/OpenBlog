@@ -2,7 +2,7 @@ package com.yqz.openblog.controller;
 
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.config.SiteProperties;
-import com.yqz.openblog.common.web.ClientIpResolver;
+import com.yqz.openblog.config.ClientIpResolver;
 import com.yqz.openblog.site.SiteStatsService;
 import com.yqz.openblog.site.SiteVisitService;
 import com.yqz.openblog.site.dto.SiteStatsResponse;

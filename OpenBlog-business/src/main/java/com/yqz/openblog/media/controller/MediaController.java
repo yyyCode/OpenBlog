@@ -27,7 +27,8 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class MediaController {
 
-    private static final String FILES_PATH_MARKER = "/api/v1/media/files/";
+    private static final String MEDIA_PATH_PREFIX = "/api/v1/media/";
+    private static final String FILES_PATH_MARKER = MEDIA_PATH_PREFIX + "files/";
 
     private final MediaService mediaService;
 
@@ -38,8 +39,9 @@ public class MediaController {
     @PostMapping(value = "/upload", produces = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<MediaUploadResponse> upload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(required = false) Long folderId) throws IOException {
-        return ApiResponse.ok(mediaService.upload(file, folderId));
+            @RequestParam(required = false) Long folderId,
+            @RequestParam(required = false) String category) throws IOException {
+        return ApiResponse.ok(mediaService.upload(file, folderId, category));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -55,14 +57,16 @@ public class MediaController {
         return ApiResponse.ok(mediaService.listCategories());
     }
 
-    @DeleteMapping(value = "/{key:.+}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiResponse<Void> delete(@PathVariable("key") String key) {
+    @DeleteMapping(value = "/**", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<Void> delete(HttpServletRequest request) {
+        String key = extractMediaKey(request, null);
         mediaService.deleteMyMedia(key);
         return ApiResponse.ok();
     }
 
-    @GetMapping(value = "/{key:.+}/thumb", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ApiResponse<ThumbInfoResponse> thumbInfo(@PathVariable("key") String key) {
+    @GetMapping(value = "/thumb-info/**", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<ThumbInfoResponse> thumbInfo(HttpServletRequest request) {
+        String key = extractMediaKeyFromPrefix(request, "/thumb-info/");
         return ApiResponse.ok(mediaService.thumbInfo(key));
     }
 
@@ -72,6 +76,56 @@ public class MediaController {
    */
     @GetMapping(value = "/files/**", produces = MediaType.ALL_VALUE)
     public void serveFile(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String path = extractMediaKeyFromFiles(request);
+        boolean thumb = path.endsWith("/thumb");
+        String key = thumb ? path.substring(0, path.length() - "/thumb".length()) : path;
+        if (!StringUtils.hasText(key)) {
+            throw new BizException(4002, "媒体 key 为空");
+        }
+        serveFile(key, thumb, response);
+    }
+
+    private String extractMediaKey(HttpServletRequest request, String suffix) {
+        String uri = request.getRequestURI();
+        int idx = uri.indexOf(MEDIA_PATH_PREFIX);
+        if (idx < 0) {
+            throw new BizException(4002, "无效媒体路径");
+        }
+        String key = uri.substring(idx + MEDIA_PATH_PREFIX.length());
+        int q = key.indexOf('?');
+        if (q >= 0) {
+            key = key.substring(0, q);
+        }
+        if (suffix != null && key.endsWith(suffix)) {
+            key = key.substring(0, key.length() - suffix.length());
+        }
+        key = URLDecoder.decode(key, StandardCharsets.UTF_8);
+        if (!StringUtils.hasText(key)) {
+            throw new BizException(4002, "媒体 key 为空");
+        }
+        return key;
+    }
+
+    private String extractMediaKeyFromPrefix(HttpServletRequest request, String prefix) {
+        String uri = request.getRequestURI();
+        String fullPrefix = MEDIA_PATH_PREFIX + prefix;
+        int idx = uri.indexOf(fullPrefix);
+        if (idx < 0) {
+            throw new BizException(4002, "无效媒体路径");
+        }
+        String key = uri.substring(idx + fullPrefix.length());
+        int q = key.indexOf('?');
+        if (q >= 0) {
+            key = key.substring(0, q);
+        }
+        key = URLDecoder.decode(key, StandardCharsets.UTF_8);
+        if (!StringUtils.hasText(key)) {
+            throw new BizException(4002, "媒体 key 为空");
+        }
+        return key;
+    }
+
+    private String extractMediaKeyFromFiles(HttpServletRequest request) {
         String uri = request.getRequestURI();
         int idx = uri.indexOf(FILES_PATH_MARKER);
         if (idx < 0) {
@@ -82,13 +136,7 @@ public class MediaController {
         if (q >= 0) {
             path = path.substring(0, q);
         }
-        path = URLDecoder.decode(path, StandardCharsets.UTF_8);
-        boolean thumb = path.endsWith("/thumb");
-        String key = thumb ? path.substring(0, path.length() - "/thumb".length()) : path;
-        if (!StringUtils.hasText(key)) {
-            throw new BizException(4002, "媒体 key 为空");
-        }
-        serveFile(key, thumb, response);
+        return URLDecoder.decode(path, StandardCharsets.UTF_8);
     }
 
     private void serveFile(String key, boolean thumb, HttpServletResponse response) throws IOException {

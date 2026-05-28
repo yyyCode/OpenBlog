@@ -31,10 +31,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class MediaService {
+
+    private static final Pattern CATEGORY_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9-]{0,63}$");
 
     private final MediaMapper mediaMapper;
     private final MediaProperties properties;
@@ -57,7 +60,7 @@ public class MediaService {
         this.minioMediaStorage = minioMediaStorage;
     }
 
-    public MediaUploadResponse upload(MultipartFile file, Long folderId) throws IOException {
+    public MediaUploadResponse upload(MultipartFile file, Long folderId, String category) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new BizException(4002, "文件不能为空");
         }
@@ -75,7 +78,7 @@ public class MediaService {
             throw new BizException(4002, "无法识别图片后缀");
         }
 
-        String cat = resolveFolderPrefix(folderId);
+        String cat = resolveStorageCategory(folderId, category);
         String key = cat + "/" + UUID.randomUUID().toString() + "." + ext;
         MediaStorage storage = activeStorage();
 
@@ -227,11 +230,18 @@ public class MediaService {
                 .collect(Collectors.toList());
     }
 
-    private String resolveFolderPrefix(Long folderId) {
-        if (folderId == null) {
-            return "general";
+    private String resolveStorageCategory(Long folderId, String category) {
+        if (folderId != null) {
+            return "folder-" + folderId;
         }
-        return "folder-" + folderId;
+        if (StringUtils.hasText(category)) {
+            String c = category.trim().toLowerCase(Locale.ROOT);
+            if (!CATEGORY_PATTERN.matcher(c).matches()) {
+                throw new BizException(4002, "无效的分类标识");
+            }
+            return c;
+        }
+        return "general";
     }
 
     public void deleteMyMedia(String key) {

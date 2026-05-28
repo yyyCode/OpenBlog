@@ -8,7 +8,7 @@ import com.yqz.openblog.article.dto.ArticleUpdateRequest;
 import com.yqz.openblog.article.service.ArticleService;
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.common.PageResult;
-import com.yqz.openblog.common.web.ClientIpResolver;
+import com.yqz.openblog.config.ClientIpResolver;
 import com.yqz.openblog.security.CurrentUser;
 
 import jakarta.validation.Valid;

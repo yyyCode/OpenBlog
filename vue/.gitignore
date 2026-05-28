@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Large binaries
+public/background.png
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
