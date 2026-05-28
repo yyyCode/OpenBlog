@@ -1307,6 +1307,8 @@ onMounted(async () => {
 
   min-height: 0;
 
+  overflow: hidden;
+
 }
 
 
@@ -1322,6 +1324,8 @@ onMounted(async () => {
   min-height: 0;
 
   gap: 12px;
+
+  overflow-y: auto;
 
 }
 
