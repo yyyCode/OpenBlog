@@ -49,6 +49,9 @@ public class Media {
     @Column(name = "category", length = 32)
     private String category;
 
+    @Column(name = "folder_id")
+    private Long folderId;
+
     @Column(nullable = false)
     @TableField(fill = FieldFill.INSERT)
     private Instant createdAt;
@@ -159,6 +162,14 @@ public class Media {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public Long getFolderId() {
+        return folderId;
+    }
+
+    public void setFolderId(Long folderId) {
+        this.folderId = folderId;
     }
 
     public Instant getCreatedAt() {

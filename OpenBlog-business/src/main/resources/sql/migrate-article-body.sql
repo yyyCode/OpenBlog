@@ -36,6 +36,6 @@ WHERE a.content_markdown IS NOT NULL
 -- 注意：MySQL FULLTEXT 索引仅在 InnoDB + utf8mb4 下支持
 ALTER TABLE article_bodies ADD FULLTEXT INDEX ft_article_bodies_markdown (content_markdown);
 
--- 4. 确认迁移成功后，删除旧列（建议在维护窗口执行）
--- ALTER TABLE articles DROP COLUMN content_markdown;
--- 如果暂时不想物理删除，旧列会成为孤儿列，不影响业务
+-- 4. 确认迁移成功后，删除旧列（新建文章 INSERT 不再写入这些列，保留 NOT NULL 列会导致保存失败）
+-- 也可单独执行 migrate-article-body-drop-legacy-columns.sql
+ALTER TABLE articles DROP COLUMN content_markdown;

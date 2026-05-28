@@ -7,10 +7,10 @@ function getAuthHeader() {
   return { Authorization: `Bearer ${token}` }
 }
 
-export async function uploadMedia(file, category = 'general') {
+export async function uploadMedia(file, folderId) {
   const fd = new FormData()
   fd.append('file', file)
-  fd.append('category', category)
+  if (folderId != null) fd.append('folderId', folderId)
 
   const res = await fetch(`${API_BASE}/api/v1/media/upload`, {
     method: 'POST',
@@ -42,9 +42,9 @@ export async function uploadMedia(file, category = 'general') {
   return json?.data ?? json
 }
 
-export async function fetchMediaList(page = 0, size = 20, category) {
+export async function fetchMediaList(page = 0, size = 20, folderId) {
   let url = `${API_BASE}/api/v1/media?page=${page}&size=${size}`
-  if (category) url += `&category=${encodeURIComponent(category)}`
+  if (folderId != null) url += `&folderId=${folderId}`
   const res = await fetch(url, {
     method: 'GET',
     headers: {

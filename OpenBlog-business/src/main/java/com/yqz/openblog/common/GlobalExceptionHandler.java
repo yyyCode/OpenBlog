@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.IOException;
+
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.security.access.AccessDeniedException;
@@ -45,10 +47,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(4030, "无权限"));
     }
 
+    /**
+     * IO 异常（MinIO 读写、文件读写等）直接返回原始错误信息，便于排查。
+     */
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<ApiResponse<Object>> onIO(IOException ex) {
+        log.error("IO exception", ex);
+        String msg = ex.getMessage() != null ? ex.getMessage() : "IO异常";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(5001, msg));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> onOther(Exception ex) {
         log.error("unhandled server error", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(5001, "服务器异常"));
+        String msg = ex.getMessage() != null ? ex.getMessage() : "服务器异常";
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(5001, msg));
     }
 }
 

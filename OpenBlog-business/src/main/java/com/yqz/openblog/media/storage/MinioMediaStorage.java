@@ -102,11 +102,13 @@ public class MinioMediaStorage implements MediaStorage {
             if ("NoSuchKey".equals(e.errorResponse().code())) {
                 throw new BizException(4042, "媒体文件不存在");
             }
-            throw new IOException("读取 MinIO 失败: " + objectName, e);
+            String detail = e.errorResponse().message() != null ? e.errorResponse().message() : e.errorResponse().code();
+            throw new IOException("读取 MinIO 失败: " + objectName + " (" + detail + ")", e);
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            throw new IOException("读取 MinIO 失败: " + objectName, e);
+            String cause = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            throw new IOException("读取 MinIO 失败: " + objectName + " (" + cause + ")", e);
         }
     }
 
