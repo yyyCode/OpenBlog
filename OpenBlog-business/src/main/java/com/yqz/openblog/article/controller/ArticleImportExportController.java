@@ -4,7 +4,7 @@ import com.yqz.openblog.article.dto.ArticleListItemResponse;
 import com.yqz.openblog.article.service.ArticleImportExportService;
 import com.yqz.openblog.article.service.ArticleImportExportService.ArticleMarkdownExportPayload;
 import com.yqz.openblog.common.ApiResponse;
-import com.yqz.openblog.common.web.ClientIpResolver;
+import com.yqz.openblog.config.ClientIpResolver;
 import com.yqz.openblog.security.CurrentUser;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ContentDisposition;

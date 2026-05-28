@@ -13,6 +13,9 @@ public final class ClientIpResolver {
     }
 
     public static String resolve(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
         String xff = request.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
             int comma = xff.indexOf(',');
