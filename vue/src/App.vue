@@ -6,6 +6,7 @@ import WelcomeGate from './components/WelcomeGate.vue'
 import BackToTop from './components/BackToTop.vue'
 import WidgetsDrawer from './components/WidgetsDrawer.vue'
 import RightDock from './components/RightDock.vue'
+import Live2dCharacter from './components/Live2dCharacter.vue'
 import { postSiteVisit } from './api/site'
 import { fetchPublicProfile } from './api/profile'
 
@@ -39,6 +40,7 @@ onMounted(async () => {
     <RightDock v-if="!isConsole" @toggle-profile="toggleWidgets" />
     <WidgetsDrawer v-if="!isConsole" :open="widgetsOpen" :profile="profile" @close="widgetsOpen = false" />
     <BackToTop v-if="!isConsole" />
+    <Live2dCharacter v-if="!isConsole" />
     <router-view />
   </div>
 </template>
