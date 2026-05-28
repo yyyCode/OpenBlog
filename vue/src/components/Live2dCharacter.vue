@@ -4,11 +4,15 @@
     <button
       type="button"
       class="live2d-toggle"
+      :class="{ 'live2d-toggle--loading': loading }"
       :aria-label="dismissed ? '召唤看板娘' : '隐藏看板娘'"
-      :title="dismissed ? '召唤看板娘' : '隐藏看板娘'"
+      :title="loading ? '看板娘加载中…' : dismissed ? '召唤看板娘' : '隐藏看板娘'"
       @click="toggle"
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg v-if="loading" class="live2d-spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="32" />
+      </svg>
+      <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
         <circle cx="8.5" cy="10" r="1.5" />
         <circle cx="15.5" cy="10" r="1.5" />
@@ -37,10 +41,12 @@ function isDark() {
 }
 
 const dismissed = ref(readHidden())
+const loading = ref(false)
 const containerRef = ref(null)
 let oml2dInstance = null
 
 function toggle() {
+  if (loading.value) return
   dismissed.value = !dismissed.value
   try {
     sessionStorage.setItem(STORAGE_KEY, dismissed.value ? '1' : '0')
@@ -77,6 +83,8 @@ function makeTipsStyle(dark) {
 onMounted(async () => {
   if (!containerRef.value) return
 
+  loading.value = true
+
   const { loadOml2d } = await import('oh-my-live2d')
 
   oml2dInstance = loadOml2d({
@@ -91,9 +99,7 @@ onMounted(async () => {
         path: 'https://model.oml2d.com/Pio/model.json',
         position: [0, 10],
         scale: 0.1,
-        stageStyle: {
-          height: 340,
-        },
+        stageStyle: { height: 340 },
         mobileScale: 0.08,
         mobilePosition: [0, 5],
       },
@@ -102,9 +108,7 @@ onMounted(async () => {
         path: 'https://model.oml2d.com/HK416-1-normal/model.json',
         position: [0, 50],
         scale: 0.08,
-        stageStyle: {
-          height: 380,
-        },
+        stageStyle: { height: 380 },
         mobileScale: 0.06,
         mobilePosition: [0, 30],
       },
@@ -112,11 +116,7 @@ onMounted(async () => {
     tips: {
       messageLine: 3,
       style: makeTipsStyle(isDark()),
-      mobileStyle: {
-        width: 180,
-        height: 56,
-        fontSize: '12px',
-      },
+      mobileStyle: { width: 180, height: 56, fontSize: '12px' },
       welcomeTips: {
         duration: 5000,
         message: {
@@ -136,23 +136,23 @@ onMounted(async () => {
         interval: 18000,
       },
     },
-    statusBar: {
-      enable: false,
-    },
-    menus: {
-      disable: true,
-    },
+    statusBar: { enable: false },
+    menus: { disable: true },
     parentElement: containerRef.value,
   })
 
+  oml2dInstance.onLoad(() => {
+    loading.value = false
+  })
+
   if (dismissed.value) {
-    const onLoad = () => {
-      oml2dInstance?.stageSlideOut()
-      oml2dInstance?.onStageSlideOut(() => {
-        oml2dInstance?.onLoad(() => {})
-      })
-    }
-    oml2dInstance.onLoad(onLoad)
+    let firstLoad = true
+    oml2dInstance.onLoad(() => {
+      if (firstLoad) {
+        oml2dInstance.stageSlideOut()
+        firstLoad = false
+      }
+    })
   }
 })
 </script>
@@ -207,18 +207,31 @@ onMounted(async () => {
   transform: scale(1.1);
 }
 
+.live2d-toggle--loading {
+  cursor: wait;
+  color: var(--accent);
+}
+
+.live2d-toggle--loading:hover {
+  transform: none;
+}
+
 .live2d-wrapper--hidden .live2d-toggle {
   animation: live2d-toggle-pulse 2s ease-in-out infinite;
 }
 
 @keyframes live2d-toggle-pulse {
   0%,
-  100% {
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-  }
-  50% {
-    box-shadow: 0 2px 18px rgba(170, 59, 255, 0.3);
-  }
+  100% { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); }
+  50% { box-shadow: 0 2px 18px rgba(170, 59, 255, 0.3); }
+}
+
+@keyframes live2d-spin {
+  to { transform: rotate(360deg); }
+}
+
+.live2d-spinner {
+  animation: live2d-spin 1s linear infinite;
 }
 
 @media (max-width: 680px) {
