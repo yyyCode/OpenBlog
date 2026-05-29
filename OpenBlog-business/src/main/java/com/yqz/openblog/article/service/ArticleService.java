@@ -11,6 +11,7 @@ import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
 import com.yqz.openblog.category.service.CategoryService;
+import com.yqz.openblog.seo.service.BaiduPushService;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserMapper;
 
@@ -37,6 +38,7 @@ public class ArticleService {
     private final ArticlePublishedContentCacheService publishedContentCache;
     private final CategoryService categoryService;
     private final MarkdownRenderer markdownRenderer;
+    private final BaiduPushService baiduPushService;
 
     public ArticleService(
             ArticleMapper articleMapper,
@@ -45,7 +47,8 @@ public class ArticleService {
             ArticleViewService articleViewService,
             ArticlePublishedContentCacheService publishedContentCache,
             CategoryService categoryService,
-            MarkdownRenderer markdownRenderer) {
+            MarkdownRenderer markdownRenderer,
+            BaiduPushService baiduPushService) {
         this.articleMapper = articleMapper;
         this.articleBodyMapper = articleBodyMapper;
         this.userMapper = userMapper;
@@ -53,6 +56,7 @@ public class ArticleService {
         this.publishedContentCache = publishedContentCache;
         this.categoryService = categoryService;
         this.markdownRenderer = markdownRenderer;
+        this.baiduPushService = baiduPushService;
     }
 
     public ArticleListItemResponse mapListItem(Article a) {
@@ -326,6 +330,11 @@ public class ArticleService {
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
         publishedContentCache.evictPublishedList();
+
+        if (a.getStatus() == ArticleStatus.PUBLISHED) {
+            baiduPushService.pushArticleUrl(articleId);
+        }
+
         return mapListItem(a);
     }
 

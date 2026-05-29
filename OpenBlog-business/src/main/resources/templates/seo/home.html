@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${siteName + ' - ' + siteDescription}">OpenBlog</title>
+    <meta name="description" th:content="${siteDescription}"/>
+    <link rel="canonical" th:href="${siteUrl}"/>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website"/>
+    <meta property="og:title" th:content="${siteName}"/>
+    <meta property="og:description" th:content="${siteDescription}"/>
+    <meta property="og:url" th:content="${siteUrl}"/>
+    <meta property="og:site_name" th:content="${siteName}"/>
+
+    <!-- JSON-LD -->
+    <script th:inline="javascript" type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": [[${siteName}]],
+        "url": [[${siteUrl}]],
+        "description": [[${siteDescription}]],
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": [[${siteUrl + '/all?q={search_term_string}'}]],
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+</head>
+<body>
+<header>
+    <h1 th:text="${siteName}">OpenBlog</h1>
+    <p th:text="${siteDescription}">站点描述</p>
+</header>
+<main>
+    <section>
+        <h2>最新文章</h2>
+        <ul>
+            <li th:each="item : ${articles.items}">
+                <a th:href="${siteUrl + '/article/' + item.id}" th:text="${item.title}">文章标题</a>
+                <p th:text="${item.summary}">摘要</p>
+                <time th:text="${item.publishedAt}" th:datetime="${item.publishedAt}">日期</time>
+                <span th:text="${item.authorNickname}">作者</span>
+            </li>
+        </ul>
+    </section>
+</main>
+<footer>
+    <p th:text="'© ' + ${siteName}">© OpenBlog</p>
+</footer>
+</body>
+</html>
