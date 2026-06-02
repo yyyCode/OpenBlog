@@ -269,8 +269,11 @@ public class CommentService {
 
     private void ensureUserActive(Long uid) {
         User u = userRepository.findById(uid).orElseThrow(() -> new BizException(4041, "用户不存在"));
-        if (!"ACTIVE".equals(u.getStatus())) {
+        if ("BANNED".equals(u.getStatus())) {
             throw new BizException(4011, "账号已被封禁");
+        }
+        if ("RESTRICTED".equals(u.getStatus())) {
+            throw new BizException(4012, "账号已被限制互动");
         }
     }
 }
