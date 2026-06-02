@@ -102,7 +102,7 @@ public class AuthService {
         if ("PENDING".equals(user.getStatus())) {
             throw new BizException(4014, "账号待管理员审核通过后方可登录");
         }
-        if (!"ACTIVE".equals(user.getStatus())) {
+        if ("BANNED".equals(user.getStatus())) {
             loginLockoutService.recordPasswordFailure(ipSeg);
             throw new BizException(4011, "账号已被封禁");
         }
@@ -255,7 +255,7 @@ public class AuthService {
         if ("PENDING".equals(user.getStatus())) {
             throw new BizException(4014, "账号待管理员审核通过后方可登录");
         }
-        if (!"ACTIVE".equals(user.getStatus())) {
+        if ("BANNED".equals(user.getStatus())) {
             throw new BizException(4011, "账号已被封禁");
         }
     }
