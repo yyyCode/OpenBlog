@@ -24,6 +24,7 @@ import ConsoleSystemView from '../views/ConsoleSystemView.vue'
 import ConsolePendingUsersView from '../views/ConsolePendingUsersView.vue'
 import ConsoleUsersView from '../views/ConsoleUsersView.vue'
 import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
+import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
 
 const routes = [
   {
@@ -80,6 +81,7 @@ const routes = [
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
       { path: 'users', name: 'consoleUsers', component: ConsoleUsersView },
       { path: 'users/pending', name: 'consolePendingUsers', component: ConsolePendingUsersView },
+      { path: 'site-config', name: 'consoleSiteConfig', component: ConsoleSiteConfigView },
       { path: 'system', name: 'consoleSystem', component: ConsoleSystemView }
     ]
   },
