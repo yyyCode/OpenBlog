@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${article.title + ' - ' + siteName}">文章标题</title>
+    <meta name="description" th:content="${article.summary}"/>
+    <meta name="keywords" th:content="${article.categoryName}"/>
+    <meta name="author" th:content="${article.authorNickname}"/>
+    <link rel="canonical" th:href="${siteUrl + '/article/' + article.id}"/>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" th:content="${article.title}"/>
+    <meta property="og:description" th:content="${article.summary}"/>
+    <meta property="og:url" th:content="${siteUrl + '/article/' + article.id}"/>
+    <meta property="og:site_name" th:content="${siteName}"/>
+    <meta property="og:image" th:if="${coverUrl}" th:content="${coverUrl}"/>
+    <meta property="article:published_time" th:content="${article.publishedAt}"/>
+    <meta property="article:modified_time" th:content="${article.updatedAt}"/>
+    <meta property="article:author" th:content="${article.authorNickname}"/>
+    <meta property="article:section" th:content="${article.categoryName}"/>
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:title" th:content="${article.title}"/>
+    <meta name="twitter:description" th:content="${article.summary}"/>
+    <meta name="twitter:image" th:if="${coverUrl}" th:content="${coverUrl}"/>
+
+    <!-- JSON-LD -->
+    <script type="application/ld+json" th:inline="none" th:attr="th:remove=none">
+    </script>
+    <script th:inline="javascript" type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": [[${article.title}]],
+        "description": [[${article.summary}]],
+        "image": [[${coverUrl}]],
+        "datePublished": [[${article.publishedAt}]],
+        "dateModified": [[${article.updatedAt}]],
+        "author": {
+            "@type": "Person",
+            "name": [[${article.authorNickname}]]
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": [[${siteName}]]
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": [[${siteUrl + '/article/' + article.id}]]
+        }
+    }
+    </script>
+</head>
+<body>
+<header>
+    <nav>
+        <a th:href="${siteUrl}">首页</a>
+        <a th:href="${siteUrl + '/all'}">全部文章</a>
+    </nav>
+</header>
+<main>
+    <article>
+        <h1 th:text="${article.title}">文章标题</h1>
+        <div class="meta">
+            <span th:text="${article.authorNickname}">作者</span>
+            <time th:text="${article.publishedAt}" th:datetime="${article.publishedAt}">发布时间</time>
+            <span th:if="${article.categoryName}" th:text="${article.categoryName}">分类</span>
+        </div>
+        <img th:if="${coverUrl}" th:src="${coverUrl}" th:alt="${article.title}"/>
+        <div class="content" th:utext="${article.contentHtml}">文章正文</div>
+    </article>
+</main>
+<footer>
+    <p th:text="'© ' + ${siteName}">© OpenBlog</p>
+</footer>
+</body>
+</html>

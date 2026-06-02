@@ -12,3 +12,16 @@ export function fetchSiteStats() {
 export function postSiteVisit() {
   return request('/api/v1/site/visit', { method: 'POST' })
 }
+
+export function fetchSiteConfig() {
+  return request('/api/v1/site/config')
+}
+
+/** payload: { github_url: '...', blog_name: '...', ... } */
+export function updateSiteConfig(payload) {
+  return request('/api/v1/site/config', {
+    method: 'PUT',
+    withAuth: true,
+    body: JSON.stringify(payload)
+  })
+}

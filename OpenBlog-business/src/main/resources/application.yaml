@@ -31,12 +31,24 @@ spring:
       # password: your_redis_password
       timeout: 3s
       password: admin123
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: true
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
 openblog:
+  seo:
+    site-url: "https://www.wecode.xin"
+    site-name: "OpenBlog"
+    site-description: "WeCode 技术博客"
+    baidu-push-enabled: false
+    baidu-push-token: ""
   cache:
     # 已发布文章正文（Redis）；不可用或异常时自动仅查 MySQL
     article-published-ttl-minutes: 30

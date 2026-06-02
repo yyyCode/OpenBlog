@@ -53,6 +53,10 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        // SEO pages
+                        .requestMatchers(HttpMethod.GET, "/seo/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/sitemap.xml").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/robots.txt").permitAll()
                         // Auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // 放行 CORS preflight

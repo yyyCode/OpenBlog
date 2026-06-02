@@ -2,7 +2,7 @@
   <header class="site-top-bar" role="banner">
     <div class="site-top-bar-inner">
       <router-link to="/" class="site-brand" aria-label="返回首页">
-        <span class="site-brand-text">烧仙草冰室</span>
+        <span class="site-brand-text">{{ (siteConfig && siteConfig.blog_name) || '烧仙草冰室' }}</span>
       </router-link>
 
       <nav class="site-nav" aria-label="站点导航">
@@ -37,7 +37,7 @@
 
         <a
           class="site-nav-link site-nav-link-sm-hide"
-          href="https://github.com/yyyCode/OpenBlog.git"
+          :href="(siteConfig && siteConfig.source_code_url) || 'https://github.com/yyyCode/OpenBlog.git'"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -90,6 +90,7 @@ const route = useRoute()
 const router = useRouter()
 const isDark = ref(false)
 const me = ref(null)
+const siteConfig = inject('siteConfig')
 
 const displayName = computed(() => {
   const m = me.value

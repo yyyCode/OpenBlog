@@ -56,12 +56,22 @@ defineProps({
   }
 })
 
+const siteConfig = inject('siteConfig')
+
 const siteVersion = ref('')
 
-const defaultAvatar = 'https://via.placeholder.com/120x120.png?text=OpenBlog'
-const githubUrl = 'https://github.com/yyyCode'
-const csdnUrl = 'https://blog.csdn.net/2301_80044822'
-const nowcoderUrl = 'https://www.nowcoder.com/users/597303882'
+const defaultAvatar = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.default_avatar_url) || 'https://via.placeholder.com/120x120.png?text=OpenBlog'
+)
+const githubUrl = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.github_url) || 'https://github.com/yyyCode'
+)
+const csdnUrl = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.csdn_url) || 'https://blog.csdn.net/2301_80044822'
+)
+const nowcoderUrl = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.nowcoder_url) || 'https://www.nowcoder.com/users/597303882'
+)
 
 const siteVersionLabel = computed(() => {
   const v = (siteVersion.value || '').trim()
