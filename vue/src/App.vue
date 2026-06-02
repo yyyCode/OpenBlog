@@ -54,5 +54,10 @@ onMounted(async () => {
     <BackToTop v-if="!isConsole" />
     <Live2dCharacter v-if="!isConsole" />
     <router-view />
+    <footer v-if="!isConsole" class="site-footer">
+      <div class="site-footer-inner">
+        <span>{{ (siteConfig && siteConfig.footer_copyright) || '© 2026 OpenBlog' }}</span>
+      </div>
+    </footer>
   </div>
 </template>
