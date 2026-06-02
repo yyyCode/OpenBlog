@@ -78,12 +78,11 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toggleTheme as applyToggle } from '../theme'
 import { fetchMe } from '../api/admin'
 import { clearAuth, getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
-import { SITE_CONFIG_KEY } from '../App.vue'
 
 defineEmits(['toggle-widgets'])
 
@@ -91,7 +90,7 @@ const route = useRoute()
 const router = useRouter()
 const isDark = ref(false)
 const me = ref(null)
-const siteConfig = inject(SITE_CONFIG_KEY)
+const siteConfig = inject('siteConfig')
 
 const displayName = computed(() => {
   const m = me.value

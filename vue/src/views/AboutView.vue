@@ -14,10 +14,9 @@
 </template>
 
 <script setup>
-import { computed, inject, ref } from 'vue'
-import { SITE_CONFIG_KEY } from '../App.vue'
+import { computed, ref } from 'vue'
 
-const siteConfig = inject(SITE_CONFIG_KEY)
+const siteConfig = inject('siteConfig')
 
 const aboutText = computed(() =>
   (siteConfig && siteConfig.value && siteConfig.value.about_text) || '这里是个人博客，用来记录设计、技术与思考。'

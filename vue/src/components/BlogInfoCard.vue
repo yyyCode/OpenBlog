@@ -73,12 +73,11 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchArticles } from '../api/article'
 import { fetchSiteStats } from '../api/site'
-import { SITE_CONFIG_KEY } from '../App.vue'
 
-const siteConfig = inject(SITE_CONFIG_KEY)
+const siteConfig = inject('siteConfig')
 
 /** 站点统计起点，从站点配置读取，默认 2026-03-20（本地日界线） */
 const SITE_START = computed(() => {

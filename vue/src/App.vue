@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, onMounted, provide, ref } from 'vue'
+import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import BlogHeader from './components/BlogHeader.vue'
 import WelcomeGate from './components/WelcomeGate.vue'
@@ -18,8 +18,7 @@ const profile = ref(null)
 const siteConfig = ref({})
 
 // 提供 siteConfig 给所有子组件
-export const SITE_CONFIG_KEY = Symbol('siteConfig')
-provide(SITE_CONFIG_KEY, siteConfig)
+provide('siteConfig', siteConfig)
 
 function toggleWidgets() {
   widgetsOpen.value = !widgetsOpen.value

@@ -79,11 +79,10 @@
 </template>
 
 <script setup>
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
-import { SITE_CONFIG_KEY } from '../App.vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const emit = defineEmits(['toggle-profile'])
-const siteConfig = inject(SITE_CONFIG_KEY)
+const siteConfig = inject('siteConfig')
 const expanded = ref(false)
 const aiOpen = ref(false)
 const projectOpen = ref(false)

@@ -94,15 +94,14 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import { useRouter } from 'vue-router'
 import { showMessage } from '../utils/message'
-import { SITE_CONFIG_KEY } from '../App.vue'
 
 const router = useRouter()
-const siteConfig = inject(SITE_CONFIG_KEY)
+const siteConfig = inject('siteConfig')
 
 const heroTitle = computed(() => {
   const text = (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '设计，创造，思考未来'

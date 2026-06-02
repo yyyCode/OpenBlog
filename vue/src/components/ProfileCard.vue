@@ -46,9 +46,8 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { fetchSiteVersion } from '../api/site'
-import { SITE_CONFIG_KEY } from '../App.vue'
 
 defineProps({
   profile: {
@@ -57,7 +56,7 @@ defineProps({
   }
 })
 
-const siteConfig = inject(SITE_CONFIG_KEY)
+const siteConfig = inject('siteConfig')
 
 const siteVersion = ref('')
 
