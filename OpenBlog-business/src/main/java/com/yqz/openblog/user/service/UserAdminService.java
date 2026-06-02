@@ -11,6 +11,7 @@ import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.entity.UserRole;
+import com.yqz.openblog.user.dto.UserDetailResponse;
 import com.yqz.openblog.user.repo.UserMapper;
 import org.springframework.stereotype.Service;
 
@@ -60,7 +61,7 @@ public class UserAdminService {
     /**
      * 用户详情：基本信息 + 文章数 + 评论数。
      */
-    public com.yqz.openblog.user.dto.UserDetailResponse getUserDetail(Long userId) {
+    public UserDetailResponse getUserDetail(Long userId) {
         User u = userMapper.selectById(userId);
         if (u == null) {
             throw new BizException(4041, "用户不存在");
@@ -71,7 +72,7 @@ public class UserAdminService {
         long commentCount = commentMapper.selectCount(
                 Wrappers.lambdaQuery(Comment.class).eq(Comment::getUserId, userId));
 
-        com.yqz.openblog.user.dto.UserDetailResponse r = new com.yqz.openblog.user.dto.UserDetailResponse();
+        UserDetailResponse r = new UserDetailResponse();
         r.setUserId(u.getId());
         r.setUsername(u.getUsername());
         r.setEmail(u.getEmail());
