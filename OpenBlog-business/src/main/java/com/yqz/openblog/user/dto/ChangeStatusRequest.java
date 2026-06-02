@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 
 public class ChangeStatusRequest {
     @NotNull
-    private String status; // ACTIVE/BANNED
+    private String status; // ACTIVE / BANNED / RESTRICTED
 
     public String getStatus() {
         return status;
