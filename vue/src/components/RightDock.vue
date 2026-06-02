@@ -40,7 +40,7 @@
         <a
           class="right-dock-item"
           role="menuitem"
-          href="http://ai.wecode.xin/#/chat/default"
+          :href="(siteConfig && siteConfig.ai_platform_url) || 'http://ai.wecode.xin/#/chat/default'"
           target="_blank"
           rel="noopener noreferrer"
           @click="closeAi"
@@ -79,9 +79,11 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { SITE_CONFIG_KEY } from '../App.vue'
 
 const emit = defineEmits(['toggle-profile'])
+const siteConfig = inject(SITE_CONFIG_KEY)
 const expanded = ref(false)
 const aiOpen = ref(false)
 const projectOpen = ref(false)

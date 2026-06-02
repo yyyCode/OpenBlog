@@ -2,11 +2,8 @@
   <div class="blog-container">
     <section class="home-hero">
       <div class="home-hero-inner">
-        <h1 class="home-hero-title">设计，创造，<br />思考未来</h1>
-        <p class="home-hero-sub">
-          探索 AI、设计与技术的交集<br />
-          分享关于智能交互、AI 驱动产品与数字创新的实战经验。
-        </p>
+        <h1 class="home-hero-title">{{ heroTitleLines[0] || '' }}<br />{{ heroTitleLines[1] || '' }}</h1>
+        <p class="home-hero-sub" v-html="heroSubtitleHtml"></p>
       </div>
     </section>
 
@@ -97,13 +94,38 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import { useRouter } from 'vue-router'
 import { showMessage } from '../utils/message'
+import { SITE_CONFIG_KEY } from '../App.vue'
 
 const router = useRouter()
+const siteConfig = inject(SITE_CONFIG_KEY)
+
+const heroTitle = computed(() => {
+  const text = (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '设计，创造，思考未来'
+  return text
+})
+
+const heroSubtitle = computed(() => {
+  const text = (siteConfig && siteConfig.value && siteConfig.value.hero_subtitle) || '探索 AI、设计与技术的交集\n分享关于智能交互、AI 驱动产品与数字创新的实战经验。'
+  return text
+})
+
+const heroTitleLines = computed(() => {
+  const text = heroTitle.value
+  const parts = text.split('\n').filter(Boolean)
+  if (parts.length >= 2) return parts.slice(0, 2)
+  const commaParts = text.split('，')
+  if (commaParts.length >= 2) return commaParts.slice(0, 2)
+  return [text, '']
+})
+
+const heroSubtitleHtml = computed(() => {
+  return heroSubtitle.value.replace(/\n/g, '<br />')
+})
 
 const loading = ref(true)
 const featuredArticle = ref({})

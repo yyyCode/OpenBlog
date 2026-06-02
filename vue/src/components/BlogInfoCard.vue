@@ -73,12 +73,22 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { fetchArticles } from '../api/article'
 import { fetchSiteStats } from '../api/site'
+import { SITE_CONFIG_KEY } from '../App.vue'
 
-/** 站点统计起点：2026-03-20（本地日界线） */
-const SITE_START = new Date(2026, 2, 20, 0, 0, 0, 0)
+const siteConfig = inject(SITE_CONFIG_KEY)
+
+/** 站点统计起点，从站点配置读取，默认 2026-03-20（本地日界线） */
+const SITE_START = computed(() => {
+  const dateStr = siteConfig && siteConfig.value && siteConfig.value.site_start_date
+  if (dateStr) {
+    const d = new Date(dateStr + 'T00:00:00')
+    if (!isNaN(d.getTime())) return d
+  }
+  return new Date(2026, 2, 20, 0, 0, 0, 0)
+})
 
 const stats = ref(null)
 /** 文章列表页数据（含 total、items），用于展示与回退 */
@@ -140,7 +150,7 @@ const displaySiteVisits = computed(() => {
   return n == null ? '…' : String(n)
 })
 
-const runningLabel = computed(() => formatRunningSince(SITE_START))
+const runningLabel = computed(() => formatRunningSince(SITE_START.value))
 
 const lastActivityLabel = computed(() => {
   const iso = stats.value?.lastActivityAt ?? lastPublishedFromList.value
