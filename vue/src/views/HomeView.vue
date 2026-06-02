@@ -94,7 +94,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import { useRouter } from 'vue-router'

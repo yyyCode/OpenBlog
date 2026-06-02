@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 
 const siteConfig = inject('siteConfig')
 

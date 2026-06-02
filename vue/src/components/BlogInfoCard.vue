@@ -73,7 +73,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { fetchArticles } from '../api/article'
 import { fetchSiteStats } from '../api/site'
 

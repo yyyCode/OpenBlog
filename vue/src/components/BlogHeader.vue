@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toggleTheme as applyToggle } from '../theme'
 import { fetchMe } from '../api/admin'

@@ -46,7 +46,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { fetchSiteVersion } from '../api/site'
 
 defineProps({

@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const emit = defineEmits(['toggle-profile'])
 const siteConfig = inject('siteConfig')
