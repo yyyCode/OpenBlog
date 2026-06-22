@@ -1,0 +1,92 @@
+<h2>登录/注册页面 — 当前 vs 飞书风格对比</h2>
+<p class="subtitle">请选择你更喜欢的设计方向</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">A — 当前设计（卡片式 + 毛玻璃）</div>
+    <div class="mockup-body">
+      <div style="background:#f8f6fa;min-height:500px;display:flex;align-items:center;justify-content:center;font-family:sans-serif;padding:20px">
+        <div style="width:420px;background:rgba(255,255,255,0.78);border:1px solid rgba(0,0,0,0.06);border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);backdrop-filter:blur(18px)">
+          <div style="display:flex;gap:8px;margin-bottom:18px">
+            <div style="padding:8px 12px;border-radius:20px;background:rgba(170,59,255,0.08);border:1px solid rgba(170,59,255,0.45);font-weight:900;font-size:13px;color:#2c2c2c">登录</div>
+            <div style="padding:8px 12px;border-radius:20px;border:1px solid rgba(0,0,0,0.06);font-weight:900;font-size:13px;color:#7a7a7a">注册</div>
+            <div style="padding:8px 12px;border-radius:20px;border:1px solid rgba(0,0,0,0.06);font-weight:900;font-size:13px;color:#7a7a7a">修改密码</div>
+          </div>
+          <div style="font-weight:1000;font-size:22px;margin-bottom:8px">账号登录</div>
+          <div style="color:#7a7a7a;font-size:13px;margin-bottom:18px">登录后可发表评论、点赞与收藏</div>
+          <div style="margin-top:12px">
+            <div style="font-weight:850;font-size:13px;margin-bottom:8px">账号（用户名或邮箱）</div>
+            <input style="width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,0.06);border-radius:12px;font-size:14px;background:rgba(255,255,255,0.52);outline:none;box-sizing:border-box" placeholder="请输入">
+          </div>
+          <div style="margin-top:12px">
+            <div style="font-weight:850;font-size:13px;margin-bottom:8px">密码</div>
+            <input type="password" style="width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,0.06);border-radius:12px;font-size:14px;background:rgba(255,255,255,0.52);outline:none;box-sizing:border-box" placeholder="请输入">
+          </div>
+          <div style="margin-top:14px;width:100%;padding:10px;border-radius:999px;background:linear-gradient(135deg,#3d3d3d,#1f1f1f);color:#fff;text-align:center;font-weight:700;font-size:14px;cursor:pointer;box-sizing:border-box">登录</div>
+          <div style="text-align:center;margin-top:18px;font-size:13px;color:#7a7a7a">
+            <span style="cursor:pointer">忘记密码？</span> · <span style="cursor:pointer">控制台登录</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">B — 飞书风格（左右分栏 + 品牌区域）</div>
+    <div class="mockup-body">
+      <div style="background:#f5f6f7;min-height:500px;display:flex;align-items:center;justify-content:center;font-family:sans-serif;padding:20px">
+        <div style="display:flex;width:720px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+          <!-- Left: Brand panel -->
+          <div style="width:320px;background:linear-gradient(160deg,#3370ff,#5e4caf);padding:48px 32px;display:flex;flex-direction:column;justify-content:center;color:#fff;flex-shrink:0">
+            <div style="font-size:28px;font-weight:700;margin-bottom:16px;letter-spacing:-0.02em">📝 OpenBlog</div>
+            <div style="font-size:15px;opacity:0.88;line-height:1.7;margin-bottom:32px">分享技术笔记<br>记录思考与成长</div>
+            <div style="font-size:12px;line-height:1.6;opacity:0.65">没有账号？<br>点击右侧"注册"即可加入</div>
+          </div>
+          <!-- Right: Form panel -->
+          <div style="flex:1;padding:48px 40px">
+            <div style="display:flex;gap:24px;margin-bottom:32px;border-bottom:1px solid #e5e6e8;padding-bottom:0">
+              <div style="padding:0 0 12px;font-weight:700;font-size:16px;color:#1f2329;border-bottom:2px solid #3370ff;margin-bottom:-1px;cursor:pointer">登录</div>
+              <div style="padding:0 0 12px;font-weight:400;font-size:16px;color:#8f959e;cursor:pointer">注册</div>
+            </div>
+            <div style="margin-bottom:20px">
+              <div style="font-size:13px;color:#8f959e;margin-bottom:6px">账号</div>
+              <input style="width:100%;padding:10px 12px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7;transition:border-color 0.2s" placeholder="用户名或邮箱" onfocus="this.style.borderColor='#3370ff';this.style.background='#fff'" onblur="this.style.borderColor='#dee0e3';this.style.background='#f5f6f7'">
+            </div>
+            <div style="margin-bottom:24px">
+              <div style="font-size:13px;color:#8f959e;margin-bottom:6px">密码</div>
+              <input type="password" style="width:100%;padding:10px 12px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7" placeholder="输入密码">
+            </div>
+            <div style="width:100%;padding:10px;border-radius:8px;background:#3370ff;color:#fff;text-align:center;font-weight:600;font-size:15px;cursor:pointer;border:none;box-sizing:border-box">登 录</div>
+            <div style="text-align:center;margin-top:20px;font-size:13px;color:#8f959e">
+              <span style="cursor:pointer;color:#3370ff">忘记密码？</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>核心差异</h3>
+<div class="pros-cons">
+  <div class="pros">
+    <h4>飞书风格 特点</h4>
+    <ul>
+      <li>左右分栏 — 品牌感强，有「专业产品」气质</li>
+      <li>蓝色主色调 (#3370ff) — 科技、信任感</li>
+      <li>浅灰背景 + 白色卡片 — 层次分明</li>
+      <li>输入框带浅灰底色 — 可交互感更强</li>
+      <li>Tab 下划线风格 — 更现代</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>当前设计 特点</h4>
+    <ul>
+      <li>居中卡片 + 毛玻璃 — 博客/个人站风格</li>
+      <li>紫色渐变主色调 — 个性但偏小众</li>
+      <li>圆角药丸按钮 — 偏柔和</li>
+      <li>深色按钮 — 偏重，对比强</li>
+      <li>毛玻璃效果 — 依赖背景，移动端弱</li>
+    </ul>
+  </div>
+</div>

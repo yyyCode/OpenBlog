@@ -16,6 +16,8 @@
 | 媒体 | 上传、列表浏览（分页）、删除、原图/缩略图访问、缩略图元数据查询、全屏预览、一键复制 URL |
 | 首页 | 聚合数据接口（如 `/api/v1/home`） |
 | 公开资料 | `/api/v1/profile`：未登录展示站点作者信息，已登录可优先展示当前用户公开资料 |
+| SEO | 为爬虫提供 Thymeleaf 服务端渲染页面（含 Open Graph / JSON-LD 结构化数据），自动生成 `sitemap.xml` 与 `robots.txt`，文章发布时异步推送 URL 到百度站长平台 |
+| 站点配置 | 后台管理页面读写站点元信息（站点标题、描述、版权等），前端全局加载并注入各组件，避免硬编码 |
 
 更完整的产品与接口设计可参考仓库内文档：`docs/后端功能与架构设计.md`。
 
@@ -70,6 +72,24 @@ Redis 操作统一封装在 `OpenBlog-framework-redis` 模块中，提供 `Redis
 
 **故障降级**：`RedisOps` 所有方法内置 try-catch，Redis 不可用时读侧返回空（走数据库），写侧忽略并记录日志，不影响正常业务响应。
 
+### SEO 架构
+
+针对 SPA 对搜索引擎不友好的问题，采用 **动态服务端渲染（动态 SSR）** 方案：Nginx 根据 User-Agent 将爬虫请求转发到后端 SEO 控制器，由 Thymeleaf 模板渲染完整 HTML 页面返回。
+
+```
+爬虫请求 → Nginx（User-Agent 检测）→ 后端 SEO 控制器 → Thymeleaf 模板渲染 → 完整 HTML
+普通用户 → Nginx → Vue SPA（正常前端体验）
+```
+
+| 组件 | 说明 |
+|------|------|
+| `SeoPageController` | 渲染文章详情页与首页的 SEO HTML，注入 Open Graph / Twitter Card / JSON-LD 结构化数据 |
+| `SitemapController` | 动态生成 `sitemap.xml`，列出已发布文章 URL，含 `lastmod` 与 `priority` |
+| `RobotsController` | 返回 `robots.txt`，指向 sitemap 并配置爬取规则 |
+| `BaiduPushService` | 文章发布时异步调用百度站长平台 URL 推送 API，加速收录 |
+| `SeoProperties` | 配置项：站点 URL、名称、描述、百度推送 token 与开关（`openblog.seo.*`） |
+| `vue/nginx.conf` | 参考 Nginx 配置，包含爬虫 User-Agent 路由规则 |
+
 ---
 
 ## 技术栈
@@ -84,6 +104,7 @@ Redis 操作统一封装在 `OpenBlog-framework-redis` 模块中，提供 `Redis
 - JWT（jjwt **0.12.x**）
 - MinIO 对象存储（图片上传，可选本地文件系统回退）
 - flexmark（服务端 Markdown → HTML 预渲染）
+- Thymeleaf（SEO 爬虫页面服务端渲染）
 - 缩略图（Thumbnailator）、Caffeine 本地缓存
 
 **前端**
@@ -104,6 +125,9 @@ Redis 操作统一封装在 `OpenBlog-framework-redis` 模块中，提供 `Redis
   - 工具栏「插入图片」按钮可直接选文件上传
   - 「媒体库」弹窗浏览已上传图片，点击缩略图一键插入
 - **附件管理**：缩略图网格展示、分页浏览、全屏预览、复制 URL、删除确认
+- **Live2D 看板娘**：页面右下角展示 Live2D 角色，支持交互，首次访问显示欢迎引导弹窗
+- **站点设置管理**：后台 `/console/site-config` 页面可编辑站点名称、描述、版权信息等全局配置，修改后各组件自动从配置读取，无需修改代码
+- **页脚**：自动展示站点版权信息（从站点配置读取）
 
 ---
 
@@ -129,15 +153,19 @@ OpenBlog/
 │       │   ├── interaction/        # 互动（点赞、收藏、关注）
 │       │   ├── media/              # 媒体上传（MinIO / 本地存储 + 缩略图）
 │       │   ├── user/               # 用户、认证、JWT
+│       │   ├── seo/                # SEO：爬虫页面渲染、sitemap、robots、百度推送
+│       │   ├── site/               # 站点配置（实体、Mapper、Service）
+│       │   ├── controller/         # REST 控制器（含站点配置读写端点）
 │       │   └── config/             # Spring Security、MyBatis-Plus 等配置
 │       └── resources/
-│           ├── application.yaml    # 服务端口、数据源、Redis、JWT、MinIO 等
-│           └── sql/                # 手动 SQL 脚本（迁移、参考数据）
+│           ├── application.yaml    # 服务端口、数据源、Redis、JWT、MinIO、SEO 等
+│           ├── templates/seo/      # Thymeleaf SEO 模板（article.html、home.html）
+│           └── sql/                # 手动 SQL 脚本（迁移、参考数据、site_config 建表）
 ├── vue/                            # Vue 3 前端
 │   ├── src/
-│   │   ├── api/                    # HTTP 封装
-│   │   ├── views/                  # 页面组件
-│   │   └── components/             # 通用组件
+│   │   ├── api/                    # HTTP 封装（含站点配置 API）
+│   │   ├── views/                  # 页面组件（含 ConsoleSiteConfigView 站点设置）
+│   │   └── components/             # 通用组件（含 Live2dCharacter 看板娘、WelcomeGate 欢迎引导）
 │   ├── package.json
 │   └── vite.config.js
 ├── docs/                           # 架构与需求说明
@@ -169,6 +197,7 @@ OpenBlog/
 | `openblog.jwt.*` | JWT 密钥、签发方、Access/Refresh 过期时间（秒） |
 | `openblog.storage.*` | 本地上传根目录、`public-base-url`（对外访问文件与拼 URL 用）、缩略图长边像素 |
 | `openblog.cache.*` | 文章正文缓存 TTL（`article-published-ttl-minutes`，默认 30）、列表缓存 TTL（`article-list-ttl-minutes`，默认 5） |
+| `openblog.seo.*` | 站点 URL（`site-url`）、名称（`site-name`）、描述（`site-description`）；百度推送 token（`baidu-push-token`）与开关（`baidu-push-enabled`） |
 
 **务必在部署环境中：**
 
@@ -250,8 +279,8 @@ mvn -DskipTests package
 
 - **统一前缀**：`/api/v1`
 - **响应封装**：业务接口多使用统一包装（如 `ApiResponse`），具体字段以后端 DTO 为准。
-- **公开访问（无需登录）**：例如 `GET /api/v1/home`、`GET /api/v1/articles`、`GET /api/v1/articles/{id}`、`GET /api/v1/articles/{articleId}/comments`、`GET /api/v1/media/**`、`GET /api/v1/profile`，以及 `POST /api/v1/auth/register`、`POST /api/v1/auth/login`、`POST /api/v1/auth/refresh`。
-- **需登录**：文章创建/修改/发布/删除、互动类 POST/DELETE、评论发表与删除、`GET/PUT /api/v1/users/me` 等。请求头携带 **Bearer Token**（实现以 `JwtAuthenticationFilter` 为准）。
+- **公开访问（无需登录）**：例如 `GET /api/v1/home`、`GET /api/v1/articles`、`GET /api/v1/articles/{id}`、`GET /api/v1/articles/{articleId}/comments`、`GET /api/v1/media/**`、`GET /api/v1/profile`、`GET /api/v1/site/config`、`GET /robots.txt`、`GET /sitemap.xml`、`GET /seo/**`，以及 `POST /api/v1/auth/register`、`POST /api/v1/auth/login`、`POST /api/v1/auth/refresh`。
+- **需登录**：文章创建/修改/发布/删除、互动类 POST/DELETE、评论发表与删除、`GET/PUT /api/v1/users/me`、`PUT /api/v1/site/config`（站点配置写入）等。请求头携带 **Bearer Token**（实现以 `JwtAuthenticationFilter` 为准）。
 
 详细放行规则见 `SecurityConfig`。
 

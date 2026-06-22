@@ -1,0 +1,96 @@
+<h2>登录/注册页面 — 完整设计</h2>
+<p class="subtitle">飞书风格 · 下划线Tab · 左右分栏布局</p>
+
+<div class="mockup">
+  <div class="mockup-header">登录 Tab — 默认界面</div>
+  <div class="mockup-body">
+    <div style="background:#f0f2f5;padding:20px;display:flex;align-items:center;justify-content:center;font-family:'PingFang SC','Microsoft YaHei',sans-serif;min-height:520px">
+      <div style="display:flex;width:780px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.06)">
+        <!-- Left Brand -->
+        <div style="width:340px;background:linear-gradient(160deg,#3370ff,#5b47b0);padding:56px 40px;display:flex;flex-direction:column;justify-content:center;color:#fff;flex-shrink:0">
+          <div style="margin-bottom:auto">
+            <div style="width:48px;height:48px;background:rgba(255,255,255,0.18);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px">📝</div>
+            <div style="font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px">OpenBlog</div>
+            <div style="font-size:14px;line-height:1.8;opacity:0.82">一个简洁的写作与分享空间<br>记录技术笔记与生活思考</div>
+          </div>
+          <div style="font-size:12px;opacity:0.5;line-height:1.6;margin-top:40px">© 2026 OpenBlog</div>
+        </div>
+        <!-- Right Form -->
+        <div style="flex:1;padding:48px 44px;min-width:0">
+          <div style="display:flex;gap:32px;border-bottom:1px solid #ebecef;margin-bottom:28px">
+            <div style="padding:0 0 12px;font-weight:600;font-size:15px;color:#1f2329;border-bottom:2px solid #3370ff;margin-bottom:-1px;cursor:pointer;transition:color 0.2s">登录</div>
+            <div style="padding:0 0 12px;font-weight:400;font-size:15px;color:#8f959e;cursor:pointer;transition:color 0.2s">注册</div>
+            <div style="padding:0 0 12px;font-weight:400;font-size:15px;color:#8f959e;cursor:pointer;transition:color 0.2s">修改密码</div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div style="font-size:13px;color:#646a73;margin-bottom:6px;font-weight:500">账号</div>
+            <input style="width:100%;padding:10px 14px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7;color:#1f2329;transition:0.2s" placeholder="用户名或邮箱" onfocus="this.style.borderColor='#3370ff';this.style.background='#fff'" onblur="this.style.borderColor='#dee0e3';this.style.background='#f5f6f7'">
+          </div>
+          <div style="margin-bottom:24px">
+            <div style="font-size:13px;color:#646a73;margin-bottom:6px;font-weight:500">密码</div>
+            <input type="password" style="width:100%;padding:10px 14px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7;color:#1f2329;transition:0.2s" placeholder="输入密码">
+          </div>
+          <button style="width:100%;padding:10px 0;border-radius:8px;background:#3370ff;color:#fff;font-weight:600;font-size:15px;border:none;cursor:pointer;letter-spacing:0.5px">登 录</button>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:13px">
+            <span style="color:#3370ff;cursor:pointer">忘记密码？</span>
+            <span style="color:#8f959e">管理员入口 → <a style="color:#3370ff;text-decoration:none;cursor:pointer">控制台登录</a></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px">
+  <div class="mockup-header">注册 Tab — 校验通过即登录（已去掉"等待审核"）</div>
+  <div class="mockup-body">
+    <div style="background:#f0f2f5;padding:20px;display:flex;align-items:center;justify-content:center;font-family:'PingFang SC','Microsoft YaHei',sans-serif;min-height:400px">
+      <div style="display:flex;width:780px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.06)">
+        <div style="width:340px;background:linear-gradient(160deg,#3370ff,#5b47b0);padding:56px 40px;display:flex;flex-direction:column;justify-content:center;color:#fff;flex-shrink:0">
+          <div style="font-size:22px;font-weight:700;margin-bottom:10px">加入 OpenBlog</div>
+          <div style="font-size:14px;line-height:1.8;opacity:0.82">创建账号即可<br>发表评论、点赞与收藏</div>
+        </div>
+        <div style="flex:1;padding:48px 44px;min-width:0">
+          <div style="display:flex;gap:32px;border-bottom:1px solid #ebecef;margin-bottom:28px">
+            <div style="padding:0 0 12px;font-weight:400;font-size:15px;color:#8f959e;cursor:pointer">登录</div>
+            <div style="padding:0 0 12px;font-weight:600;font-size:15px;color:#1f2329;border-bottom:2px solid #3370ff;margin-bottom:-1px;cursor:pointer">注册</div>
+            <div style="padding:0 0 12px;font-weight:400;font-size:15px;color:#8f959e;cursor:pointer">修改密码</div>
+          </div>
+          <div style="margin-bottom:16px">
+            <div style="font-size:13px;color:#646a73;margin-bottom:6px;font-weight:500">用户名</div>
+            <input style="width:100%;padding:10px 14px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7" placeholder="3–32 位">
+          </div>
+          <div style="margin-bottom:16px">
+            <div style="font-size:13px;color:#646a73;margin-bottom:6px;font-weight:500">邮箱</div>
+            <input style="width:100%;padding:10px 14px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7" placeholder="支持 QQ / 163 / Gmail 等">
+          </div>
+          <div style="margin-bottom:20px">
+            <div style="font-size:13px;color:#646a73;margin-bottom:6px;font-weight:500">密码</div>
+            <input type="password" style="width:100%;padding:10px 14px;border:1px solid #dee0e3;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;background:#f5f6f7" placeholder="至少 6 位">
+          </div>
+          <button style="width:100%;padding:10px 0;border-radius:8px;background:#3370ff;color:#fff;font-weight:600;font-size:15px;border:none;cursor:pointer">注 册</button>
+          <div style="text-align:center;font-size:13px;color:#8f959e;margin-top:16px">注册即表示同意服务条款</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px">
+  <div class="mockup-header">错误状态 — 统一风格提示</div>
+  <div class="mockup-body">
+    <div style="background:#f0f2f5;padding:20px;display:flex;align-items:center;justify-content:center">
+      <div style="width:380px;display:flex;flex-direction:column;gap:12px">
+        <div style="padding:10px 14px;border-radius:8px;background:#fff2f0;border:1px solid #ffccc7;color:#cf1322;font-size:13px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">⚠️</span> 账号或密码错误
+        </div>
+        <div style="padding:10px 14px;border-radius:8px;background:#fff2f0;border:1px solid #ffccc7;color:#cf1322;font-size:13px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">⚠️</span> 用户名已存在
+        </div>
+        <div style="padding:10px 14px;border-radius:8px;background:#f6ffed;border:1px solid #b7eb8f;color:#389e0d;font-size:13px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">✓</span> 注册成功，自动跳转中...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

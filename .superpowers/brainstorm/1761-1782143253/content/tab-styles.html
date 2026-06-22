@@ -1,0 +1,57 @@
+<h2>Tab 切换方式 — 三种选择</h2>
+<p class="subtitle">登录、注册、修改密码三个功能的切换方式</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>下划线 Tab（飞书原生风格）</h3>
+      <p>顶部水平排列，底部下划线指示当前选中。切换时平滑过渡，表单区域内容替换。</p>
+      <div style="background:#fff;border:1px solid #dee0e3;border-radius:8px;padding:20px;margin-top:12px;width:380px">
+        <div style="display:flex;gap:28px;border-bottom:1px solid #e5e6e8;margin-bottom:20px">
+          <div style="padding:0 0 10px;font-weight:700;font-size:15px;color:#1f2329;border-bottom:2px solid #3370ff;margin-bottom:-1px">登录</div>
+          <div style="padding:0 0 10px;font-weight:400;font-size:15px;color:#8f959e">注册</div>
+          <div style="padding:0 0 10px;font-weight:400;font-size:15px;color:#8f959e">修改密码</div>
+        </div>
+        <div style="font-size:13px;color:#bbb;text-align:center;padding:20px">← 表单区域 →</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>药丸切换按钮（当前风格改良）</h3>
+      <p>圆角按钮组，飞书蓝色高亮。保留当前的操作习惯但更精致。</p>
+      <div style="background:#fff;border:1px solid #dee0e3;border-radius:8px;padding:20px;margin-top:12px;width:380px">
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <div style="padding:8px 18px;border-radius:20px;background:#3370ff;color:#fff;font-weight:700;font-size:13px">登录</div>
+          <div style="padding:8px 18px;border-radius:20px;background:#f2f3f5;color:#8f959e;font-weight:600;font-size:13px">注册</div>
+          <div style="padding:8px 18px;border-radius:20px;background:#f2f3f5;color:#8f959e;font-weight:600;font-size:13px">修改密码</div>
+        </div>
+        <div style="font-size:13px;color:#bbb;text-align:center;padding:20px">← 表单区域 →</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>简化为两页 — 登录页 + 独立注册页</h3>
+      <p>不再使用 Tab 切换，注册和登录各自独立页面，通过底部链接跳转。修改密码放入登录页的"忘记密码"流程。</p>
+      <div style="display:flex;gap:12px;margin-top:12px;font-size:13px;color:#8f959e">
+        <div style="background:#fff;border:1px solid #dee0e3;border-radius:8px;padding:16px;flex:1;text-align:center">
+          <div style="font-weight:700;color:#1f2329;margin-bottom:6px">/login</div>
+          <div>登录表单</div>
+          <div style="margin-top:8px;font-size:12px">底部: "没有账号？注册"</div>
+        </div>
+        <div style="color:#bbb;display:flex;align-items:center">→</div>
+        <div style="background:#fff;border:1px solid #dee0e3;border-radius:8px;padding:16px;flex:1;text-align:center">
+          <div style="font-weight:700;color:#1f2329;margin-bottom:6px">/register</div>
+          <div>注册表单</div>
+          <div style="margin-top:8px;font-size:12px">底部: "已有账号？登录"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

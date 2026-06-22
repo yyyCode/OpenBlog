@@ -62,7 +62,7 @@ public class AuthService {
         this.mediaService = mediaService;
     }
 
-    public void register(RegisterRequest req) {
+    public AuthResponse register(RegisterRequest req) {
         sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
         if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
                 .eq(User::getUsername, req.getUsername())) > 0) {
@@ -81,8 +81,21 @@ public class AuthService {
         user.setNickname(null);
         // 前台自助注册：读者账号（与管理员/作者在库中共存；控制台与发文权限见接口鉴权）
         user.setRole(UserRole.READER);
-        user.setStatus("PENDING");
+        user.setStatus("ACTIVE");
         userMapper.insert(user);
+
+        // 注册即登录，直接返回 token
+        String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
+        String refreshToken = jwtService.generateRefreshToken(user.getId());
+
+        Instant refreshExpireAt = Instant.now().plusSeconds(jwtProperties.getRefreshTokenExpireSeconds());
+        RefreshToken token = new RefreshToken(user.getId(), TokenHashUtil.sha256Hex(refreshToken), refreshExpireAt);
+        refreshTokenMapper.insert(token);
+
+        AuthResponse resp = new AuthResponse();
+        resp.setAccessToken(accessToken);
+        resp.setRefreshToken(refreshToken);
+        return resp;
     }
 
     public AuthResponse login(LoginRequest req) {
