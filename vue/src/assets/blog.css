@@ -2486,14 +2486,14 @@ body {
    Console（/console）后台壳：浅色灰底 + 侧栏
    ================ */
 .console-root {
-  --console-bg: #f0f2f5;
+  --console-bg: #f5f6f7;
   --console-sidebar: #ffffff;
-  --console-text: #1f2937;
-  --console-muted: #6b7280;
-  --console-border: rgba(15, 23, 42, 0.08);
-  --console-accent: #0d9488;
-  --console-accent-soft: rgba(13, 148, 136, 0.12);
-  --console-blue: #2563eb;
+  --console-text: #1f2329;
+  --console-muted: #8f959e;
+  --console-border: #e5e6e8;
+  --console-accent: #3370ff;
+  --console-accent-soft: rgba(51, 112, 255, 0.08);
+  --console-blue: #3370ff;
   min-height: 100vh;
   width: 100%;
   display: flex;
@@ -2516,8 +2516,9 @@ body {
   --console-sidebar: #16181d;
   --console-text: #e5e7eb;
   --console-muted: #9ca3af;
-  --console-border: rgba(255, 255, 255, 0.08);
-  --console-accent-soft: rgba(45, 212, 191, 0.15);
+  --console-border: #2a2a2e;
+  --console-accent: #4a7fff;
+  --console-accent-soft: rgba(51, 112, 255, 0.12);
 }
 
 .console-sidebar {
