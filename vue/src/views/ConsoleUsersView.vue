@@ -32,7 +32,7 @@
           <option value="AUTHOR">作者</option>
           <option value="READER">读者</option>
         </select>
-        <button type="button" class="btn btn-primary" @click="applySearch">搜索</button>
+        <button type="button" class="btn primary" @click="applySearch">搜索</button>
         <button type="button" class="btn" @click="resetFilters">重置</button>
       </div>
     </div>
