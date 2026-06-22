@@ -116,7 +116,7 @@
             type="button"
             :disabled="busy"
             @click="doRegister"
-          >{{ busy ? '提交中&hellip;' : '注 册' }}</button>
+          >{{ busy ? '提交中…' : '注 册' }}</button>
           <div class="auth-terms">注册即表示同意服务条款</div>
         </div>
 
@@ -167,7 +167,7 @@
             type="button"
             :disabled="busy"
             @click="doChangePassword"
-          >{{ busy ? '提交中&hellip;' : '确认修改' }}</button>
+          >{{ busy ? '提交中…' : '确认修改' }}</button>
           <div class="auth-footer" style="justify-content: center">
             <button type="button" class="auth-link" @click="setTab('login')">返回登录</button>
           </div>
