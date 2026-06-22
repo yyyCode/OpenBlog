@@ -132,12 +132,12 @@ function enter() {
 .welcome-illust-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #f0e6ff 0%, #e6f0ff 40%, #f5e6ff 70%, #e6f5ff 100%);
+  background: linear-gradient(135deg, #e6f0ff 0%, #f0f5ff 40%, #e6eeff 70%, #f0f5ff 100%);
   opacity: 0.9;
 }
 
 [data-theme='dark'] .welcome-illust-bg {
-  background: linear-gradient(135deg, #2a2040 0%, #1a2a40 40%, #2a1a40 70%, #1a2a45 100%);
+  background: linear-gradient(135deg, #1a2a3a 0%, #1a2435 40%, #1a2a3a 70%, #1a2435 100%);
 }
 
 .welcome-illust-svg {
@@ -145,12 +145,12 @@ function enter() {
   z-index: 1;
   width: 180px;
   height: 130px;
-  color: #7c3aed;
+  color: #3370ff;
   opacity: 0.6;
 }
 
 [data-theme='dark'] .welcome-illust-svg {
-  color: #a78bfa;
+  color: #4a7fff;
   opacity: 0.7;
 }
 
@@ -188,7 +188,7 @@ function enter() {
 
 .welcome-enter:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(170, 59, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(51, 112, 255, 0.35);
 }
 
 /* Transition */
