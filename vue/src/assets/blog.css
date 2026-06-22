@@ -2539,10 +2539,10 @@ body {
 
 .console-brand {
   display: block;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--console-blue);
+  color: var(--console-text);
   text-decoration: none;
   margin-bottom: 18px;
 }
@@ -2556,12 +2556,17 @@ body {
   width: 100%;
   box-sizing: border-box;
   padding: 8px 72px 8px 34px;
-  border-radius: 10px;
-  border: 1px solid var(--console-border);
-  background: var(--console-bg);
+  border-radius: 6px;
+  border: 1px solid #dee0e3;
+  background: #f5f6f7;
   color: var(--console-text);
   font-size: 13px;
   outline: none;
+}
+
+[data-theme='dark'] .console-search-input {
+  background: #2a2a2e;
+  border-color: #3a3a3e;
 }
 
 .console-search-input::placeholder {
@@ -2605,11 +2610,11 @@ body {
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  border-radius: 10px;
+  border-radius: 6px;
   color: var(--console-text);
   text-decoration: none;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 400;
   margin-bottom: 2px;
   border: 1px solid transparent;
   transition:
@@ -2622,9 +2627,10 @@ body {
 }
 
 .console-nav-item.active {
-  background: var(--console-bg);
-  color: var(--console-text);
-  border-color: var(--console-border);
+  background: rgba(51, 112, 255, 0.06);
+  color: #3370ff;
+  border-color: transparent;
+  font-weight: 500;
 }
 
 .console-nav-ico {
@@ -2634,7 +2640,7 @@ body {
 }
 
 .console-nav-item.active .console-nav-ico {
-  color: var(--console-accent);
+  color: #3370ff;
 }
 
 .console-sidebar-footer {
@@ -2727,7 +2733,7 @@ body {
 .console-page-title h1 {
   margin: 0;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -2741,19 +2747,19 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border-radius: 10px;
-  background: #111827;
+  border-radius: 6px;
+  background: #3370ff;
   color: #fff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
   border: none;
   cursor: pointer;
 }
 
 [data-theme='dark'] .console-btn-dark {
-  background: #e5e7eb;
-  color: #111827;
+  background: #3370ff;
+  color: #fff;
 }
 
 .console-stat-grid {
@@ -2778,9 +2784,9 @@ body {
 .console-stat-card {
   background: #fff;
   border: 1px solid var(--console-border);
-  border-radius: 14px;
+  border-radius: 8px;
   padding: 18px 18px 16px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme='dark'] .console-stat-card {
@@ -2788,20 +2794,21 @@ body {
 }
 
 .console-stat-ico {
-  color: var(--console-accent);
+  color: inherit;
   margin-bottom: 10px;
+  font-size: 18px;
 }
 
 .console-stat-label {
   font-size: 12px;
   color: var(--console-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .console-stat-value {
   margin-top: 6px;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
@@ -2821,8 +2828,8 @@ body {
 .console-card {
   background: #fff;
   border: 1px solid var(--console-border);
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme='dark'] .console-card {
@@ -2878,13 +2885,13 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 14px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
   border: 1px solid var(--console-border);
-  background: var(--console-bg);
+  background: #fff;
   text-decoration: none;
   color: var(--console-text);
-  font-weight: 650;
+  font-weight: 500;
   font-size: 14px;
   transition:
     border-color 0.15s ease,
@@ -2892,13 +2899,19 @@ body {
 }
 
 .console-quick-tile:hover {
-  border-color: rgba(13, 148, 136, 0.35);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  border-color: #3370ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .console-quick-ico {
   display: flex;
-  color: var(--console-accent);
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: rgba(51, 112, 255, 0.08);
+  color: #3370ff;
   flex-shrink: 0;
 }
 
@@ -2936,11 +2949,11 @@ body {
 
 .console-btn-ghost {
   padding: 8px 18px;
-  border-radius: 10px;
-  border: 1px solid var(--console-border);
+  border-radius: 6px;
+  border: 1px solid #dee0e3;
   background: #fff;
   color: var(--console-text);
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -3048,7 +3061,7 @@ body {
   gap: 14px;
   padding: 12px 14px;
   border: 1px solid var(--console-border);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--console-bg);
 }
 
@@ -3155,8 +3168,8 @@ body {
 .admin-user-table th {
   text-align: left;
   padding: 10px 12px;
-  border-bottom: 2px solid var(--border, #e5e7eb);
-  color: var(--muted, #6b7280);
+  border-bottom: 1px solid var(--console-border);
+  color: var(--console-muted);
   font-weight: 600;
   font-size: 13px;
   white-space: nowrap;
@@ -3164,7 +3177,7 @@ body {
 
 .admin-user-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--border, #f3f4f6);
+  border-bottom: 1px solid var(--console-border);
   vertical-align: middle;
 }
 
@@ -3178,7 +3191,7 @@ body {
 }
 
 .admin-user-link:hover {
-  color: var(--primary, #2563eb);
+  color: #3370ff;
 }
 
 .admin-user-cell-avatar {
@@ -3205,8 +3218,8 @@ body {
 
 .admin-tag {
   display: inline-block;
-  padding: 2px 10px;
-  border-radius: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
