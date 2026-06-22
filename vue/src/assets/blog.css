@@ -94,33 +94,9 @@ body {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   color: var(--text);
-  backdrop-filter: saturate(1.06) blur(18px);
-  -webkit-backdrop-filter: saturate(1.06) blur(18px);
-}
-
-/* 与卡片一致的毛玻璃：输入框、侧栏控件、后台区块 */
-.search-input,
-.icon-link,
-.btn:not(.primary),
-.input,
-.textarea,
-.tab,
-.avatar-preview,
-.article-list-item,
-.cover-preview,
-.article-list,
-.article-editor {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.theme-toggle,
-.back-to-top-btn {
-  backdrop-filter: saturate(1.05) blur(14px);
-  -webkit-backdrop-filter: saturate(1.05) blur(14px);
 }
 
 .card-body {
@@ -129,8 +105,8 @@ body {
 
 .btn {
   border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 999px;
+  background: #ffffff;
+  border-radius: 8px;
   padding: 8px 14px;
   cursor: pointer;
   font-weight: 600;
@@ -139,7 +115,7 @@ body {
 
 .btn.primary {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  background: #3370ff;
   color: #fff;
 }
 
@@ -369,7 +345,7 @@ body {
 .comment-replies {
   margin-top: 10px;
   padding-left: 14px;
-  border-left: 2px solid rgba(170, 59, 255, 0.18);
+  border-left: 2px solid rgba(51, 112, 255, 0.18);
 }
 
 .comment-replies-title {
@@ -863,8 +839,8 @@ body {
 }
 
 .search-input:focus {
-  border-color: rgba(170, 59, 255, 0.45);
-  box-shadow: 0 0 0 4px rgba(170, 59, 255, 0.08);
+  border-color: #3370ff;
+  box-shadow: 0 0 0 3px rgba(51, 112, 255, 0.12);
 }
 
 .sidebar-list {
@@ -891,9 +867,9 @@ body {
 }
 
 .sidebar-item.active {
-  border-color: rgba(170, 59, 255, 0.55);
-  box-shadow: 0 10px 22px rgba(170, 59, 255, 0.14);
-  background: rgba(170, 59, 255, 0.06);
+  border-color: #3370ff;
+  box-shadow: 0 10px 22px rgba(51, 112, 255, 0.14);
+  background: rgba(51, 112, 255, 0.06);
 }
 
 .sidebar-item-title {
@@ -1593,8 +1569,6 @@ body {
   width: min(360px, calc(100vw - 56px));
   background: rgba(255, 255, 255, 0.72);
   border-right: 1px solid var(--border);
-  backdrop-filter: saturate(1.15) blur(18px);
-  -webkit-backdrop-filter: saturate(1.15) blur(18px);
   z-index: 10001;
   transform: translateX(-102%);
   transition: transform 0.22s ease;
@@ -1714,7 +1688,7 @@ body {
   width: 100%;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
@@ -1725,7 +1699,7 @@ body {
   width: 100%;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
@@ -1741,8 +1715,8 @@ body {
 
 .input:focus,
 .textarea:focus {
-  border-color: rgba(170, 59, 255, 0.45);
-  box-shadow: 0 0 0 4px rgba(170, 59, 255, 0.08);
+  border-color: #3370ff;
+  box-shadow: 0 0 0 3px rgba(51, 112, 255, 0.12);
 }
 
 .error {
@@ -1764,7 +1738,7 @@ body {
 .tab {
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 10px 14px;
   cursor: pointer;
   font-weight: 900;
@@ -1772,8 +1746,8 @@ body {
 }
 
 .tab.active {
-  border-color: rgba(170, 59, 255, 0.45);
-  background: rgba(170, 59, 255, 0.08);
+  border-color: #3370ff;
+  background: rgba(51, 112, 255, 0.08);
   color: var(--text);
 }
 
@@ -2217,8 +2191,6 @@ body {
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--card);
-  backdrop-filter: saturate(1.1) blur(18px);
-  -webkit-backdrop-filter: saturate(1.1) blur(18px);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
   overflow: visible;
 }
@@ -2329,8 +2301,6 @@ body {
   border: 1px solid var(--border);
   background: var(--card);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.1);
-  backdrop-filter: saturate(1.1) blur(18px);
-  -webkit-backdrop-filter: saturate(1.1) blur(18px);
   z-index: 10010;
 }
 
@@ -2419,8 +2389,6 @@ body {
   width: min(360px, calc(100vw - 56px));
   background: rgba(255, 255, 255, 0.72);
   border-right: 1px solid var(--border);
-  backdrop-filter: saturate(1.15) blur(18px);
-  -webkit-backdrop-filter: saturate(1.15) blur(18px);
   z-index: 10001;
   transform: translateX(-102%);
   transition: transform 0.22s ease;
