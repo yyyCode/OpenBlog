@@ -23,9 +23,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -84,6 +83,55 @@ public class ArticleService {
         resp.setCommentCount(a.getCommentCount());
         applyCategory(resp, a.getCategoryId());
         return resp;
+    }
+
+    /**
+     * 批量映射文章列表 — 预加载作者和分类信息，避免 N+1 查询。
+     * <p>
+     * 原 {@link #mapListItem(Article)} 每篇文章单独查作者和分类（N+1），
+     * 此方法改为：1 次批量查所有作者 + 按需查分类（同一分类只查一次）。
+     * 单篇文章场景仍可使用 mapListItem。
+     */
+    public List<ArticleListItemResponse> mapListItems(List<Article> articles) {
+        if (articles.isEmpty()) return Collections.emptyList();
+
+        // 批量加载所有作者：1 次 DB 查询
+        Set<Long> authorIds = articles.stream()
+                .map(Article::getAuthorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        final Map<Long, User> userMap = authorIds.isEmpty()
+                ? Collections.emptyMap()
+                : userMapper.selectBatchIds(authorIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+
+        // 按 categoryId 缓存 resolveMeta 结果（resolveMeta 内部查全表，复用即可）
+        Map<Long, CategoryService.CategoryMeta> catCache = new HashMap<>();
+
+        return articles.stream().map(a -> {
+            ArticleListItemResponse resp = new ArticleListItemResponse();
+            resp.setId(a.getId());
+            resp.setTitle(a.getTitle());
+            resp.setSummary(a.getSummary());
+            resp.setCoverMediaKey(a.getCoverMediaKey());
+            resp.setAuthorId(a.getAuthorId());
+            User author = userMap.get(a.getAuthorId());
+            resp.setAuthorNickname(author != null ? author.getUsername() : null);
+            resp.setPublishedAt(a.getPublishedAt());
+            resp.setStatus(a.getStatus());
+            resp.setLikeCount(a.getLikeCount());
+            resp.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
+            resp.setFavoriteCount(a.getFavoriteCount());
+            resp.setCommentCount(a.getCommentCount());
+
+            CategoryService.CategoryMeta meta = catCache.computeIfAbsent(
+                    a.getCategoryId(), categoryService::resolveMeta);
+            resp.setCategoryId(meta.getCategoryId());
+            resp.setCategoryName(meta.getCategoryName());
+            resp.setCategoryPath(meta.getCategoryPath());
+
+            return resp;
+        }).collect(Collectors.toList());
     }
 
     public ArticleDetailResponse mapDetail(Article a) {
@@ -187,7 +235,7 @@ public class ArticleService {
             w.in(Article::getCategoryId, ids);
         }
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
-        List<ArticleListItemResponse> items = p.getRecords().stream().map(this::mapListItem).toList();
+        List<ArticleListItemResponse> items = mapListItems(p.getRecords());
         PageResult<ArticleListItemResponse> result = new PageResult<>(items, page, size, p.getTotal());
         publishedContentCache.putList(categoryId, page, size, result);
         return result;
@@ -396,7 +444,7 @@ public class ArticleService {
                 .in(Article::getStatus, statuses)
                 .orderByDesc(Article::getCreatedAt);
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
-        List<ArticleListItemResponse> items = p.getRecords().stream().map(this::mapListItem).toList();
+        List<ArticleListItemResponse> items = mapListItems(p.getRecords());
         return new PageResult<>(items, page, size, p.getTotal());
     }
 

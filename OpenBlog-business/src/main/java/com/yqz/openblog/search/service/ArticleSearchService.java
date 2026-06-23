@@ -74,18 +74,19 @@ public class ArticleSearchService {
     private PageResult<ArticleListItemResponse> searchByEs(String keyword, int page, int size) {
         SearchResult result = searchOps.search(INDEX_NAME, keyword, SEARCH_FIELDS, page, size);
 
-        List<ArticleListItemResponse> items = new ArrayList<>();
+        List<Article> articles = new ArrayList<>();
         for (Map<String, Object> hit : result.getHits()) {
             Object idObj = hit.get("id");
             if (idObj != null) {
                 Long articleId = Long.valueOf(idObj.toString());
                 Article article = articleMapper.selectById(articleId);
                 if (article != null && article.getStatus() == ArticleStatus.PUBLISHED) {
-                    items.add(articleService.mapListItem(article));
+                    articles.add(article);
                 }
             }
         }
 
+        List<ArticleListItemResponse> items = articleService.mapListItems(articles);
         return new PageResult<>(items, page, size, result.getTotalHits());
     }
 
@@ -127,9 +128,7 @@ public class ArticleSearchService {
             }
         }
 
-        List<ArticleListItemResponse> items = articlePage.getRecords().stream()
-                .map(articleService::mapListItem)
-                .collect(Collectors.toList());
+        List<ArticleListItemResponse> items = articleService.mapListItems(articlePage.getRecords());
 
         return new PageResult<>(items, page, size, articlePage.getTotal());
     }
