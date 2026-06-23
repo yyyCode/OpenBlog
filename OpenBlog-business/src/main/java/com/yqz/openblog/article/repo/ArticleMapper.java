@@ -43,5 +43,19 @@ public interface ArticleMapper extends BaseMapper<Article> {
               and scheduled_at <= #{now}
             """)
     int publishScheduledIfDue(@Param("articleId") Long articleId, @Param("now") Instant now);
+
+    /**
+     * FULLTEXT 搜索已发布文章的正文，返回匹配的文章 ID 列表（按相关性降序）。
+     */
+    @Select("""
+            select a.id
+            from articles a
+            join article_bodies b on a.id = b.article_id
+            where a.status = 'PUBLISHED'
+              and match(b.content_markdown) against(#{keyword} in natural language mode)
+            order by a.published_at desc
+            limit 50
+            """)
+    List<Long> searchIdsByFulltext(@Param("keyword") String keyword);
 }
 
