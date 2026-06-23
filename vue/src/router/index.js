@@ -10,6 +10,7 @@ import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 import AboutView from '../views/AboutView.vue'
 import FeedbackView from '../views/FeedbackView.vue'
+import SearchResultsView from '../views/SearchResultsView.vue'
 import SiteAuthView from '../views/SiteAuthView.vue'
 import ConsoleLayout from '../layouts/ConsoleLayout.vue'
 import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
@@ -42,6 +43,11 @@ const routes = [
     path: '/about',
     name: 'about',
     component: AboutView
+  },
+  {
+    path: '/search',
+    name: 'search',
+    component: SearchResultsView
   },
   {
     path: '/feedback',
