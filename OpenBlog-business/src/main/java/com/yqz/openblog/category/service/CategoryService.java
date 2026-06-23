@@ -7,6 +7,7 @@ import com.yqz.openblog.category.dto.CategoryUpsertRequest;
 import com.yqz.openblog.category.entity.ArticleCategory;
 import com.yqz.openblog.category.repo.ArticleCategoryRepository;
 import com.yqz.openblog.common.BizException;
+import com.yqz.openblog.common.TreeUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,14 +15,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.yqz.openblog.article.entity.Article;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class CategoryService {
@@ -107,8 +101,7 @@ public class CategoryService {
             return CategoryMeta.empty();
         }
         List<String> path = buildPathNames(categoryId, byId);
-        String name = c.getName();
-        return new CategoryMeta(categoryId, name, path);
+        return new CategoryMeta(categoryId, c.getName(), path);
     }
 
     public Set<Long> collectSelfAndDescendantIds(Long categoryId) {
@@ -116,26 +109,14 @@ public class CategoryService {
             return Collections.emptySet();
         }
         List<ArticleCategory> all = categoryRepository.findAllByOrderBySortOrderAscIdAsc();
-        Map<Long, List<Long>> childrenMap = new HashMap<>();
-        for (ArticleCategory c : all) {
-            if (c.getParentId() == null) {
-                continue;
-            }
-            childrenMap.computeIfAbsent(c.getParentId(), k -> new ArrayList<>()).add(c.getId());
-        }
+        List<Long> ids = all.stream().map(ArticleCategory::getId).toList();
+        Map<Long, List<Long>> childrenMap = TreeUtils.buildChildrenMap(ids, id -> {
+            ArticleCategory cat = all.stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);
+            return cat != null ? cat.getParentId() : null;
+        });
         Set<Long> out = new LinkedHashSet<>();
-        collectDescendants(categoryId, childrenMap, out);
+        TreeUtils.collectDescendants(categoryId, childrenMap, out);
         return out;
-    }
-
-    private void collectDescendants(Long id, Map<Long, List<Long>> childrenMap, Set<Long> out) {
-        if (id == null || !out.add(id)) {
-            return;
-        }
-        List<Long> children = childrenMap.getOrDefault(id, List.of());
-        for (Long childId : children) {
-            collectDescendants(childId, childrenMap, out);
-        }
     }
 
     private void apply(ArticleCategory c, CategoryUpsertRequest req, Long excludeId) {
@@ -162,15 +143,7 @@ public class CategoryService {
 
     private boolean isDescendant(Long ancestorId, Long nodeId) {
         Map<Long, ArticleCategory> byId = indexById(categoryRepository.findAllByOrderBySortOrderAscIdAsc());
-        Long current = nodeId;
-        while (current != null) {
-            if (current.equals(ancestorId)) {
-                return true;
-            }
-            ArticleCategory c = byId.get(current);
-            current = c == null ? null : c.getParentId();
-        }
-        return false;
+        return TreeUtils.isDescendant(ancestorId, nodeId, byId, ArticleCategory::getParentId);
     }
 
     private List<CategoryTreeNodeResponse> buildTree(List<ArticleCategory> all) {
@@ -201,26 +174,11 @@ public class CategoryService {
     }
 
     private Map<Long, ArticleCategory> indexById(List<ArticleCategory> all) {
-        Map<Long, ArticleCategory> map = new HashMap<>();
-        for (ArticleCategory c : all) {
-            map.put(c.getId(), c);
-        }
-        return map;
+        return TreeUtils.indexById(all, ArticleCategory::getId);
     }
 
     private List<String> buildPathNames(Long categoryId, Map<Long, ArticleCategory> byId) {
-        List<String> path = new ArrayList<>();
-        Set<Long> visited = new HashSet<>();
-        Long current = categoryId;
-        while (current != null && visited.add(current)) {
-            ArticleCategory c = byId.get(current);
-            if (c == null) {
-                break;
-            }
-            path.add(0, c.getName());
-            current = c.getParentId();
-        }
-        return path;
+        return TreeUtils.buildPathNames(categoryId, byId, ArticleCategory::getParentId, ArticleCategory::getName);
     }
 
     private CategoryFlatItemResponse toFlatItem(ArticleCategory c, Map<Long, ArticleCategory> byId) {

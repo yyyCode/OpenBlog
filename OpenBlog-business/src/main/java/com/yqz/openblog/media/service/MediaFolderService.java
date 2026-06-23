@@ -1,6 +1,7 @@
 package com.yqz.openblog.media.service;
 
 import com.yqz.openblog.common.BizException;
+import com.yqz.openblog.common.TreeUtils;
 import com.yqz.openblog.media.dto.MediaFolderFlatItemResponse;
 import com.yqz.openblog.media.dto.MediaFolderTreeNodeResponse;
 import com.yqz.openblog.media.dto.MediaFolderUpsertRequest;
@@ -85,26 +86,14 @@ public class MediaFolderService {
             return Collections.emptySet();
         }
         List<MediaFolder> all = folderRepository.findAllByOrderBySortOrderAscIdAsc();
-        Map<Long, List<Long>> childrenMap = new HashMap<>();
-        for (MediaFolder f : all) {
-            if (f.getParentId() == null) {
-                continue;
-            }
-            childrenMap.computeIfAbsent(f.getParentId(), k -> new ArrayList<>()).add(f.getId());
-        }
+        List<Long> ids = all.stream().map(MediaFolder::getId).toList();
+        Map<Long, List<Long>> childrenMap = TreeUtils.buildChildrenMap(ids, id -> {
+            MediaFolder f = all.stream().filter(mf -> mf.getId().equals(id)).findFirst().orElse(null);
+            return f != null ? f.getParentId() : null;
+        });
         Set<Long> out = new LinkedHashSet<>();
-        collectDescendants(folderId, childrenMap, out);
+        TreeUtils.collectDescendants(folderId, childrenMap, out);
         return out;
-    }
-
-    private void collectDescendants(Long id, Map<Long, List<Long>> childrenMap, Set<Long> out) {
-        if (id == null || !out.add(id)) {
-            return;
-        }
-        List<Long> children = childrenMap.getOrDefault(id, List.of());
-        for (Long childId : children) {
-            collectDescendants(childId, childrenMap, out);
-        }
     }
 
     private void apply(MediaFolder f, MediaFolderUpsertRequest req, Long excludeId) {
@@ -131,20 +120,11 @@ public class MediaFolderService {
 
     private boolean isDescendant(Long ancestorId, Long nodeId) {
         Map<Long, MediaFolder> byId = indexById(folderRepository.findAllByOrderBySortOrderAscIdAsc());
-        Long current = nodeId;
-        while (current != null) {
-            if (current.equals(ancestorId)) {
-                return true;
-            }
-            MediaFolder f = byId.get(current);
-            current = f == null ? null : f.getParentId();
-        }
-        return false;
+        return TreeUtils.isDescendant(ancestorId, nodeId, byId, MediaFolder::getParentId);
     }
 
     private List<MediaFolderTreeNodeResponse> buildTree(List<MediaFolder> all) {
         Map<Long, MediaFolderTreeNodeResponse> nodes = new LinkedHashMap<>();
-        // count files per folder
         Map<Long, Long> fileCounts = new HashMap<>();
         List<Media> allMedia = mediaMapper.selectList(Wrappers.lambdaQuery(Media.class).isNotNull(Media::getFolderId));
         for (Media m : allMedia) {
@@ -181,26 +161,11 @@ public class MediaFolderService {
     }
 
     private Map<Long, MediaFolder> indexById(List<MediaFolder> all) {
-        Map<Long, MediaFolder> map = new HashMap<>();
-        for (MediaFolder f : all) {
-            map.put(f.getId(), f);
-        }
-        return map;
+        return TreeUtils.indexById(all, MediaFolder::getId);
     }
 
     private List<String> buildPathNames(Long folderId, Map<Long, MediaFolder> byId) {
-        List<String> path = new ArrayList<>();
-        Set<Long> visited = new HashSet<>();
-        Long current = folderId;
-        while (current != null && visited.add(current)) {
-            MediaFolder f = byId.get(current);
-            if (f == null) {
-                break;
-            }
-            path.add(0, f.getName());
-            current = f.getParentId();
-        }
-        return path;
+        return TreeUtils.buildPathNames(folderId, byId, MediaFolder::getParentId, MediaFolder::getName);
     }
 
     private MediaFolderFlatItemResponse toFlatItem(MediaFolder f, Map<Long, MediaFolder> byId) {
