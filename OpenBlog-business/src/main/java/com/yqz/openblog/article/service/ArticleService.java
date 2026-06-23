@@ -11,6 +11,8 @@ import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
 import com.yqz.openblog.category.service.CategoryService;
+import com.yqz.openblog.search.core.SearchOps;
+import com.yqz.openblog.search.model.ArticleDocument;
 import com.yqz.openblog.seo.service.BaiduPushService;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserMapper;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,11 @@ public class ArticleService {
     private final CategoryService categoryService;
     private final MarkdownRenderer markdownRenderer;
     private final BaiduPushService baiduPushService;
+
+    @Autowired(required = false)
+    private SearchOps searchOps;
+
+    private static final String ES_INDEX_NAME = "openblog_articles";
 
     public ArticleService(
             ArticleMapper articleMapper,
@@ -293,6 +301,7 @@ public class ArticleService {
         if (a.getStatus() == ArticleStatus.PUBLISHED) {
             publishedContentCache.evict(articleId);
             publishedContentCache.evictPublishedList();
+            syncToEs(a);
         }
         return mapListItem(a);
     }
@@ -333,6 +342,7 @@ public class ArticleService {
 
         if (a.getStatus() == ArticleStatus.PUBLISHED) {
             baiduPushService.pushArticleUrl(articleId);
+            syncToEs(a);
         }
 
         return mapListItem(a);
@@ -375,6 +385,7 @@ public class ArticleService {
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
         publishedContentCache.evictPublishedList();
+        removeFromEs(articleId);
     }
 
     public PageResult<ArticleListItemResponse> listMine(Long authorId, int page, int size) {
@@ -387,5 +398,44 @@ public class ArticleService {
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
         List<ArticleListItemResponse> items = p.getRecords().stream().map(this::mapListItem).toList();
         return new PageResult<>(items, page, size, p.getTotal());
+    }
+
+    // --- ES 索引同步 ---
+
+    /**
+     * 同步文章到 ES 索引（ES 未启用时静默跳过）。
+     */
+    private void syncToEs(Article article) {
+        if (searchOps == null) return;
+        try {
+            ArticleBody body = articleBodyMapper.selectById(article.getId());
+            ArticleDocument doc = new ArticleDocument();
+            doc.setId(article.getId());
+            doc.setTitle(article.getTitle());
+            doc.setSummary(article.getSummary());
+            doc.setContentMarkdown(body != null ? body.getContentMarkdown() : null);
+            doc.setCategoryId(article.getCategoryId());
+            doc.setCategoryName(categoryService.resolveMeta(article.getCategoryId()).getCategoryName());
+            doc.setAuthorId(article.getAuthorId());
+            User author = userMapper.selectById(article.getAuthorId());
+            doc.setAuthorName(author != null ? author.getUsername() : null);
+            doc.setPublishedAt(article.getPublishedAt() != null ? article.getPublishedAt().toString() : null);
+            doc.setViewCount(article.getViewCount() != null ? article.getViewCount() : 0L);
+            searchOps.index(ES_INDEX_NAME, String.valueOf(article.getId()), doc);
+        } catch (Exception e) {
+            // ES 同步失败不影响主流程
+        }
+    }
+
+    /**
+     * 从 ES 索引中移除文章（ES 未启用时静默跳过）。
+     */
+    private void removeFromEs(Long articleId) {
+        if (searchOps == null) return;
+        try {
+            searchOps.delete(ES_INDEX_NAME, String.valueOf(articleId));
+        } catch (Exception e) {
+            // ES 同步失败不影响主流程
+        }
     }
 }
