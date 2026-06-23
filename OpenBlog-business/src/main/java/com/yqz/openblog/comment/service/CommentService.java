@@ -6,11 +6,13 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.entity.ArticleStatus;
+import com.yqz.openblog.comment.dto.CommentAdminResponse;
 import com.yqz.openblog.comment.dto.CommentCreateRequest;
 import com.yqz.openblog.comment.dto.CommentThreadResponse;
 import com.yqz.openblog.comment.dto.CommentUserResponse;
 import com.yqz.openblog.comment.entity.Comment;
 import com.yqz.openblog.comment.entity.CommentStatus;
+import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.common.BizException;
@@ -19,13 +21,8 @@ import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CommentService {
@@ -265,6 +262,45 @@ public class CommentService {
             article.setCommentCount(article.getCommentCount() - 1);
             articleMapper.updateById(article);
         }
+    }
+
+    /**
+     * 管理后台全站评论列表（扁平、按时间倒序）。
+     */
+    public PageResult<CommentAdminResponse> listAllComments(int page, int size, String statusFilter) {
+        LambdaQueryWrapper<Comment> w = Wrappers.lambdaQuery(Comment.class)
+                .orderByDesc(Comment::getCreatedAt);
+        if (statusFilter != null && !statusFilter.isBlank()) {
+            w.eq(Comment::getStatus, CommentStatus.valueOf(statusFilter));
+        }
+
+        IPage<Comment> p = commentMapper.selectPage(new Page<>(page + 1, size), w);
+
+        // 批量加载用户和文章
+        Set<Long> userIds = p.getRecords().stream().map(Comment::getUserId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> articleIds = p.getRecords().stream().map(Comment::getArticleId).filter(Objects::nonNull).collect(Collectors.toSet());
+
+        Map<Long, User> userMap = userIds.isEmpty() ? Collections.emptyMap() :
+                userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+        Map<Long, Article> articleMap = articleIds.isEmpty() ? Collections.emptyMap() :
+                articleMapper.selectBatchIds(articleIds).stream().collect(Collectors.toMap(Article::getId, a -> a, (a, b) -> a));
+
+        List<CommentAdminResponse> items = p.getRecords().stream().map(c -> {
+            CommentAdminResponse r = new CommentAdminResponse();
+            r.setId(c.getId());
+            r.setArticleId(c.getArticleId());
+            Article article = articleMap.get(c.getArticleId());
+            r.setArticleTitle(article != null ? article.getTitle() : null);
+            r.setUserId(c.getUserId());
+            User user = userMap.get(c.getUserId());
+            r.setUserName(user != null ? user.getUsername() : null);
+            r.setContent(c.getContent());
+            r.setStatus(c.getStatus().name());
+            r.setCreatedAt(c.getCreatedAt());
+            return r;
+        }).collect(Collectors.toList());
+
+        return new PageResult<>(items, page, size, p.getTotal());
     }
 
     private void ensureUserActive(Long uid) {

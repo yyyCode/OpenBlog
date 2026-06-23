@@ -4,7 +4,7 @@
       <div class="console-page-title">
         <h1>问题反馈</h1>
         <div style="color: var(--console-muted, var(--muted)); font-size: 13px; margin-top: 6px">
-          展示全部反馈问题（当前为前端 Mock，后续接入后端接口）。
+          展示全部反馈问题
         </div>
       </div>
       <div>
@@ -17,6 +17,7 @@
 
     <div class="console-card console-inner-card">
       <div v-if="loading" style="color: var(--console-muted, var(--muted))">加载中...</div>
+      <div v-else-if="error" class="error" style="color: #cf1322; padding: 12px 0">{{ error }}</div>
       <div v-else-if="filteredItems.length === 0" style="color: var(--console-muted, var(--muted))">暂无反馈</div>
 
       <div v-else>
@@ -50,14 +51,13 @@
         </div>
       </div>
       </div>
-
-      <div v-if="error" class="error" style="margin-top: 10px">{{ error }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { fetchPendingFeedback } from '../api/feedback-admin'
 
 const loading = ref(false)
 const items = ref([])
@@ -90,42 +90,12 @@ const filteredItems = computed(() => {
   })
 })
 
-function buildMock() {
-  const now = Date.now()
-  const day = (d) => new Date(d).toISOString().slice(0, 10)
-  return [
-    {
-      id: 10001,
-      submitterName: '匿名',
-      content: '后台附件上传如果没选文件，提示可以更明显一点。',
-      createdAt: new Date(now - 1000 * 60 * 18).toISOString(),
-      submitDay: day(now - 1000 * 60 * 18),
-      status: 'PENDING'
-    },
-    {
-      id: 10002,
-      submitterName: '访客',
-      content: '文章详情页目录在小屏下希望有折叠入口。',
-      createdAt: new Date(now - 1000 * 60 * 60 * 9).toISOString(),
-      submitDay: day(now - 1000 * 60 * 60 * 9),
-      status: 'DONE'
-    },
-    {
-      id: 10003,
-      submitterName: '小明',
-      content: '控制台登录页能否支持回车提交。',
-      createdAt: new Date(now - 1000 * 60 * 60 * 26).toISOString(),
-      submitDay: day(now - 1000 * 60 * 60 * 26),
-      status: 'PENDING'
-    }
-  ]
-}
-
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    items.value = buildMock()
+    const result = await fetchPendingFeedback(0, 200)
+    items.value = result.items || []
   } catch (e) {
     const traceId = e?.traceId ? `traceId ${e.traceId}` : ''
     const prefix = e?.code ? `错误码 ${e.code}` : e?.httpStatus ? `HTTP ${e.httpStatus}` : ''
@@ -232,4 +202,3 @@ onMounted(() => load())
   }
 }
 </style>
-
