@@ -3,11 +3,12 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/openblog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
     username: root
-    password: your_password
+    password: ${SPRING_DATASOURCE_PASSWORD:your_password}
   data:
     redis:
       host: 127.0.0.1
       port: 6379
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
 
 openblog:
   cache:
@@ -26,7 +27,7 @@ openblog:
     login-lockout:
       enabled: false
   jwt:
-    secret: "REPLACE_WITH_LONG_RANDOM_AT_LEAST_32_CHARS"
+    secret: ${OPENBLOG_JWT_SECRET:REPLACE_WITH_LONG_RANDOM_AT_LEAST_32_CHARS}
   storage:
     # local：读写本机目录；minio：读写远程 MinIO（与生产共用 endpoint 即可在本地看到线上图片）
     type: minio
@@ -35,6 +36,6 @@ openblog:
     thumb-long-edge: 320
     minio:
       endpoint: "http://127.0.0.1:9000"
-      access-key: "your_minio_access_key"
-      secret-key: "your_minio_secret_key"
+      access-key: ${OPENBLOG_STORAGE_MINIO_ACCESS_KEY:your_minio_access_key}
+      secret-key: ${OPENBLOG_STORAGE_MINIO_SECRET_KEY:your_minio_secret_key}
       bucket: "openblog"

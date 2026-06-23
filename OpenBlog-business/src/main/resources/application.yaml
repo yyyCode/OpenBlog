@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://10.21.32.85:3307/openblog?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
     username: root
-    password: admin123
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
@@ -30,7 +30,7 @@ spring:
       # 若 Redis 设置了 requirepass，在此填写密码
       # password: your_redis_password
       timeout: 3s
-      password: admin123
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
   thymeleaf:
     prefix: classpath:/templates/
     suffix: .html
@@ -81,7 +81,7 @@ openblog:
       failure-window-seconds: 300
       lockout-seconds: 900
   jwt:
-    secret: "PLEASE_CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_32_PLUS_CHARS"
+    secret: ${OPENBLOG_JWT_SECRET:}
     issuer: openblog
     access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 2592000
@@ -95,6 +95,6 @@ openblog:
     # 当 type=minio 时填写以下配置
     minio:
       endpoint: "http://10.21.32.85:9000"
-      access-key: "zoRKQFmL5UjnYz5HNrbh"
-      secret-key: "3T8kopnAh4mQVLSDDgqQpxH3oSn8jhH5H0wzKlzE"
+      access-key: ${OPENBLOG_STORAGE_MINIO_ACCESS_KEY:}
+      secret-key: ${OPENBLOG_STORAGE_MINIO_SECRET_KEY:}
       bucket: "openblog-document"
