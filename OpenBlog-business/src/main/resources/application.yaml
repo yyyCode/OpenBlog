@@ -54,6 +54,17 @@ openblog:
     article-published-ttl-minutes: 30
     # 已发布文章列表页（Redis）；变更时通过版本号全局失效，短 TTL 兜底
     article-list-ttl-minutes: 5
+  search:
+    # 是否启用 ES 全文搜索（需先安装 ES 并创建索引）。默认 false，不影响启动。
+    enabled: false
+    # ES 集群地址，逗号分隔
+    uris: "http://localhost:9200"
+    # ES 用户名（可选，X-Pack Security 开启时填写）
+    # username: elastic
+    # ES 密码（可选）
+    # password: changeme
+    # 索引名前缀，实际索引名 = 前缀 + 业务名（如 openblog_articles）
+    index-prefix: "openblog_"
   site:
     version: "1.0.0"
   # 生产环境请改为前端实际域名，例如 https://blog.example.com

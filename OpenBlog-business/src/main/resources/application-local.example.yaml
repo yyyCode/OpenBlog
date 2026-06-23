@@ -13,6 +13,12 @@ openblog:
   cache:
     # 已发布文章正文 Redis TTL（分钟），可按需覆盖
     article-published-ttl-minutes: 30
+  search:
+    enabled: false
+    uris: "http://localhost:9200"
+    # username: elastic
+    # password: changeme
+    index-prefix: "openblog_"
   auth-security:
     slider:
       enabled: false

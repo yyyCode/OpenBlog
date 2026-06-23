@@ -62,6 +62,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.yqz</groupId>
+            <artifactId>OpenBlog-framework-elasticsearch</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.12.5</version>
