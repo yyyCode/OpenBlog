@@ -2,6 +2,7 @@
   <header class="site-top-bar" role="banner">
     <div class="site-top-bar-inner">
       <router-link to="/" class="site-brand" aria-label="返回首页">
+        <img class="site-brand-logo" src="/site-icon.png" alt="" aria-hidden="true" />
         <span class="site-brand-text">{{ (siteConfig && siteConfig.blog_name) || '烧仙草冰室' }}</span>
       </router-link>
 
