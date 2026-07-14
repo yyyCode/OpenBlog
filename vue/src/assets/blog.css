@@ -1284,11 +1284,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-left: 14px;
-}
-
-.article-tree-group-body .article-tree-group-body {
-  padding-left: 12px;
+  padding-left: 18px;
 }
 
 .article-tree-leaf {
