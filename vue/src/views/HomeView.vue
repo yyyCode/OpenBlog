@@ -1,6 +1,10 @@
 <template>
   <div class="blog-container">
     <section class="home-hero">
+      <!-- Hero 图片 -->
+      <div v-if="heroImageUrl" class="home-hero-image-wrap">
+        <img class="home-hero-image" :src="heroImageUrl" alt="网站主旨图" />
+      </div>
       <div class="home-hero-inner">
         <h1 class="home-hero-title">{{ heroTitleLines[0] || '' }}<br />{{ heroTitleLines[1] || '' }}</h1>
         <p class="home-hero-sub" v-html="heroSubtitleHtml"></p>
@@ -102,6 +106,10 @@ import { showMessage } from '../utils/message'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
+
+const heroImageUrl = computed(() => {
+  return (siteConfig && siteConfig.value && siteConfig.value.hero_image_url) || ''
+})
 
 const heroTitle = computed(() => {
   const text = (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '设计，创造，思考未来'

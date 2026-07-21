@@ -61,6 +61,35 @@
             <div class="label">站点起始日期</div>
             <input v-model="form.site_start_date" class="input" type="date" />
           </div>
+          <div class="field">
+            <div class="label">首页 Hero 图片（16:9）</div>
+            <div class="hero-image-upload-row">
+              <div class="hero-image-preview" v-if="form.hero_image_url">
+                <img :src="form.hero_image_url" alt="hero preview" />
+              </div>
+              <div v-else class="hero-image-preview hero-image-preview--empty">
+                <span class="hero-image-placeholder">未设置首页图片</span>
+              </div>
+              <div class="hero-image-upload-actions">
+                <input
+                  ref="heroFileInput"
+                  class="input"
+                  type="file"
+                  accept="image/*"
+                  @change="onPickHeroImage"
+                />
+                <button
+                  v-if="form.hero_image_url"
+                  type="button"
+                  class="btn"
+                  style="margin-top: 6px"
+                  @click="form.hero_image_url = ''"
+                >
+                  移除图片
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 页脚 -->
@@ -85,6 +114,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { fetchSiteConfig, updateSiteConfig } from '../api/site'
+import { uploadMedia } from '../api/media'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -103,8 +133,24 @@ const form = ref({
   about_text: '',
   default_avatar_url: '',
   site_start_date: '',
+  hero_image_url: '',
   footer_copyright: ''
 })
+
+const heroFileInput = ref(null)
+
+async function onPickHeroImage(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  error.value = ''
+  try {
+    const resp = await uploadMedia(file)
+    form.value.hero_image_url = resp.url
+    if (heroFileInput.value) heroFileInput.value.value = ''
+  } catch (e) {
+    error.value = e.message || '上传失败'
+  }
+}
 
 onMounted(async () => {
   loading.value = true

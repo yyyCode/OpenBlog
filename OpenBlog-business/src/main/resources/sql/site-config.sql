@@ -20,4 +20,5 @@ INSERT IGNORE INTO site_config (config_key, config_value) VALUES
 ('about_text',       '这里是个人博客，用来记录设计、技术与思考。'),
 ('default_avatar_url','https://via.placeholder.com/120x120.png?text=OpenBlog'),
 ('site_start_date',  '2026-03-20'),
-('footer_copyright', '© 2026 OpenBlog');
+('footer_copyright', '© 2026 OpenBlog'),
+('hero_image_url', '');
