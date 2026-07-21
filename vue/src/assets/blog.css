@@ -2006,13 +2006,13 @@ body {
 .site-nav {
   display: inline-flex;
   align-items: center;
-  gap: 22px;
+  gap: 28px;
 }
 
 .site-nav-link {
   color: var(--muted);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   letter-spacing: 0.06em;
   background: transparent;
@@ -2032,16 +2032,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   color: currentColor;
   flex-shrink: 0;
   opacity: 0.95;
 }
 
 .site-nav-ico svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
 }
 
 .site-nav-link:hover {

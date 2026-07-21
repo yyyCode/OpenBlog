@@ -34,6 +34,17 @@
           文章
         </router-link>
 
+        <router-link to="/projects" class="site-nav-link" active-class="active">
+          <span class="site-nav-ico" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M9 3v18" />
+              <path d="M3 9h18" />
+            </svg>
+          </span>
+          项目推荐
+        </router-link>
+
         <router-link to="/feedback" class="site-nav-link" active-class="active">
           <span class="site-nav-ico" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
