@@ -27,6 +27,9 @@ import ConsoleUsersView from '../views/ConsoleUsersView.vue'
 import ConsoleUserDetailView from '../views/ConsoleUserDetailView.vue'
 import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
+import ProjectsListView from '../views/ProjectsListView.vue'
+import ProjectDetailView from '../views/ProjectDetailView.vue'
+import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
 
 const routes = [
   {
@@ -48,6 +51,17 @@ const routes = [
     path: '/search',
     name: 'search',
     component: SearchResultsView
+  },
+  {
+    path: '/projects',
+    name: 'projectsList',
+    component: ProjectsListView
+  },
+  {
+    path: '/project/:id',
+    name: 'projectDetail',
+    component: ProjectDetailView,
+    props: true
   },
   {
     path: '/feedback',
@@ -83,6 +97,7 @@ const routes = [
       { path: 'articles/new', name: 'consoleArticleCompose', component: ConsoleArticleComposeView },
       { path: 'categories', name: 'consoleCategories', component: ConsoleCategoriesView },
       { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
+      { path: 'projects', name: 'consoleProjects', component: ConsoleProjectsView },
       { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
