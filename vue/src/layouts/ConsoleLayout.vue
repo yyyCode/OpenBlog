@@ -74,6 +74,16 @@
             </span>
             更新日志
           </router-link>
+          <router-link to="/console/projects" class="console-nav-item" active-class="active">
+            <span class="console-nav-ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18" />
+                <path d="M3 9h18" />
+              </svg>
+            </span>
+            项目管理
+          </router-link>
           <router-link to="/console/comments" class="console-nav-item" active-class="active">
             <span class="console-nav-ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
