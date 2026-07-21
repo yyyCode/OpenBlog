@@ -428,7 +428,6 @@ body {
 /* 首页 Hero 图片 */
 .home-hero-image-wrap {
   width: 100%;
-  max-width: 720px;
   border-radius: 10px;
   overflow: hidden;
   background: var(--placeholder-tint);
