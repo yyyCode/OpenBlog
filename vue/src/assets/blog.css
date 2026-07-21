@@ -1896,6 +1896,55 @@ body {
   display: inline-block;
 }
 
+.site-search-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 220px;
+  max-width: 320px;
+  min-width: 140px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #f0f0f0;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: text;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+[data-theme='dark'] .site-search-bar {
+  background: #1e1e22;
+  border-color: #2a2a2e;
+}
+
+.site-search-bar:hover {
+  background: #e8e8e8;
+  border-color: #d0d0d0;
+}
+
+[data-theme='dark'] .site-search-bar:hover {
+  background: #26262b;
+  border-color: #3a3a3e;
+}
+
+.site-search-bar-icon {
+  flex-shrink: 0;
+  display: block;
+  opacity: 0.5;
+}
+
+.site-search-bar-placeholder {
+  font-size: 13px;
+  color: inherit;
+  opacity: 0.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
 .site-nav {
   display: inline-flex;
   align-items: center;

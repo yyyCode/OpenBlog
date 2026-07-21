@@ -6,6 +6,14 @@
         <span class="site-brand-text">{{ (siteConfig && siteConfig.blog_name) || '烧仙草冰室' }}</span>
       </router-link>
 
+      <div class="site-search-bar" aria-label="搜索">
+        <svg class="site-search-bar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <span class="site-search-bar-placeholder">搜索文章...</span>
+      </div>
+
       <nav class="site-nav" aria-label="站点导航">
         <router-link to="/" class="site-nav-link" active-class="active">
           <span class="site-nav-ico" aria-hidden="true">
@@ -24,16 +32,6 @@
             </svg>
           </span>
           文章
-        </router-link>
-
-        <router-link to="/search" class="site-nav-link" active-class="active">
-          <span class="site-nav-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>
-          </span>
-          搜索
         </router-link>
 
         <router-link to="/feedback" class="site-nav-link" active-class="active">
