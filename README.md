@@ -296,6 +296,52 @@ mvn test
 
 ---
 
+## 提交规范
+
+本仓库遵循 [Conventional Commits](https://www.conventionalcommits.org/) 约定，提交信息格式如下：
+
+```
+<type>(<scope>): <subject>
+
+[可选正文]
+
+[可选脚注]
+```
+
+- **type**（必填）：本次提交的类别，取值见下表。
+- **scope**（可选）：影响范围，如 `article`、`comment`、`header`、`theme`、`redis` 等模块或功能名。
+- **subject**（必填）：简明扼要的一句话描述，使用祈使句、首字母小写、结尾不加句号，建议不超过 70 字符。
+
+### type 取值
+
+| type | 说明 |
+|------|------|
+| `feat` | 新增功能 |
+| `fix` | 修复缺陷 |
+| `refactor` | 重构（既不新增功能也不修复缺陷的代码改动） |
+| `style` | 不影响逻辑的样式/格式调整（CSS、代码格式、空白等） |
+| `perf` | 性能优化 |
+| `docs` | 文档改动 |
+| `test` | 新增或修改测试 |
+| `build` | 构建系统或依赖变更（Maven、npm、Vite 等） |
+| `ci` | CI 配置与脚本变更 |
+| `chore` | 其他杂项（不影响源码与测试的维护性改动） |
+| `revert` | 回滚此前的提交 |
+
+### 示例
+
+```
+feat(project): add project detail view
+fix(article): widen content area from 720px to 880px
+style(header): rework top bar layout to reduce crowding
+refactor(theme): move dark mode toggle to RightDock alongside profile button
+docs: add commit convention to README
+```
+
+正文可用于补充改动动机与实现要点，多条要点建议使用 `-` 列表。破坏性变更需在脚注中以 `BREAKING CHANGE:` 开头说明。
+
+---
+
 ## 相关文档
 
 - [后端功能与架构设计](docs/后端功能与架构设计.md) — 业务模块、接口约定与扩展方向的参考说明。
