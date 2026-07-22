@@ -2285,12 +2285,6 @@ body {
   justify-content: flex-start;
 }
 
-/* 深色挂件风格（继承顶部栏深色） */
-[data-theme='dark'] .right-dock-btn {
-  background: #0f1114;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
 .right-dock-btn:hover {
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
@@ -2503,6 +2497,38 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* 挂件抽屉：主题切换按钮 */
+.widgets-theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.widgets-theme-btn:hover {
+  background: rgba(74, 163, 255, 0.08);
+  border-color: rgba(74, 163, 255, 0.3);
+}
+
+[data-theme='dark'] .widgets-theme-btn {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='dark'] .widgets-theme-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* 兼容旧样式：

@@ -7,12 +7,20 @@
     </div>
     <div class="widgets-drawer-body">
       <ProfileCard :profile="profile" />
+
+      <button type="button" class="widgets-theme-btn" @click="onToggle">
+        <span aria-hidden="true">{{ isDark ? '☀' : '☽' }}</span>
+        {{ isDark ? '浅色模式' : '深色模式' }}
+      </button>
+
       <BlogInfoCard />
     </div>
   </aside>
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
+import { toggleTheme as applyToggle } from '../theme'
 import ProfileCard from './ProfileCard.vue'
 import BlogInfoCard from './BlogInfoCard.vue'
 
@@ -22,5 +30,18 @@ defineProps({
 })
 
 const emit = defineEmits(['close'])
-</script>
+const isDark = ref(false)
 
+function sync() {
+  isDark.value = document.documentElement.getAttribute('data-theme') === 'dark'
+}
+
+function onToggle() {
+  applyToggle()
+  sync()
+}
+
+onMounted(() => {
+  sync()
+})
+</script>

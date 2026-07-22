@@ -71,16 +71,6 @@
           源码
         </a>
 
-        <button
-          type="button"
-          class="site-nav-link site-nav-link-btn"
-          :aria-label="isDark ? '切换到浅色模式' : '切换到深色模式'"
-          @click="onToggle"
-        >
-          <span class="site-nav-ico" aria-hidden="true">{{ isDark ? '☀' : '☽' }}</span>
-          {{ isDark ? '浅色' : '深色' }}
-        </button>
-
         <div class="site-nav-auth site-nav-auth-trailing" aria-label="账户">
           <template v-if="me">
             <span class="site-nav-user-name" :title="displayName">{{ displayName }}</span>
@@ -100,7 +90,6 @@
 <script setup>
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { toggleTheme as applyToggle } from '../theme'
 import { fetchMe } from '../api/admin'
 import { clearAuth, getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
 
@@ -108,7 +97,6 @@ defineEmits(['toggle-widgets'])
 
 const route = useRoute()
 const router = useRouter()
-const isDark = ref(false)
 const me = ref(null)
 const siteConfig = inject('siteConfig')
 
@@ -142,12 +130,7 @@ watch(
   }
 )
 
-function sync() {
-  isDark.value = document.documentElement.getAttribute('data-theme') === 'dark'
-}
-
 onMounted(() => {
-  sync()
   loadMe()
 })
 
@@ -161,8 +144,4 @@ function logout() {
   }
 }
 
-function onToggle() {
-  applyToggle()
-  sync()
-}
 </script>
