@@ -2499,38 +2499,6 @@ body {
   gap: 16px;
 }
 
-/* 挂件抽屉：主题切换按钮 */
-.widgets-theme-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.widgets-theme-btn:hover {
-  background: rgba(74, 163, 255, 0.08);
-  border-color: rgba(74, 163, 255, 0.3);
-}
-
-[data-theme='dark'] .widgets-theme-btn {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-[data-theme='dark'] .widgets-theme-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
 /* 兼容旧样式：
    早期版本用 .site-top-actions / .top-action-btn / .theme-toggle 组织顶栏。
    现在顶栏已切换到 .site-brand / .site-nav，但仍可能有页面引用旧 class。
