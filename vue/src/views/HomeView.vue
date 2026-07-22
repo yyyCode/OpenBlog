@@ -6,7 +6,7 @@
         <img class="home-hero-image" :src="heroImageUrl" alt="网站主旨图" />
       </div>
       <div class="home-hero-inner">
-        <h1 class="home-hero-title">{{ heroTitleLines[0] || '' }}<br />{{ heroTitleLines[1] || '' }}</h1>
+        <h1 class="home-hero-title" v-html="heroTitleHtml"></h1>
         <p class="home-hero-sub" v-html="heroSubtitleHtml"></p>
       </div>
     </section>
@@ -121,13 +121,8 @@ const heroSubtitle = computed(() => {
   return text
 })
 
-const heroTitleLines = computed(() => {
-  const text = heroTitle.value
-  const parts = text.split('\n').filter(Boolean)
-  if (parts.length >= 2) return parts.slice(0, 2)
-  const commaParts = text.split('，')
-  if (commaParts.length >= 2) return commaParts.slice(0, 2)
-  return [text, '']
+const heroTitleHtml = computed(() => {
+  return heroTitle.value.replace(/\n/g, '<br />')
 })
 
 const heroSubtitleHtml = computed(() => {
