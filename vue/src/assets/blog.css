@@ -1912,13 +1912,15 @@ body {
 
 .site-top-bar-inner {
   width: 100%;
-  max-width: var(--container);
+  max-width: 1440px;
   margin: 0 auto;
+  padding: 0 12px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   min-height: 40px;
-  gap: 10px;
+  gap: 18px;
 }
 
 .site-brand {
@@ -1931,12 +1933,15 @@ body {
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-right: 8px;
+  padding-left: 8px;
 }
 
 .site-brand-logo {
-  width: 62px;
-  height: 62px;
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1963,9 +1968,10 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex: 1 1 220px;
+  flex: 0 1 260px;
   max-width: 320px;
-  min-width: 140px;
+  min-width: 150px;
+  margin-right: auto;
   height: 36px;
   padding: 0 14px;
   border-radius: 999px;
@@ -2011,7 +2017,9 @@ body {
 .site-nav {
   display: inline-flex;
   align-items: center;
-  gap: 28px;
+  gap: 40px;
+  flex-shrink: 0;
+  padding-right: 8px;
 }
 
 .site-nav-link {
