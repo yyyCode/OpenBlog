@@ -384,9 +384,9 @@ body {
   top: 86px;
 }
 
-/* 首页：更接近“封面 + 精选文章”的布局 */
+/* 首页：更接近”封面 + 精选文章”的布局 */
 .page-grid.home-grid {
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr;
 }
 
 .home-hero {
@@ -446,40 +446,6 @@ body {
   object-fit: cover;
 }
 
-/* 首页：右侧深色个人信息挂件（继承顶部栏深色风格） */
-.home-profile-widget {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-[data-theme='dark'] .home-profile-widget {
-  background: #0f1114;
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-.home-profile-widget .profile-card {
-  border: none;
-  box-shadow: none;
-  background: transparent;
-  overflow: visible;
-}
-
-.home-profile-widget .profile-card-body {
-  padding: 24px 20px;
-}
-
-.home-profile-widget .profile-name {
-  color: var(--text);
-}
-
-.home-profile-widget .profile-signature {
-  color: var(--muted);
-}
-
-[data-theme='dark'] .home-profile-widget .profile-menu-item {
-  background: #3370ff;
-}
 
 .home-featured {
   padding: 18px;
@@ -2317,6 +2283,12 @@ body {
 .right-dock.open .right-dock-btn {
   width: 156px;
   justify-content: flex-start;
+}
+
+/* 深色挂件风格（继承顶部栏深色） */
+[data-theme='dark'] .right-dock-btn {
+  background: #0f1114;
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .right-dock-btn:hover {

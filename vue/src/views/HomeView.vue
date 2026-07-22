@@ -93,13 +93,6 @@
           </section>
         </div>
       </div>
-
-      <!-- 右侧：个人信息挂件 -->
-      <div class="right-rail">
-        <div class="home-profile-widget card">
-          <ProfileCard :profile="profile" />
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -108,10 +101,8 @@
 import { computed, inject, onMounted, ref } from 'vue'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
-import { fetchPublicProfile } from '../api/profile'
 import { useRouter } from 'vue-router'
 import { showMessage } from '../utils/message'
-import ProfileCard from '../components/ProfileCard.vue'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -142,15 +133,9 @@ const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
 const email = ref('')
-const profile = ref(null)
 
 onMounted(async () => {
   loading.value = true
-  try {
-    profile.value = await fetchPublicProfile()
-  } catch {
-    profile.value = null
-  }
   try {
     const list = await fetchArticles({ page: 0, size: 8 })
     const items = list?.items || []
