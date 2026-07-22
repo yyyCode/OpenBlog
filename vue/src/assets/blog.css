@@ -1346,7 +1346,7 @@ body {
 
 /* 文章详情：正文保持居中阅读列，右侧大纲悬浮在空白区 */
 .article-detail-page .article-detail-wrap {
-  max-width: 720px;
+  max-width: 880px;
   margin: 0 auto;
 }
 
