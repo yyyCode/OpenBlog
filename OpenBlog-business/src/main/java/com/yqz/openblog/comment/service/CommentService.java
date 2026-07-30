@@ -17,6 +17,7 @@ import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.PageResult;
+import com.yqz.openblog.forum.filter.SensitiveWordFilter;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import org.springframework.stereotype.Service;
@@ -30,11 +31,14 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final ArticleMapper articleMapper;
     private final UserRepository userRepository;
+    private final SensitiveWordFilter sensitiveWordFilter;
 
-    public CommentService(CommentMapper commentMapper, ArticleMapper articleMapper, UserRepository userRepository) {
+    public CommentService(CommentMapper commentMapper, ArticleMapper articleMapper,
+                          UserRepository userRepository, SensitiveWordFilter sensitiveWordFilter) {
         this.commentMapper = commentMapper;
         this.articleMapper = articleMapper;
         this.userRepository = userRepository;
+        this.sensitiveWordFilter = sensitiveWordFilter;
     }
 
     public PageResult<CommentThreadResponse> listComments(Long articleId, int page, int size) {
@@ -163,6 +167,8 @@ public class CommentService {
     }
 
     public CommentThreadResponse createTopLevel(Long articleId, Long uid, CommentCreateRequest req) {
+        checkSensitive(req.getContent());
+
         LambdaQueryWrapper<Article> articleW = Wrappers.lambdaQuery();
         articleW.eq(Article::getId, articleId).eq(Article::getStatus, ArticleStatus.PUBLISHED);
         Article article = articleMapper.selectOne(articleW);
@@ -189,6 +195,7 @@ public class CommentService {
 
     public CommentThreadResponse reply(Long commentId, Long uid, CommentCreateRequest req) {
         ensureUserActive(uid);
+        checkSensitive(req.getContent());
 
         Comment parent = commentMapper.selectOne(
                 Wrappers.lambdaQuery(Comment.class)
@@ -301,6 +308,13 @@ public class CommentService {
         }).collect(Collectors.toList());
 
         return new PageResult<>(items, page, size, p.getTotal());
+    }
+
+    private void checkSensitive(String text) {
+        if (text == null || text.isBlank()) return;
+        if (sensitiveWordFilter.contains(text)) {
+            throw new BizException(4003, "内容包含敏感词，请修改后重试");
+        }
     }
 
     private void ensureUserActive(Long uid) {
