@@ -446,7 +446,7 @@ public class ArticleService {
     }
 
     public PageResult<ArticleListItemResponse> listMine(Long authorId, int page, int size) {
-        List<ArticleStatus> statuses = List.of(ArticleStatus.DRAFT, ArticleStatus.SCHEDULED, ArticleStatus.PUBLISHED);
+        List<ArticleStatus> statuses = List.of(ArticleStatus.DRAFT, ArticleStatus.SCHEDULED, ArticleStatus.PUBLISHED, ArticleStatus.HIDDEN);
         Page<Article> mpPage = new Page<>(page + 1L, size);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getAuthorId, authorId)
