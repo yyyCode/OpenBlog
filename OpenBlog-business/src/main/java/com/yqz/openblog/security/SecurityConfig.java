@@ -75,6 +75,8 @@ public class SecurityConfig {
                         // Public articles/comments
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()
+                        // Public forum
+                        .requestMatchers(HttpMethod.GET, "/api/v1/forum/**").permitAll()
                         // Other write operations require auth
                         .anyRequest().authenticated()
                 )
