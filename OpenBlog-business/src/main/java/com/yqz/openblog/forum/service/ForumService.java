@@ -16,11 +16,13 @@ import com.yqz.openblog.forum.entity.ForumTopic;
 import com.yqz.openblog.forum.entity.ForumTopicStatus;
 import com.yqz.openblog.forum.repo.ForumCommentMapper;
 import com.yqz.openblog.forum.repo.ForumTopicMapper;
+import com.yqz.openblog.forum.filter.SensitiveWordFilter;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -29,11 +31,14 @@ public class ForumService {
     private final ForumTopicMapper forumTopicMapper;
     private final ForumCommentMapper forumCommentMapper;
     private final UserRepository userRepository;
+    private final SensitiveWordFilter sensitiveWordFilter;
 
-    public ForumService(ForumTopicMapper forumTopicMapper, ForumCommentMapper forumCommentMapper, UserRepository userRepository) {
+    public ForumService(ForumTopicMapper forumTopicMapper, ForumCommentMapper forumCommentMapper,
+                        UserRepository userRepository, SensitiveWordFilter sensitiveWordFilter) {
         this.forumTopicMapper = forumTopicMapper;
         this.forumCommentMapper = forumCommentMapper;
         this.userRepository = userRepository;
+        this.sensitiveWordFilter = sensitiveWordFilter;
     }
 
     /**
@@ -83,6 +88,7 @@ public class ForumService {
      */
     public ForumTopicResponse createTopic(Long uid, ForumTopicCreateRequest req) {
         ensureUserActive(uid);
+        checkSensitive(req.getTitle(), req.getContent());
 
         ForumTopic topic = new ForumTopic();
         topic.setTitle(req.getTitle());
@@ -146,6 +152,7 @@ public class ForumService {
      */
     public ForumCommentResponse createComment(Long topicId, Long uid, ForumCommentRequest req) {
         ensureUserActive(uid);
+        checkSensitive(req.getContent());
 
         ForumTopic topic = forumTopicMapper.selectById(topicId);
         if (topic == null || topic.getStatus() == ForumTopicStatus.HIDDEN) {
@@ -258,6 +265,16 @@ public class ForumService {
         User u = userRepository.findById(uid).orElseThrow(() -> new BizException(4041, "用户不存在"));
         if ("BANNED".equals(u.getStatus())) {
             throw new BizException(4011, "账号已被封禁");
+        }
+    }
+
+    private void checkSensitive(String... texts) {
+        for (String text : texts) {
+            if (text == null || text.isBlank()) continue;
+            if (sensitiveWordFilter.contains(text)) {
+                List<String> words = sensitiveWordFilter.findAll(text);
+                throw new BizException(4003, "内容包含敏感词，请修改后重试");
+            }
         }
     }
 }
