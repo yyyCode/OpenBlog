@@ -3606,8 +3606,7 @@ body {
 }
 
 .auth-split-card {
-  display: flex;
-  width: 780px;
+  width: 420px;
   max-width: 100%;
   background: #fff;
   border-radius: 12px;
@@ -3664,10 +3663,8 @@ body {
   margin-top: 40px;
 }
 
-/* Form panel (right) */
+/* Form panel */
 .auth-form {
-  flex: 1;
-  min-width: 0;
   padding: 48px 44px;
 }
 

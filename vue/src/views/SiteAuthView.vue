@@ -1,15 +1,6 @@
 <template>
   <div class="auth-split-bg">
     <div class="auth-split-card">
-      <!-- Left: Brand Panel -->
-      <div class="auth-brand">
-        <div class="auth-brand-logo">📝</div>
-        <div class="auth-brand-title">OpenBlog</div>
-        <div class="auth-brand-sub">{{ brandSubtitle }}</div>
-        <div class="auth-brand-footer">&copy; 2026 OpenBlog</div>
-      </div>
-
-      <!-- Right: Form Area -->
       <div class="auth-form">
         <!-- Underline Tabs -->
         <div class="auth-tabs" role="tablist" aria-label="登录、注册或修改密码">
