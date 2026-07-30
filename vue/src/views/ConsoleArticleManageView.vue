@@ -25,10 +25,12 @@
         <div v-for="a in listItems" :key="a.id" class="manage-item" @click="goEdit(a.id)">
           <div class="manage-item-main">
             <div class="manage-item-title">{{ a.title || '未命名' }}</div>
-            <div class="manage-item-meta">{{ a.status }} · {{ formatDate(a.publishedAt) }}</div>
+            <div class="manage-item-meta">{{ statusLabel(a.status) }} · {{ formatDate(a.publishedAt) }}</div>
           </div>
           <div class="manage-item-actions" @click.stop>
             <button class="btn" style="padding: 6px 10px" @click="goEdit(a.id)">编辑</button>
+            <button v-if="a.status === 'PUBLISHED'" class="btn" style="padding: 6px 10px" @click="hideArticle(a.id)">隐藏</button>
+            <button v-if="a.status === 'HIDDEN'" class="btn" style="padding: 6px 10px" @click="republish(a.id)">发布</button>
             <button class="btn" style="padding: 6px 10px" @click="remove(a.id)">删除</button>
           </div>
         </div>
@@ -43,7 +45,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { deleteMyArticle, fetchMyArticles } from '../api/admin'
+import { deleteMyArticle, fetchMyArticles, publishArticle, unpublishArticle } from '../api/admin'
 
 const router = useRouter()
 
@@ -61,6 +63,11 @@ function formatDate(v) {
   } catch {
     return ''
   }
+}
+
+function statusLabel(s) {
+  const map = { DRAFT: '草稿', SCHEDULED: '已预约', PUBLISHED: '已发布', HIDDEN: '已隐藏' }
+  return map[s] || s
 }
 
 async function loadArticles() {
@@ -90,6 +97,9 @@ function goEdit(id) {
 async function remove(id) {
   articleError.value = ''
   articleSuccess.value = ''
+  if (!window.confirm('确定要永久删除这篇文章吗？此操作不可撤销。')) {
+    return
+  }
   try {
     await deleteMyArticle(id)
     await loadArticles()
@@ -99,6 +109,32 @@ async function remove(id) {
     const httpStatus = e?.httpStatus
     const prefix = apiCode ? `错误码 ${apiCode}` : httpStatus ? `HTTP ${httpStatus}` : ''
     articleError.value = prefix ? `${prefix}：${e?.message || '删除失败'}` : e?.message || '删除失败'
+    articleSuccess.value = ''
+  }
+}
+
+async function hideArticle(id) {
+  articleError.value = ''
+  articleSuccess.value = ''
+  try {
+    await unpublishArticle(id)
+    await loadArticles()
+    articleSuccess.value = '已隐藏'
+  } catch (e) {
+    articleError.value = e?.message || '隐藏失败'
+    articleSuccess.value = ''
+  }
+}
+
+async function republish(id) {
+  articleError.value = ''
+  articleSuccess.value = ''
+  try {
+    await publishArticle(id)
+    await loadArticles()
+    articleSuccess.value = '已发布'
+  } catch (e) {
+    articleError.value = e?.message || '发布失败'
     articleSuccess.value = ''
   }
 }
