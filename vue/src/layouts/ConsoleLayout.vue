@@ -92,6 +92,16 @@
             </span>
             评论
           </router-link>
+          <router-link to="/console/forum" class="console-nav-item" active-class="active">
+            <span class="console-nav-ico" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 12h-5v5h5v-5zM16 3h-8L5 9l7 7 7-7-3-6z" />
+                <circle cx="4" cy="11" r="2" />
+                <circle cx="20" cy="11" r="2" />
+              </svg>
+            </span>
+            论坛
+          </router-link>
           <router-link to="/console/feedback" class="console-nav-item" active-class="active">
             <span class="console-nav-ico" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

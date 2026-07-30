@@ -55,14 +55,14 @@
           求职导航
         </router-link>
 
-        <a href="#" class="site-nav-link">
+        <router-link to="/forum" class="site-nav-link" active-class="active">
           <span class="site-nav-ico" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </span>
           论坛
-        </a>
+        </router-link>
 
         <router-link to="/feedback" class="site-nav-link" active-class="active">
           <span class="site-nav-ico" aria-hidden="true">
@@ -73,6 +73,16 @@
           </span>
           反馈
         </router-link>
+
+        <a href="#" class="site-nav-link site-nav-link-sm-hide">
+          <span class="site-nav-ico" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 3v18" />
+              <path d="M7 8h10l-3 5 3 5H7" />
+            </svg>
+          </span>
+          公告
+        </a>
 
         <a
           class="site-nav-link site-nav-link-sm-hide"
