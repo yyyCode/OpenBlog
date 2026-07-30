@@ -417,7 +417,7 @@ public class ArticleService {
     }
 
     @Transactional
-    public void unpublishOrDelete(Long authorId, Long articleId) {
+    public void hide(Long authorId, Long articleId) {
         Article a = articleMapper.selectById(articleId);
         if (a == null) {
             throw new BizException(4041, "文章不存在");
@@ -425,12 +425,29 @@ public class ArticleService {
         if (!a.getAuthorId().equals(authorId)) {
             throw new BizException(4031, "无权限");
         }
-        if (a.getStatus() == ArticleStatus.DELETED) {
+        if (a.getStatus() == ArticleStatus.HIDDEN) {
             return;
         }
-        a.setStatus(ArticleStatus.DELETED);
+        a.setStatus(ArticleStatus.HIDDEN);
         a.setScheduledAt(null);
         articleMapper.updateById(a);
+        publishedContentCache.evict(articleId);
+        publishedContentCache.evictPublishedList();
+        removeFromEs(articleId);
+    }
+
+    @Transactional
+    public void deletePermanently(Long authorId, Long articleId) {
+        Article a = articleMapper.selectById(articleId);
+        if (a == null) {
+            throw new BizException(4041, "文章不存在");
+        }
+        if (!a.getAuthorId().equals(authorId)) {
+            throw new BizException(4031, "无权限");
+        }
+        // 先删正文，再删文章
+        articleBodyMapper.deleteById(articleId);
+        articleMapper.deleteById(articleId);
         publishedContentCache.evict(articleId);
         publishedContentCache.evictPublishedList();
         removeFromEs(articleId);
