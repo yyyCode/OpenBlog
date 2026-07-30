@@ -1898,8 +1898,8 @@ body {
   z-index: 9999;
   width: 100%;
   box-sizing: border-box;
-  padding-top: max(10px, env(safe-area-inset-top, 0px));
-  padding-bottom: 10px;
+  padding-top: max(4px, env(safe-area-inset-top, 0px));
+  padding-bottom: 4px;
   padding-left: max(var(--page-pad), env(safe-area-inset-left, 0px));
   padding-right: max(var(--page-pad), env(safe-area-inset-right, 0px));
   background: #ffffff;
@@ -1919,29 +1919,29 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  min-height: 40px;
+  min-height: 52px;
   gap: 18px;
 }
 
 .site-brand {
   color: var(--text);
   text-decoration: none;
-  font-size: clamp(16px, 1.2vw, 18px);
+  font-size: clamp(18px, 1.4vw, 22px);
   font-weight: 750;
   letter-spacing: -0.01em;
   line-height: 1.2;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
   margin-right: 8px;
   padding-left: 8px;
 }
 
 .site-brand-logo {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
