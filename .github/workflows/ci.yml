@@ -13,7 +13,6 @@ on:
   push:
     branches:
       - master
-      - web-refactor
     paths:
       - 'OpenBlog-business/**'
       - 'OpenBlog-framework*/**'
