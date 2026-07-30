@@ -14,12 +14,37 @@ on:
     branches:
       - master
       - web-refactor
+    paths:
+      - 'OpenBlog-business/**'
+      - 'OpenBlog-framework*/**'
+      - 'vue/**'
+      - 'pom.xml'
+      - '.github/workflows/ci.yml'
 
 jobs:
-  build-and-deploy:
+  # 检测变更范围，供后续 job 条件判断
+  changes:
     runs-on: ubuntu-latest
-    # 消除 “Node.js 20 actions are deprecated” 警告：让基于 JS 的 action 在 Node 24 上跑
-    # 见 https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'OpenBlog-business/**'
+              - 'OpenBlog-framework*/**'
+              - 'pom.xml'
+            frontend:
+              - 'vue/**'
+
+  build-backend:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -36,6 +61,17 @@ jobs:
 
       - name: Build backend (Maven)
         run: mvn -B -ntp package -DskipTests -pl OpenBlog-business -am
+
+  build-frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -56,11 +92,28 @@ jobs:
           cp -r vue/dist release/dist
           cp vue/Dockerfile vue/docker.sh vue/nginx.conf release/
 
-      # 在 GitHub Runner 构建镜像并导出，避免国内服务器直连 Docker Hub 拉取 nginx:alpine 超时
       - name: Build Docker image on runner
         run: |
           docker build -t openblog-web release/
           docker save openblog-web | gzip > release/openblog-web.tar.gz
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-frontend
+          path: release/
+
+  deploy-frontend:
+    needs: build-frontend
+    if: ${{ needs.build-frontend.result == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: release-frontend
+          path: release/
 
       - name: Deploy files to server
         uses: easingthemes/ssh-deploy@v5.1.1
