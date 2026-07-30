@@ -257,3 +257,10 @@ onMounted(async () => {
   }
 }
 </style>
+
+<style>
+/* 看板娘气泡移到头顶上方 */
+.oml2d-tips {
+  transform: translateY(-100%) translateY(-40px) !important;
+}
+</style>
