@@ -78,6 +78,7 @@ function makeTipsStyle(dark) {
       ? '0 4px 20px rgba(0,0,0,0.35)'
       : '0 4px 20px rgba(0,0,0,0.1)',
     marginTop: '-140px',
+    marginRight: '50px',
   }
 }
 
