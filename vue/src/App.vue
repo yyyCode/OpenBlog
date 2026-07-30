@@ -56,6 +56,8 @@ onMounted(async () => {
     <footer v-if="!isConsole" class="site-footer">
       <div class="site-footer-inner">
         <span>{{ (siteConfig && siteConfig.footer_copyright) || '© 2026 OpenBlog' }}</span>
+        <span class="site-footer-sep">|</span>
+        <a class="site-footer-icp" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">粤ICP备2026033788号</a>
       </div>
     </footer>
   </div>
