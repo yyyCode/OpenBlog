@@ -1,7 +1,7 @@
 <template>
   <div class="blog-container article-detail-page">
-    <!-- 桌面端：左侧文章树 -->
-    <aside v-if="!isMobile" class="article-tree-rail" aria-label="文章目录">
+    <!-- 桌面端：左侧文章树（仅博客文章显示） -->
+    <aside v-if="!isMobile && article.type !== 'JOB_NAV'" class="article-tree-rail" aria-label="文章目录">
       <div class="article-tree-card">
         <ArticleTreeSidebar
           :categories="categories"
@@ -15,7 +15,7 @@
 
     <!-- 移动端：左侧抽屉 -->
     <button
-      v-if="isMobile"
+      v-if="isMobile && article.type !== 'JOB_NAV'"
       class="articles-fab"
       type="button"
       :aria-expanded="treeOpen ? 'true' : 'false'"
