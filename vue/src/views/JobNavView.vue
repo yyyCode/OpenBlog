@@ -61,22 +61,44 @@ onMounted(() => load())
 </script>
 
 <style scoped>
+.jobs-page {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+}
+
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 .page-title {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
 }
 .page-subtitle {
   color: var(--muted);
-  font-size: 14px;
-  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 450;
+  margin-top: 10px;
 }
+
 .article-grid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+/* ArticleCard content larger on job nav page */
+.article-grid :deep(.article-card) {
+  padding: 20px;
+  border-radius: 14px;
+}
+.article-grid :deep(.article-title) {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.article-grid :deep(.article-meta) {
+  font-size: 14px;
+  margin-top: 6px;
 }
 </style>
