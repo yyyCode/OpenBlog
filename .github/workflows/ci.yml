@@ -1,4 +1,6 @@
 # OpenBlog：push 到 master 时编译后端、打包前端，并将静态资源与 Docker 相关文件同步到阿里云，在服务器执行 docker.sh 更新 Nginx 容器。
+# 后端部署到内网自托管 Runner。
+#
 # 需在仓库 Settings → Secrets and variables → Actions 中配置：
 #   SERVER_SSH_KEY      服务器 SSH 私钥（完整 PEM）
 #   SERVER_REMOTE_HOST  公网 IP 或域名
@@ -60,6 +62,60 @@ jobs:
 
       - name: Build backend (Maven)
         run: mvn -B -ntp package -DskipTests -pl OpenBlog-business -am
+
+      - name: Upload backend JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: OpenBlog-business/target/OpenBlog-business-*.jar
+          retention-days: 1
+
+  deploy-backend:
+    needs: build-backend
+    if: ${{ needs.build-backend.result == 'success' }}
+    runs-on: openblog-backend
+
+    steps:
+      - name: Download backend JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+
+      - name: Deploy to internal server
+        run: |
+          JAR_FILE=$(ls OpenBlog-business-*.jar | head -1)
+          TARGET_DIR="/www/wwwroot/java/openblog"
+          TARGET_JAR="$TARGET_DIR/OpenBlog-business-1.0.0-SNAPSHOT.jar"
+          JAVA_HOME="/www/server/java/jdk-17.0.8"
+
+          # 停止旧进程
+          OLD_PID=$(ps aux | grep 'OpenBlog-business' | grep -v grep | awk '{print $2}')
+          if [ -n "$OLD_PID" ]; then
+            echo "Stopping old process (PID: $OLD_PID)..."
+            kill $OLD_PID
+            sleep 5
+            # 如果还没停，强制 kill
+            if kill -0 $OLD_PID 2>/dev/null; then
+              kill -9 $OLD_PID
+              sleep 2
+            fi
+          fi
+
+          # 备份旧 jar
+          if [ -f "$TARGET_JAR" ]; then
+            cp "$TARGET_JAR" "$TARGET_DIR/backup/OpenBlog-business-$(date +%Y%m%d-%H%M%S).jar" 2>/dev/null || true
+          fi
+
+          # 复制新 jar
+          mkdir -p "$TARGET_DIR/backup"
+          cp "$JAR_FILE" "$TARGET_JAR"
+
+          # 启动新进程
+          cd "$TARGET_DIR"
+          nohup $JAVA_HOME/bin/java -jar -Xmx1024M -Xms256M "$TARGET_JAR" > app.log 2>&1 &
+
+          echo "Deployed $JAR_FILE → $TARGET_JAR"
+          echo "New PID: $!"
 
   build-frontend:
     needs: changes
