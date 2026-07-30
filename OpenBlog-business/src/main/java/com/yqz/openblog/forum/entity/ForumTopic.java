@@ -35,10 +35,10 @@ public class ForumTopic {
     private Long authorId;
 
     @Column(nullable = false)
-    private Long viewCount;
+    private Long viewCount = 0L;
 
     @Column(nullable = false)
-    private Long commentCount;
+    private Long commentCount = 0L;
 
     @Column(nullable = false)
     @TableField(fill = FieldFill.INSERT)
