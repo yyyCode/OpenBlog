@@ -74,16 +74,6 @@
           反馈
         </router-link>
 
-        <a href="#" class="site-nav-link site-nav-link-sm-hide">
-          <span class="site-nav-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M13 3v18" />
-              <path d="M7 8h10l-3 5 3 5H7" />
-            </svg>
-          </span>
-          公告
-        </a>
-
         <a
           class="site-nav-link site-nav-link-sm-hide"
           :href="(siteConfig && siteConfig.source_code_url) || 'https://github.com/yyyCode/OpenBlog.git'"
