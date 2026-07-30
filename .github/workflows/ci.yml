@@ -12,6 +12,7 @@
 name: Build and deploy OpenBlog
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -44,7 +45,7 @@ jobs:
 
   build-backend:
     needs: changes
-    if: ${{ needs.changes.outputs.backend == 'true' }}
+    if: ${{ needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -72,7 +73,7 @@ jobs:
 
   deploy-backend:
     needs: build-backend
-    if: ${{ needs.build-backend.result == 'success' }}
+    if: ${{ needs.build-backend.result == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: openblog-backend
 
     steps:
@@ -119,7 +120,7 @@ jobs:
 
   build-frontend:
     needs: changes
-    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    if: ${{ needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
