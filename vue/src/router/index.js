@@ -27,6 +27,7 @@ import ConsoleUsersView from '../views/ConsoleUsersView.vue'
 import ConsoleUserDetailView from '../views/ConsoleUserDetailView.vue'
 import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
+import JobNavView from '../views/JobNavView.vue'
 import ProjectsListView from '../views/ProjectsListView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
@@ -51,6 +52,11 @@ const routes = [
     path: '/search',
     name: 'search',
     component: SearchResultsView
+  },
+  {
+    path: '/jobs',
+    name: 'jobNav',
+    component: JobNavView
   },
   {
     path: '/projects',

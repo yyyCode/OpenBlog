@@ -1,6 +1,7 @@
 package com.yqz.openblog.article.dto;
 
 import com.yqz.openblog.article.entity.ArticleStatus;
+import com.yqz.openblog.article.entity.ArticleType;
 
 import java.time.Instant;
 
@@ -15,6 +16,7 @@ public class ArticleDetailResponse {
     private String authorNickname;
     private Instant publishedAt;
     private ArticleStatus status;
+    private ArticleType type;
     private Long likeCount;
     private Long viewCount;
     private Long favoriteCount;
@@ -103,6 +105,14 @@ public class ArticleDetailResponse {
 
     public void setStatus(ArticleStatus status) {
         this.status = status;
+    }
+
+    public ArticleType getType() {
+        return type;
+    }
+
+    public void setType(ArticleType type) {
+        this.type = type;
     }
 
     public Long getLikeCount() {

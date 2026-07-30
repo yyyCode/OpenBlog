@@ -1,6 +1,7 @@
 package com.yqz.openblog.article.dto;
 
 import com.yqz.openblog.article.entity.ArticleStatus;
+import com.yqz.openblog.article.entity.ArticleType;
 
 import java.time.Instant;
 
@@ -19,6 +20,7 @@ public class ArticlePublishedContentCachePayload {
     private String authorNickname;
     private Instant publishedAt;
     private ArticleStatus status;
+    private ArticleType type;
     private Instant createdAt;
     private Instant updatedAt;
     private Long categoryId;
@@ -37,6 +39,7 @@ public class ArticlePublishedContentCachePayload {
         p.setAuthorNickname(d.getAuthorNickname());
         p.setPublishedAt(d.getPublishedAt());
         p.setStatus(d.getStatus());
+        p.setType(d.getType());
         p.setCreatedAt(d.getCreatedAt());
         p.setUpdatedAt(d.getUpdatedAt());
         p.setCategoryId(d.getCategoryId());
@@ -123,6 +126,14 @@ public class ArticlePublishedContentCachePayload {
 
     public void setStatus(ArticleStatus status) {
         this.status = status;
+    }
+
+    public ArticleType getType() {
+        return type;
+    }
+
+    public void setType(ArticleType type) {
+        this.type = type;
     }
 
     public Instant getCreatedAt() {

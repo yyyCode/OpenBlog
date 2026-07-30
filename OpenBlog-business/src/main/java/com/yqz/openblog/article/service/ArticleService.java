@@ -146,6 +146,7 @@ public class ArticleService {
         resp.setAuthorNickname(author == null ? null : author.getUsername());
         resp.setPublishedAt(a.getPublishedAt());
         resp.setStatus(a.getStatus());
+        resp.setType(a.getType());
         resp.setLikeCount(a.getLikeCount());
         resp.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
         resp.setFavoriteCount(a.getFavoriteCount());
@@ -206,6 +207,7 @@ public class ArticleService {
         r.setAuthorNickname(p.getAuthorNickname());
         r.setPublishedAt(p.getPublishedAt());
         r.setStatus(p.getStatus());
+        r.setType(p.getType());
         r.setCreatedAt(p.getCreatedAt());
         r.setUpdatedAt(p.getUpdatedAt());
         r.setCategoryId(p.getCategoryId());

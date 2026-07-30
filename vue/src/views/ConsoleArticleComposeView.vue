@@ -186,6 +186,22 @@
 
           <div class="field">
 
+            <div class="label">文章类型</div>
+
+            <select v-model="form.type" class="input">
+
+              <option value="ARTICLE">博客文章</option>
+
+              <option value="JOB_NAV">求职导航</option>
+
+            </select>
+
+          </div>
+
+
+
+          <div>
+
             <div class="label">分类（可选）</div>
 
             <select v-model="form.categoryId" class="input">
@@ -462,7 +478,9 @@ const form = ref({
 
   coverMediaKey: null,
 
-  categoryId: null
+  categoryId: null,
+
+  type: 'ARTICLE'
 
 })
 
@@ -858,6 +876,8 @@ async function loadEditor(id) {
 
     form.value.categoryId = detail.categoryId ?? null
 
+    form.value.type = detail.type || 'ARTICLE'
+
     publishAtInput.value = toLocalDatetimeInput(detail.publishedAt)
 
   } finally {
@@ -1048,7 +1068,9 @@ async function saveDraft() {
 
     coverMediaKey: form.value.coverMediaKey,
 
-    categoryId: form.value.categoryId
+    categoryId: form.value.categoryId,
+
+    type: form.value.type
 
   }
 
