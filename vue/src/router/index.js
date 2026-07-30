@@ -31,6 +31,10 @@ import JobNavView from '../views/JobNavView.vue'
 import ProjectsListView from '../views/ProjectsListView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
+import ForumListView from '../views/ForumListView.vue'
+import ForumTopicView from '../views/ForumTopicView.vue'
+import ForumComposeView from '../views/ForumComposeView.vue'
+import ConsoleForumView from '../views/ConsoleForumView.vue'
 
 const routes = [
   {
@@ -75,6 +79,22 @@ const routes = [
     component: FeedbackView
   },
   {
+    path: '/forum',
+    name: 'forumList',
+    component: ForumListView
+  },
+  {
+    path: '/forum/new',
+    name: 'forumCompose',
+    component: ForumComposeView
+  },
+  {
+    path: '/forum/topic/:id',
+    name: 'forumTopic',
+    component: ForumTopicView,
+    props: true
+  },
+  {
     path: '/login',
     name: 'siteAuth',
     component: SiteAuthView
@@ -107,6 +127,7 @@ const routes = [
       { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
+      { path: 'forum', name: 'consoleForum', component: ConsoleForumView },
       { path: 'users', name: 'consoleUsers', component: ConsoleUsersView },
       { path: 'users/:userId', name: 'consoleUserDetail', component: ConsoleUserDetailView },
       { path: 'users/pending', name: 'consolePendingUsers', component: ConsolePendingUsersView },
