@@ -5,6 +5,7 @@ import com.yqz.openblog.article.dto.ArticleDetailResponse;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
 import com.yqz.openblog.article.dto.ArticlePublishRequest;
 import com.yqz.openblog.article.dto.ArticleUpdateRequest;
+import com.yqz.openblog.article.entity.ArticleType;
 import com.yqz.openblog.article.service.ArticleService;
 import com.yqz.openblog.common.ApiResponse;
 import com.yqz.openblog.common.PageResult;
@@ -36,6 +37,15 @@ public class ArticleController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Long categoryId) {
         return ApiResponse.ok(articleService.listPublished(page, size, categoryId));
+    }
+
+    @GetMapping("/articles/type/{type}")
+    public ApiResponse<PageResult<ArticleListItemResponse>> listByType(
+            @PathVariable("type") String type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        ArticleType articleType = ArticleType.valueOf(type.toUpperCase());
+        return ApiResponse.ok(articleService.listByType(articleType, page, size));
     }
 
     @GetMapping("/articles/{articleId}")

@@ -77,6 +77,7 @@ public class ArticleService {
         resp.setAuthorNickname(author == null ? null : author.getUsername());
         resp.setPublishedAt(a.getPublishedAt());
         resp.setStatus(a.getStatus());
+        resp.setType(a.getType());
         resp.setLikeCount(a.getLikeCount());
         resp.setViewCount(a.getViewCount() == null ? 0L : a.getViewCount());
         resp.setFavoriteCount(a.getFavoriteCount());
@@ -226,6 +227,7 @@ public class ArticleService {
         Page<Article> mpPage = new Page<>(page + 1L, size);
         LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
         w.eq(Article::getStatus, ArticleStatus.PUBLISHED)
+                .eq(Article::getType, ArticleType.ARTICLE)
                 .orderByDesc(Article::getPublishedAt);
         if (categoryId != null) {
             Set<Long> ids = categoryService.collectSelfAndDescendantIds(categoryId);
@@ -239,6 +241,17 @@ public class ArticleService {
         PageResult<ArticleListItemResponse> result = new PageResult<>(items, page, size, p.getTotal());
         publishedContentCache.putList(categoryId, page, size, result);
         return result;
+    }
+
+    public PageResult<ArticleListItemResponse> listByType(ArticleType type, int page, int size) {
+        Page<Article> mpPage = new Page<>(page + 1L, size);
+        LambdaQueryWrapper<Article> w = Wrappers.lambdaQuery();
+        w.eq(Article::getStatus, ArticleStatus.PUBLISHED)
+                .eq(Article::getType, type)
+                .orderByDesc(Article::getPublishedAt);
+        IPage<Article> p = articleMapper.selectPage(mpPage, w);
+        List<ArticleListItemResponse> items = mapListItems(p.getRecords());
+        return new PageResult<>(items, page, size, p.getTotal());
     }
 
     public ArticleDetailResponse detailPublished(Long id, String clientIp) {
@@ -291,6 +304,7 @@ public class ArticleService {
         categoryService.validateCategoryId(req.getCategoryId());
         a.setCategoryId(req.getCategoryId());
         a.setStatus(ArticleStatus.DRAFT);
+        a.setType(req.getType() != null ? ArticleType.valueOf(req.getType()) : ArticleType.ARTICLE);
         a.setLikeCount(0L);
         a.setViewCount(0L);
         a.setFavoriteCount(0L);
@@ -321,6 +335,9 @@ public class ArticleService {
         a.setCoverMediaKey(req.getCoverMediaKey());
         categoryService.validateCategoryId(req.getCategoryId());
         a.setCategoryId(req.getCategoryId());
+        if (req.getType() != null) {
+            a.setType(ArticleType.valueOf(req.getType()));
+        }
         articleMapper.updateById(a);
 
         String renderedHtml = markdownRenderer.render(req.getContentMarkdown());

@@ -37,6 +37,10 @@ public class Article {
     @Column(nullable = false, length = 16)
     private ArticleStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private ArticleType type;
+
     @Column
     private Instant publishedAt;
 
@@ -89,6 +93,7 @@ public class Article {
         if (viewCount == null) viewCount = 0L;
         if (favoriteCount == null) favoriteCount = 0L;
         if (commentCount == null) commentCount = 0L;
+        if (type == null) type = ArticleType.ARTICLE;
     }
 
     @PreUpdate
@@ -142,6 +147,14 @@ public class Article {
 
     public void setStatus(ArticleStatus status) {
         this.status = status;
+    }
+
+    public ArticleType getType() {
+        return type;
+    }
+
+    public void setType(ArticleType type) {
+        this.type = type;
     }
 
     public Instant getPublishedAt() {

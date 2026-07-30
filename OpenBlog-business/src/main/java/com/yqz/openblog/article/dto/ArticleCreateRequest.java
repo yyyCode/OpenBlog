@@ -19,6 +19,9 @@ public class ArticleCreateRequest {
 
     private Long categoryId;
 
+    @Size(max = 16)
+    private String type;
+
     public String getTitle() {
         return title;
     }
@@ -57,6 +60,14 @@ public class ArticleCreateRequest {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }
 
