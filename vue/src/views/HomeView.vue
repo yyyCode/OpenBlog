@@ -75,22 +75,6 @@
             </div>
           </section>
 
-          <section class="home-newsletter">
-            <div class="home-newsletter-inner">
-              <h2 class="home-newsletter-title">订阅更新</h2>
-              <p class="home-newsletter-sub">获取最新文章和设计见解，直接发送到您的收件箱。（接口预留）</p>
-              <form class="home-newsletter-form" @submit.prevent="onSubscribe">
-                <input
-                  v-model="email"
-                  class="home-newsletter-input"
-                  type="email"
-                  autocomplete="email"
-                  placeholder="输入您的邮箱"
-                />
-                <button class="home-newsletter-btn" type="submit">订阅</button>
-              </form>
-            </div>
-          </section>
         </div>
       </div>
     </div>
@@ -102,7 +86,6 @@ import { computed, inject, onMounted, ref } from 'vue'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import { useRouter } from 'vue-router'
-import { showMessage } from '../utils/message'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -132,7 +115,6 @@ const heroSubtitleHtml = computed(() => {
 const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
-const email = ref('')
 
 onMounted(async () => {
   loading.value = true
@@ -162,16 +144,6 @@ function formatDate(v) {
   } catch {
     return ''
   }
-}
-
-function onSubscribe() {
-  const v = (email.value || '').trim()
-  if (!v) {
-    showMessage('请输入邮箱')
-    return
-  }
-  showMessage('订阅接口已预留，暂未接入')
-  email.value = ''
 }
 </script>
 
