@@ -7,6 +7,9 @@ public enum ArticleStatus {
      */
     SCHEDULED,
     PUBLISHED,
-    DELETED
+    /**
+     * 已隐藏（下架），不对公众展示，作者可在控制台重新发布。
+     */
+    HIDDEN
 }
 
