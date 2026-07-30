@@ -77,6 +77,7 @@ function makeTipsStyle(dark) {
     boxShadow: dark
       ? '0 4px 20px rgba(0,0,0,0.35)'
       : '0 4px 20px rgba(0,0,0,0.1)',
+    marginTop: '-140px',
   }
 }
 
@@ -255,12 +256,5 @@ onMounted(async () => {
     width: 32px;
     height: 32px;
   }
-}
-</style>
-
-<style>
-/* 看板娘气泡移到头顶上方 */
-.oml2d-tips {
-  transform: translateY(-100%) translateY(-40px) !important;
 }
 </style>
