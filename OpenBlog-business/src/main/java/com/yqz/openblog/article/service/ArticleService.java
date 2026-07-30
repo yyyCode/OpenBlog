@@ -273,9 +273,6 @@ public class ArticleService {
         if (a == null) {
             throw new BizException(4041, "文章不存在");
         }
-        if (a.getStatus() == ArticleStatus.DELETED) {
-            throw new BizException(4041, "文章不存在");
-        }
         boolean incremented = articleViewService.tryRecordView(a, clientIp);
         if (incremented) {
             long v = a.getViewCount() == null ? 0L : a.getViewCount();
@@ -319,9 +316,6 @@ public class ArticleService {
         if (!a.getAuthorId().equals(authorId)) {
             throw new BizException(4031, "无权限");
         }
-        if (a.getStatus() == ArticleStatus.DELETED) {
-            throw new BizException(4091, "当前文章不可编辑");
-        }
         a.setTitle(req.getTitle());
         a.setSummary(req.getSummary());
         a.setCoverMediaKey(req.getCoverMediaKey());
@@ -363,8 +357,6 @@ public class ArticleService {
         if (!a.getAuthorId().equals(authorId)) {
             throw new BizException(4031, "无权限");
         }
-        if (a.getStatus() == ArticleStatus.DELETED) throw new BizException(4091, "当前文章不可发布");
-
         ArticleBody body = articleBodyMapper.selectById(articleId);
         String md = body == null ? null : body.getContentMarkdown();
         if (a.getTitle() == null || a.getTitle().trim().isEmpty() || md == null || md.trim().isEmpty()) {
