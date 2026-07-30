@@ -77,6 +77,10 @@ export function deleteMyArticle(id) {
   return request(`/api/v1/articles/${id}`, { method: 'DELETE', withAuth: true })
 }
 
+export function unpublishArticle(id) {
+  return request(`/api/v1/articles/${id}/unpublish`, { method: 'POST', withAuth: true })
+}
+
 export function importArticleMd(file, { mode = 'create', articleId } = {}) {
   const token = getStoredAccessToken()
   if (!token) {
