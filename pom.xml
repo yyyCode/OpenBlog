@@ -17,6 +17,7 @@
     <modules>
         <module>OpenBlog-framework-redis</module>
         <module>OpenBlog-framework-elasticsearch</module>
+        <module>OpenBlog-email</module>
         <module>OpenBlog-business</module>
     </modules>
     <properties>
