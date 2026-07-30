@@ -72,7 +72,7 @@ public class ArticleController {
     @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<Void> unpublish(@PathVariable("articleId") Long articleId) {
         Long uid = currentUser.userId();
-        articleService.unpublishOrDelete(uid, articleId);
+        articleService.hide(uid, articleId);
         return ApiResponse.ok();
     }
 
@@ -80,7 +80,7 @@ public class ArticleController {
     @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
     public ApiResponse<Void> deleteArticle(@PathVariable("articleId") Long articleId) {
         Long uid = currentUser.userId();
-        articleService.unpublishOrDelete(uid, articleId);
+        articleService.deletePermanently(uid, articleId);
         return ApiResponse.ok();
     }
 
