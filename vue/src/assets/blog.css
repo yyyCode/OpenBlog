@@ -471,7 +471,7 @@ body {
   border-radius: 10px;
   overflow: hidden;
   background: var(--placeholder-tint);
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
 }
 
 .home-featured-cover img {
@@ -1132,7 +1132,7 @@ body {
 
 .mini-cover {
   width: 60px;
-  height: 44px;
+  aspect-ratio: 16 / 9;
   border-radius: 10px;
   overflow: hidden;
   background: var(--placeholder-tint);
