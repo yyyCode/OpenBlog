@@ -3261,6 +3261,20 @@ body {
   color: var(--muted);
 }
 
+.site-footer-sep {
+  margin: 0 8px;
+  color: var(--border, #ccc);
+}
+
+.site-footer-icp {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.site-footer-icp:hover {
+  color: var(--accent, #4a90d9);
+}
+
 [data-theme='dark'] .site-footer {
   border-top-color: var(--border-dark, #334155);
 }
