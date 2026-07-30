@@ -88,35 +88,48 @@ jobs:
           TARGET_DIR="/www/wwwroot/java/openblog"
           TARGET_JAR="$TARGET_DIR/OpenBlog-business-1.0.0-SNAPSHOT.jar"
           JAVA_HOME="/www/server/java/jdk-17.0.8"
+          SERVICE_NAME="openblog"
 
-          # 停止旧进程
-          OLD_PID=$(ps aux | grep 'OpenBlog-business' | grep -v grep | awk '{print $2}')
-          if [ -n "$OLD_PID" ]; then
-            echo "Stopping old process (PID: $OLD_PID)..."
-            kill $OLD_PID
-            sleep 5
-            # 如果还没停，强制 kill
-            if kill -0 $OLD_PID 2>/dev/null; then
-              kill -9 $OLD_PID
-              sleep 2
-            fi
+          # 确保 systemd service 文件存在
+          if [ ! -f /etc/systemd/system/${SERVICE_NAME}.service ]; then
+            cat > /etc/systemd/system/${SERVICE_NAME}.service << 'SVC'
+          [Unit]
+          Description=OpenBlog Backend
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory=/www/wwwroot/java/openblog
+          ExecStart=/www/server/java/jdk-17.0.8/bin/java -jar -Xmx1024M -Xms256M /www/wwwroot/java/openblog/OpenBlog-business-1.0.0-SNAPSHOT.jar
+          Restart=on-failure
+          RestartSec=10
+          StandardOutput=append:/www/wwwroot/java/openblog/app.log
+          StandardError=append:/www/wwwroot/java/openblog/app.log
+
+          [Install]
+          WantedBy=multi-user.target
+          SVC
+            systemctl daemon-reload
           fi
+
+          # 停止旧服务
+          systemctl stop ${SERVICE_NAME} || true
 
           # 备份旧 jar
           if [ -f "$TARGET_JAR" ]; then
+            mkdir -p "$TARGET_DIR/backup"
             cp "$TARGET_JAR" "$TARGET_DIR/backup/OpenBlog-business-$(date +%Y%m%d-%H%M%S).jar" 2>/dev/null || true
           fi
 
           # 复制新 jar
-          mkdir -p "$TARGET_DIR/backup"
           cp "$JAR_FILE" "$TARGET_JAR"
 
-          # 启动新进程
-          cd "$TARGET_DIR"
-          nohup $JAVA_HOME/bin/java -jar -Xmx1024M -Xms256M "$TARGET_JAR" > app.log 2>&1 &
+          # 启动服务
+          systemctl start ${SERVICE_NAME}
 
           echo "Deployed $JAR_FILE → $TARGET_JAR"
-          echo "New PID: $!"
+          systemctl status ${SERVICE_NAME} --no-pager || true
 
   build-frontend:
     needs: changes
