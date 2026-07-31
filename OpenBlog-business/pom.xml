@@ -81,6 +81,12 @@
 
         <dependency>
             <groupId>com.yqz</groupId>
+            <artifactId>OpenBlog-framework-audit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.yqz</groupId>
             <artifactId>OpenBlog-framework-redis</artifactId>
             <version>${project.version}</version>
         </dependency>
