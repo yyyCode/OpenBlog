@@ -58,6 +58,11 @@ dubbo:
   consumer:
     check: false
 
+audit:
+  enabled: true
+  async: true
+  channel: local
+
 openblog:
   seo:
     site-url: "https://www.wecode.xin"

@@ -28,8 +28,8 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "audit", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class AuditAutoConfiguration {
 
-    @Bean
-    @ConditionalOnMissingBean
+    @Bean("auditTaskExecutor")
+    @ConditionalOnMissingBean(name = "auditTaskExecutor")
     public TaskExecutor auditTaskExecutor() {
         return new SimpleAsyncTaskExecutor("audit-");
     }
