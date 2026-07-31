@@ -21,15 +21,14 @@ public class EmailAdminController {
     }
 
     /**
-     * 快速测试发送邮件。
+     * 快速测试发送邮件：POST /api/v1/email/test?recipient=xxx&subject=xxx&body=xxx
      */
     @PostMapping("/test")
-    public EmailSendResult testSend(@RequestBody Map<String, String> body) {
-        EmailSendRequest req = new EmailSendRequest(
-                body.get("recipient"),
-                body.get("subject"),
-                body.get("body")
-        );
+    public EmailSendResult testSend(
+            @RequestParam String recipient,
+            @RequestParam String subject,
+            @RequestParam String body) {
+        EmailSendRequest req = new EmailSendRequest(recipient, subject, body);
         return emailService.send(req);
     }
 
