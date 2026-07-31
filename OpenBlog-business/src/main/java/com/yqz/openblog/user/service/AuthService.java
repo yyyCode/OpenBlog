@@ -18,6 +18,7 @@ import com.yqz.openblog.user.entity.UserRole;
 import com.yqz.openblog.media.service.MediaService;
 import com.yqz.openblog.user.repo.RefreshTokenMapper;
 import com.yqz.openblog.user.repo.UserMapper;
+import com.yqz.openblog.user.validator.EmailValidator;
 import com.yqz.openblog.config.ClientIpResolver;
 import com.yqz.openblog.security.CurrentUser;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -41,6 +42,7 @@ public class AuthService {
     private final SliderVerificationService sliderVerificationService;
     private final LoginLockoutService loginLockoutService;
     private final MediaService mediaService;
+    private final EmailValidator emailValidator;
 
     public AuthService(UserMapper userMapper,
                         RefreshTokenMapper refreshTokenMapper,
@@ -50,7 +52,8 @@ public class AuthService {
                         CurrentUser currentUser,
                         SliderVerificationService sliderVerificationService,
                         LoginLockoutService loginLockoutService,
-                        MediaService mediaService) {
+                        MediaService mediaService,
+                        EmailValidator emailValidator) {
         this.userMapper = userMapper;
         this.refreshTokenMapper = refreshTokenMapper;
         this.passwordEncoder = passwordEncoder;
@@ -60,10 +63,18 @@ public class AuthService {
         this.sliderVerificationService = sliderVerificationService;
         this.loginLockoutService = loginLockoutService;
         this.mediaService = mediaService;
+        this.emailValidator = emailValidator;
     }
 
     public AuthResponse register(RegisterRequest req) {
         sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
+
+        // 邮箱校验
+        String emailError = emailValidator.validate(req.getEmail());
+        if (emailError != null) {
+            throw new BizException(clientErrorCode(), emailError);
+        }
+
         if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
                 .eq(User::getUsername, req.getUsername())) > 0) {
             throw new BizException(clientErrorCode(), "用户名已存在");
@@ -241,9 +252,14 @@ public class AuthService {
 
         if (req.getEmail() != null && !req.getEmail().trim().isEmpty()) {
             String newEmail = req.getEmail().trim();
-            if (!newEmail.equals(user.getEmail()) &&
-                    userMapper.selectCount(Wrappers.lambdaQuery(User.class).eq(User::getEmail, newEmail)) > 0) {
-                throw new BizException(4090, "邮箱已存在");
+            if (!newEmail.equals(user.getEmail())) {
+                String emailError = emailValidator.validate(newEmail);
+                if (emailError != null) {
+                    throw new BizException(4090, emailError);
+                }
+                if (userMapper.selectCount(Wrappers.lambdaQuery(User.class).eq(User::getEmail, newEmail)) > 0) {
+                    throw new BizException(4090, "邮箱已存在");
+                }
             }
             user.setEmail(newEmail);
         }
