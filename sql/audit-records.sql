@@ -1,0 +1,27 @@
+-- 审计记录表
+CREATE TABLE IF NOT EXISTS audit_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    trace_id VARCHAR(36) COMMENT '链路追踪 ID',
+    user_id BIGINT COMMENT '操作人 ID',
+    username VARCHAR(64) COMMENT '操作人名称',
+    action VARCHAR(64) NOT NULL COMMENT '操作动作（如 ARTICLE_PUBLISH）',
+    entity_type VARCHAR(64) COMMENT '实体类型',
+    entity_id VARCHAR(128) COMMENT '实体 ID',
+    method VARCHAR(256) COMMENT '方法签名',
+    success TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否成功',
+    elapsed_ms BIGINT COMMENT '耗时（毫秒）',
+    client_ip VARCHAR(45) COMMENT '客户端 IP',
+    user_agent VARCHAR(512) COMMENT 'User-Agent',
+    request_uri VARCHAR(512) COMMENT '请求 URI',
+    http_method VARCHAR(10) COMMENT 'HTTP Method',
+    before_snapshot JSON COMMENT '操作前快照',
+    after_snapshot JSON COMMENT '操作后快照',
+    args TEXT COMMENT '入参 JSON',
+    result TEXT COMMENT '返回值 JSON',
+    error_msg TEXT COMMENT '异常信息',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_action_created (action, created_at DESC),
+    INDEX idx_user_created (user_id, created_at DESC),
+    INDEX idx_entity (entity_type, entity_id),
+    INDEX idx_trace (trace_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

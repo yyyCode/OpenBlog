@@ -1,0 +1,2 @@
+com.yqz.openblog.audit.config.AuditAutoConfiguration
+com.yqz.openblog.audit.kafka.KafkaAuditAutoConfiguration
