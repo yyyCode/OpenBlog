@@ -5,7 +5,7 @@ spring:
   application:
     name: openblog-email
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/openblog?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://10.21.76.221:3306/openblog?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -24,12 +24,12 @@ dubbo:
     name: dubbo
     port: 20883
   registry:
-    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    address: nacos://10.21.76.221:8848?username=nacos&password=nacos
     check: false
     parameters:
       namespace: public
   config-center:
-    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    address: nacos://10.21.76.221:8848?username=nacos&password=nacos
     check: false
   scan:
     base-packages: com.yqz.openblog.email.service

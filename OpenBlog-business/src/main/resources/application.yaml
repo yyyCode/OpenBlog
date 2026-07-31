@@ -48,12 +48,12 @@ dubbo:
     name: openblog-business
     logger: slf4j
   registry:
-    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    address: nacos://10.21.76.221:8848?username=nacos&password=nacos
     check: false
     parameters:
       namespace: public
   config-center:
-    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    address: nacos://10.21.76.221:8848?username=nacos&password=nacos
     check: false
   consumer:
     check: false
