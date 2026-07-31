@@ -16,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
@@ -56,7 +57,7 @@ public class AuditAutoConfiguration {
     @ConditionalOnMissingBean
     public AuditChannel auditChannel(
             AuditProperties props,
-            TaskExecutor auditTaskExecutor,
+            @Qualifier("auditTaskExecutor") TaskExecutor auditTaskExecutor,
             List<AuditRecordHandler> handlers
     ) {
         // 先落一个通用默认：local。Kafka 通道会在后续配置类里按条件覆盖。
