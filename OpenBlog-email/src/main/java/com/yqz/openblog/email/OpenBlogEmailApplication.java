@@ -8,9 +8,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @EnableDubbo
 @MapperScan("com.yqz.openblog.email.repo")
-public class EmailServiceApplication {
+public class OpenBlogEmailApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(EmailServiceApplication.class, args);
+        SpringApplication.run(OpenBlogEmailApplication.class, args);
     }
 }
