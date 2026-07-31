@@ -42,6 +42,16 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+# Dubbo consumer
+dubbo:
+  application:
+    name: openblog-business
+    logger: slf4j
+  registry:
+    address: nacos://127.0.0.1:8848
+    parameters:
+      namespace: public
+
 openblog:
   seo:
     site-url: "https://www.wecode.xin"

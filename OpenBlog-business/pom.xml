@@ -55,6 +55,30 @@
             <version>3.5.16</version>
         </dependency>
 
+        <!-- Email RPC interface -->
+        <dependency>
+            <groupId>com.yqz</groupId>
+            <artifactId>OpenBlog-email-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Dubbo + Nacos (consumer) -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+            <version>3.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-registry-nacos</artifactId>
+            <version>3.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba.nacos</groupId>
+            <artifactId>nacos-client</artifactId>
+            <version>2.4.3</version>
+        </dependency>
+
         <dependency>
             <groupId>com.yqz</groupId>
             <artifactId>OpenBlog-framework-redis</artifactId>
