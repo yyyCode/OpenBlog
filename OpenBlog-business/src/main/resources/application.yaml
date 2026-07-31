@@ -49,8 +49,11 @@ dubbo:
     logger: slf4j
   registry:
     address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    check: false
     parameters:
       namespace: public
+  consumer:
+    check: false
 
 openblog:
   seo:
