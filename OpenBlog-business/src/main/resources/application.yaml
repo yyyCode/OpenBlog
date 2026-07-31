@@ -52,6 +52,9 @@ dubbo:
     check: false
     parameters:
       namespace: public
+  config-center:
+    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    check: false
   consumer:
     check: false
 

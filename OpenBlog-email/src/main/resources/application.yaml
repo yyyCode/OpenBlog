@@ -25,8 +25,12 @@ dubbo:
     port: 20883
   registry:
     address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    check: false
     parameters:
       namespace: public
+  config-center:
+    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    check: false
   scan:
     base-packages: com.yqz.openblog.email.service
 
