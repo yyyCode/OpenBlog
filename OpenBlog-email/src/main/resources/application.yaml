@@ -5,9 +5,9 @@ spring:
   application:
     name: openblog-email
   datasource:
-    url: jdbc:mysql://10.21.76.221:3306/openblog?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mysql://10.21.76.221:3306/openblog?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 12345678aa
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:
@@ -38,9 +38,9 @@ dubbo:
 openblog:
   email:
     aliyun:
-      enabled: ${EMAIL_ENABLED:false}
+      enabled: true
       access-key-id: ${ALIYUN_AK:}
       access-key-secret: ${ALIYUN_SK:}
       region-id: cn-hangzhou
-      from-address: ${EMAIL_FROM:}
+      from-address: ${ALIYUN_FROM:}
       from-alias: OpenBlog

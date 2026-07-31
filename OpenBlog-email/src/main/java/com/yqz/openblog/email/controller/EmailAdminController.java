@@ -1,6 +1,8 @@
 package com.yqz.openblog.email.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.yqz.openblog.email.api.EmailSendRequest;
+import com.yqz.openblog.email.api.EmailSendResult;
 import com.yqz.openblog.email.dto.EmailRecordResponse;
 import com.yqz.openblog.email.service.EmailService;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,18 @@ public class EmailAdminController {
 
     public EmailAdminController(EmailService emailService) {
         this.emailService = emailService;
+    }
+
+    /**
+     * 快速测试发送邮件：POST /api/v1/email/test?recipient=xxx&subject=xxx&body=xxx
+     */
+    @PostMapping("/test")
+    public EmailSendResult testSend(
+            @RequestParam String recipient,
+            @RequestParam String subject,
+            @RequestParam String body) {
+        EmailSendRequest req = new EmailSendRequest(recipient, subject, body);
+        return emailService.send(req);
     }
 
     @GetMapping("/records")

@@ -1,5 +1,6 @@
 package com.yqz.openblog.article.service;
 
+import com.yqz.openblog.audit.annotation.AuditLog;
 import com.yqz.openblog.article.dto.ArticleCreateRequest;
 import com.yqz.openblog.article.dto.ArticleDetailResponse;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
@@ -447,6 +448,7 @@ public class ArticleService {
         removeFromEs(articleId);
     }
 
+    @AuditLog(action = "ARTICLE_DELETE", entityType = "Article", entityId = "#articleId")
     @Transactional
     public void deletePermanently(Long authorId, Long articleId) {
         Article a = articleMapper.selectById(articleId);
