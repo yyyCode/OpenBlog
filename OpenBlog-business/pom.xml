@@ -62,6 +62,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.yqz</groupId>
+            <artifactId>OpenBlog-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Dubbo + Nacos (consumer) -->
         <dependency>
             <groupId>org.apache.dubbo</groupId>
