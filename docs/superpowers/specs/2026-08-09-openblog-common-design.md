@@ -68,7 +68,7 @@ src/main/resources/META-INF/spring/
 
 ### SecurityExceptionHandler(新增,条件装配)
 - 处理 `AccessDeniedException` / `AuthorizationDeniedException` → 4030 "无权限"
-- 类级注解 `@ConditionalOnClass(AccessDeniedException.class)`
+- `CommonAutoConfiguration` 的 `@Bean` 方法级注解 `@ConditionalOnClass(name = "org.springframework.security.access.AccessDeniedException")`(字符串形式,基于 ASM 检查 classpath,无 security 时不加载该类)
 - 依赖 `spring-security-core`(optional scope),business 有 security 则生效,email 无 security 自动跳过
 
 ## 自动装配方式
@@ -87,21 +87,20 @@ src/main/resources/META-INF/spring/
 **处理**:自动装配是唯一注册机制,business 启动类用正则过滤将 `com.yqz.openblog.common.*` 排除出组件扫描:
 
 ```java
-@SpringBootApplication
 @ComponentScan(
     basePackages = "com.yqz.openblog",
-    excludeFilters = @ComponentScan.Filter(
-        type = FilterType.REGEX,
-        pattern = "com\\.yqz\\.openblog\\.common\\..*"))
+    excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+        @ComponentScan.Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class),
+        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com\\.yqz\\.openblog\\.common\\..*") })
 public class OpenBlogApplication { ... }
 ```
 
 注意:
+- 显式 `@ComponentScan` 不会自动带上 `@SpringBootApplication` 默认的两个过滤,必须**手动补回** `TypeExcludeFilter` / `AutoConfigurationExcludeFilter`,否则 `com.yqz.openblog` 下 framework 模块的 `@AutoConfiguration` 类会被组件扫描当作普通 `@Configuration` 重复注册。
 - POJO 类(`ApiResponse` 等)不是 Spring bean,不受排除影响,包名不变、business 的 import 依旧零改动。
 - email 不扫描 `com.yqz.openblog` 包,无需排除,自动装配直接生效。
-- 两个 `@ConditionalOnWebApplication` 守卫保证该自动装配只在 web 应用中生效。
-
-## 依赖接线
+- `CommonAutoConfiguration` 类级单个 `@ConditionalOnWebApplication` 守卫保证该自动装配只在 web 应用中生效。
 
 ## 依赖接线
 
