@@ -27,6 +27,10 @@ public class EmailRecord {
     @TableField("request_id")
     private String requestId;
 
+    /** 幂等键（业务方生成）。email_records.idempotency_key 唯一索引兜底防重发。 */
+    @TableField("idempotency_key")
+    private String idempotencyKey;
+
     @TableField("sent_at")
     private Instant sentAt;
 
@@ -55,6 +59,9 @@ public class EmailRecord {
 
     public String getRequestId() { return requestId; }
     public void setRequestId(String requestId) { this.requestId = requestId; }
+
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
 
     public Instant getSentAt() { return sentAt; }
     public void setSentAt(Instant sentAt) { this.sentAt = sentAt; }

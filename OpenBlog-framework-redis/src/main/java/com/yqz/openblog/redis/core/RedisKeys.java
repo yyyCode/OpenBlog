@@ -34,6 +34,9 @@ public final class RedisKeys {
     private static final String SECURITY_SLIDER_PENDING = "openblog:security:slider:pending";
     private static final String SECURITY_SLIDER_OK = "openblog:security:slider:ok";
     public static final String SECURITY_SLIDER_HEALTHCHECK = "openblog:security:slider:healthcheck";
+    private static final String SECURITY_EMAIL_CODE = "openblog:security:email:code";
+    private static final String SECURITY_EMAIL_COOLDOWN = "openblog:security:email:cooldown";
+    private static final String SECURITY_EMAIL_ATTEMPT = "openblog:security:email:attempt";
 
     // ==================== ratelimit ====================
 
@@ -72,6 +75,18 @@ public final class RedisKeys {
 
     public static String sliderOk(String id) {
         return SECURITY_SLIDER_OK + ":" + id;
+    }
+
+    public static String emailCode(String email) {
+        return SECURITY_EMAIL_CODE + ":" + email;
+    }
+
+    public static String emailCooldown(String email) {
+        return SECURITY_EMAIL_COOLDOWN + ":" + email;
+    }
+
+    public static String emailAttempt(String email) {
+        return SECURITY_EMAIL_ATTEMPT + ":" + email;
     }
 
     public static String feedbackIpDay(String ipKey, Object day) {

@@ -1,13 +1,13 @@
 package com.yqz.openblog.email.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.yqz.openblog.common.ApiResponse;
+import com.yqz.openblog.common.PageResult;
 import com.yqz.openblog.email.api.EmailSendRequest;
 import com.yqz.openblog.email.api.EmailSendResult;
 import com.yqz.openblog.email.dto.EmailRecordResponse;
 import com.yqz.openblog.email.service.EmailService;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/email")
@@ -24,25 +24,21 @@ public class EmailAdminController {
      * 快速测试发送邮件：POST /api/v1/email/test?recipient=xxx&subject=xxx&body=xxx
      */
     @PostMapping("/test")
-    public EmailSendResult testSend(
+    public ApiResponse<EmailSendResult> testSend(
             @RequestParam String recipient,
             @RequestParam String subject,
             @RequestParam String body) {
         EmailSendRequest req = new EmailSendRequest(recipient, subject, body);
-        return emailService.send(req);
+        return ApiResponse.ok(emailService.send(req));
     }
 
     @GetMapping("/records")
-    public Map<String, Object> listRecords(
+    public ApiResponse<PageResult<EmailRecordResponse>> listRecords(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String status) {
         IPage<EmailRecordResponse> p = emailService.listRecords(page, size, status);
-        return Map.of(
-                "items", p.getRecords(),
-                "total", p.getTotal(),
-                "page", page,
-                "size", size
-        );
+        PageResult<EmailRecordResponse> pr = new PageResult<>(p.getRecords(), page, size, p.getTotal());
+        return ApiResponse.ok(pr);
     }
 }

@@ -43,6 +43,7 @@ public class AuthService {
     private final LoginLockoutService loginLockoutService;
     private final MediaService mediaService;
     private final EmailValidator emailValidator;
+    private final EmailCodeService emailCodeService;
 
     public AuthService(UserMapper userMapper,
                         RefreshTokenMapper refreshTokenMapper,
@@ -53,7 +54,8 @@ public class AuthService {
                         SliderVerificationService sliderVerificationService,
                         LoginLockoutService loginLockoutService,
                         MediaService mediaService,
-                        EmailValidator emailValidator) {
+                        EmailValidator emailValidator,
+                        EmailCodeService emailCodeService) {
         this.userMapper = userMapper;
         this.refreshTokenMapper = refreshTokenMapper;
         this.passwordEncoder = passwordEncoder;
@@ -64,6 +66,7 @@ public class AuthService {
         this.loginLockoutService = loginLockoutService;
         this.mediaService = mediaService;
         this.emailValidator = emailValidator;
+        this.emailCodeService = emailCodeService;
     }
 
     public AuthResponse register(RegisterRequest req) {
@@ -74,6 +77,9 @@ public class AuthService {
         if (emailError != null) {
             throw new BizException(clientErrorCode(), emailError);
         }
+
+        // 校验邮箱验证码（code-first：先验证验证码，再建号）
+        emailCodeService.verifyAndConsume(req.getEmail(), req.getCode());
 
         if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
                 .eq(User::getUsername, req.getUsername())) > 0) {

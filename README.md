@@ -8,6 +8,7 @@
 
 | 模块 | 说明 |
 |------|------|
+| `OpenBlog-common` | 公共模块：统一响应 `ApiResponse`、`PageResult`、`BizException`、异常处理自动装配 |
 | `OpenBlog-business` | 主业务服务（端口 8082）：文章、评论、论坛、用户、认证、SEO、媒体管理 |
 | `OpenBlog-email` | 独立邮件服务（端口 8083）：阿里云 DirectMail + Dubbo RPC + Nacos 注册 |
 | `OpenBlog-api` | 共享 API 聚合模块 |

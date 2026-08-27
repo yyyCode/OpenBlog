@@ -9,11 +9,9 @@ import java.io.IOException;
 
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authorization.AuthorizationDeniedException;
 
 /**
- * 统一异常处理（MVP）。
+ * 统一异常处理（OpenBlog-common）。通过 CommonAutoConfiguration 自动装配注册。
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -39,15 +37,6 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 方法级鉴权（@PreAuthorize）失败会抛出 AuthorizationDeniedException；
-     * 以前会落到兜底 Exception -> 5001，导致前端误判为“服务器异常”。
-     */
-    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
-    public ResponseEntity<ApiResponse<Object>> onAccessDenied(Exception ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(4030, "无权限"));
-    }
-
-    /**
      * IO 异常（MinIO 读写、文件读写等）直接返回原始错误信息，便于排查。
      */
     @ExceptionHandler(IOException.class)
@@ -64,4 +53,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(5001, msg));
     }
 }
-
