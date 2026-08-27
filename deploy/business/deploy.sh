@@ -36,10 +36,29 @@ ssh "$SERVER" "mkdir -p '$REMOTE_DIR'"
 scp -q "$JAR"            "$SERVER:$REMOTE_DIR/OpenBlog-business-1.0.0-SNAPSHOT.jar"
 scp -q "$REPO_ROOT/deploy/business/Dockerfile"         "$SERVER:$REMOTE_DIR/Dockerfile"
 scp -q "$REPO_ROOT/deploy/business/docker-compose.yml" "$SERVER:$REMOTE_DIR/docker-compose.yml"
+scp -q "$REPO_ROOT/deploy/business/.dockerignore"      "$SERVER:$REMOTE_DIR/.dockerignore"
 
-# 3. 服务器端：构建镜像并重启容器
+# 3. 服务器端：构建镜像并重启容器（兼容 compose v2「docker compose」与 v1「docker-compose」）
 echo "==> [3/3] 服务器构建镜像 + 启动容器 ..."
-ssh "$SERVER" "cd '$REMOTE_DIR' && docker compose up -d --build --remove-orphans"
+ssh "$SERVER" "cd '$REMOTE_DIR' && bash -s" <<'REMOTE'
+set -e
+echo "-- 目录内容 --"
+ls -la
+echo "-- docker 版本 --"
+docker --version
+if docker compose version >/dev/null 2>&1; then
+    DC="docker compose"
+elif docker-compose version >/dev/null 2>&1; then
+    DC="docker-compose"
+else
+    echo "!! 服务器上没有 docker compose / docker-compose，请先安装 Docker（宝塔 → Docker 管理器）" >&2
+    exit 1
+fi
+echo "-- 使用: $DC --"
+$DC up -d --build --remove-orphans
+echo "-- 容器状态 --"
+$DC ps
+REMOTE
 
 echo ""
 echo "==> 部署完成。常用命令："

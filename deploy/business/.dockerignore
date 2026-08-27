@@ -1,0 +1,5 @@
+# 构建上下文只需 jar + Dockerfile。
+# 部署目录里还有 actions-runner / app.log / backup 等大目录，必须排除，否则 docker build 上下文会很大。
+*
+!OpenBlog-business-*.jar
+!Dockerfile

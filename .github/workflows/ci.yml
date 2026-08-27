@@ -1,5 +1,5 @@
 # OpenBlog：push 到 master 时编译后端、打包前端，并将静态资源与 Docker 相关文件同步到阿里云，在服务器执行 docker.sh 更新 Nginx 容器。
-# 后端部署到内网自托管 Runner。
+# 后端由内网自托管 Runner 构建为 Docker 容器（openblog-business，8082）。
 #
 # 需在仓库 Settings → Secrets and variables → Actions 中配置：
 #   SERVER_SSH_KEY      服务器 SSH 私钥（完整 PEM）
@@ -7,7 +7,7 @@
 #   SERVER_REMOTE_USER  SSH 登录用户（如 root 或 deploy）
 #   SERVER_TARGET       服务器上部署目录绝对路径（如 /opt/openblog/web），该目录下会有 dist、Dockerfile、docker.sh、nginx.conf
 #
-# 后端 Spring Boot 需在**同一台机器宿主机**上监听 8082（java -jar 或 systemd），容器内 Nginx 通过 host.docker.internal 反代到宿主机。
+# 后端 Spring Boot 以 Docker 容器运行（openblog-business，8082），前端容器内 Nginx 通过 host.docker.internal 反代到宿主机 8082。
 # 前端容器默认映射宿主机端口 18088 → 容器 80，访问 http://IP:18088/ ，请在安全组放行 TCP 18088。
 name: Build and deploy OpenBlog
 
@@ -21,6 +21,7 @@ on:
       - 'OpenBlog-framework*/**'
       - 'vue/**'
       - 'pom.xml'
+      - 'deploy/business/**'
       - '.github/workflows/ci.yml'
 
 jobs:
@@ -41,6 +42,7 @@ jobs:
               - 'OpenBlog-framework*/**'
               - 'OpenBlog-message/**'
               - 'OpenBlog-message-api/**'
+              - 'deploy/business/**'
               - 'pom.xml'
             frontend:
               - 'vue/**'
@@ -79,59 +81,52 @@ jobs:
     runs-on: openblog-backend
 
     steps:
+      - name: Checkout（获取 deploy/business 下的 Docker 部署文件）
+        uses: actions/checkout@v4
+
       - name: Download backend JAR
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
+          path: backend
 
-      - name: Deploy to internal server
+      - name: Deploy via Docker（构建镜像 + 重启容器）
         run: |
-          JAR_FILE=$(ls OpenBlog-business-*.jar | head -1)
+          set -euo pipefail
           TARGET_DIR="/www/wwwroot/java/openblog"
           TARGET_JAR="$TARGET_DIR/OpenBlog-business-1.0.0-SNAPSHOT.jar"
-          JAVA_HOME="/www/server/java/jdk-17.0.8"
-          SERVICE_NAME="openblog"
 
-          # 确保 systemd service 文件存在
-          if [ ! -f /etc/systemd/system/${SERVICE_NAME}.service ]; then
-            cat > /etc/systemd/system/${SERVICE_NAME}.service << 'SVC'
-          [Unit]
-          Description=OpenBlog Backend
-          After=network.target
+          # 1. 停掉旧 systemd 服务（释放 8082，避免与容器抢端口）
+          systemctl stop openblog 2>/dev/null || true
+          systemctl disable openblog 2>/dev/null || true
 
-          [Service]
-          Type=simple
-          User=root
-          WorkingDirectory=/www/wwwroot/java/openblog
-          ExecStart=/www/server/java/jdk-17.0.8/bin/java -jar -Xmx1024M -Xms256M /www/wwwroot/java/openblog/OpenBlog-business-1.0.0-SNAPSHOT.jar
-          Restart=on-failure
-          RestartSec=10
-          StandardOutput=append:/www/wwwroot/java/openblog/app.log
-          StandardError=append:/www/wwwroot/java/openblog/app.log
-
-          [Install]
-          WantedBy=multi-user.target
-          SVC
-            systemctl daemon-reload
-          fi
-
-          # 停止旧服务
-          systemctl stop ${SERVICE_NAME} || true
-
-          # 备份旧 jar
+          # 2. 备份旧 jar
           if [ -f "$TARGET_JAR" ]; then
             mkdir -p "$TARGET_DIR/backup"
             cp "$TARGET_JAR" "$TARGET_DIR/backup/OpenBlog-business-$(date +%Y%m%d-%H%M%S).jar" 2>/dev/null || true
           fi
 
-          # 复制新 jar
+          # 3. 拷贝新 jar + Docker 部署文件（.dockerignore 缩小构建上下文）
+          JAR_FILE=$(ls backend/OpenBlog-business-*.jar | head -1)
           cp "$JAR_FILE" "$TARGET_JAR"
+          cp deploy/business/Dockerfile deploy/business/docker-compose.yml deploy/business/.dockerignore "$TARGET_DIR/"
 
-          # 启动服务
-          systemctl start ${SERVICE_NAME}
+          # 4. Docker 构建并启动容器（兼容 compose v2「docker compose」/ v1「docker-compose」）
+          cd "$TARGET_DIR"
+          docker info >/dev/null 2>&1 || { echo "!! Docker 守护进程未运行，请先启动 Docker（宝塔 → Docker 管理器）" >&2; exit 1; }
+          if docker compose version >/dev/null 2>&1; then
+            DC="docker compose"
+          elif docker-compose version >/dev/null 2>&1; then
+            DC="docker-compose"
+          else
+            echo "!! 服务器上没有 docker compose / docker-compose，请先安装 Docker（宝塔 → Docker 管理器）" >&2
+            exit 1
+          fi
+          echo "==> 使用: $DC"
+          $DC up -d --build --remove-orphans
+          $DC ps
 
-          echo "Deployed $JAR_FILE → $TARGET_JAR"
-          systemctl status ${SERVICE_NAME} --no-pager || true
+          echo "==> Deployed OpenBlog-business via Docker"
 
   build-frontend:
     needs: changes

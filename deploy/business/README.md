@@ -61,11 +61,20 @@ compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/www
 `OpenBlog-message` 也是独立服务，参照本目录再加一份 `deploy/message/`（Dockerfile +
 docker-compose + deploy 脚本），端口 8083，JAVA_OPTS 由原宝塔命令决定。当前先只做 business。
 
-## 进阶：CI 全自动
+## 进阶：CI 全自动（已实现）
 
-若想「push 即自动部署」，可用 GitHub Actions：push 到 master → 构建 jar → 构建镜像 →
-推 GHCR 镜像仓库 → SSH 到服务器 pull + `docker compose up -d`。需要配 registry token 与
-SSH 密钥 secrets。需要的话可以在此基础上加，但个人博客用本地 `./deploy.sh` 已经够快。
+`.github/workflows/ci.yml` 中，push 到 master（或手动 `workflow_dispatch`）触发
+`deploy-backend` job，在服务器上的自托管 Runner（`openblog-backend`）直接执行：
+
+1. `actions/checkout` 拿到本目录的 `Dockerfile` / `docker-compose.yml` / `.dockerignore`
+2. 下载 `build-backend` 产出的 jar
+3. 停掉旧 systemd 服务 `openblog`（释放 8082），备份旧 jar
+4. 拷贝 jar + 部署文件到 `/www/wwwroot/java/openblog/`
+5. `docker compose up -d --build --remove-orphans` 并打印容器状态
+
+即 push 到 master 即自动 Docker 部署，本地不再需要跑 `./deploy.sh`。
+前提：服务器已装 Docker，Runner 用户有 docker 权限。前端走另一条 `deploy-frontend` 流水线。
+改动 `deploy/business/**` 也会触发本流水线（Dockerfile/compose 变更即生效）。
 
 ## 常见问题
 
