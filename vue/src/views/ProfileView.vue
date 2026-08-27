@@ -61,6 +61,15 @@ const saved = ref(false)
 const saving = ref(false)
 const uploading = ref(false)
 
+function handleAuthError(e) {
+  if (e.httpStatus === 401) {
+    clearAuth()
+    router.replace({ path: '/login', query: { redirect: '/profile' } })
+    return true
+  }
+  return false
+}
+
 async function loadMe() {
   try {
     const me = await fetchMe()
@@ -70,12 +79,8 @@ async function loadMe() {
       bio: me.bio || ''
     }
   } catch (e) {
-    if (e.httpStatus === 401) {
-      clearAuth()
-      router.replace({ path: '/login', query: { redirect: '/profile' } })
-    } else {
-      error.value = e.message || '加载个人信息失败'
-    }
+    if (handleAuthError(e)) return
+    error.value = e.message || '加载个人信息失败'
   }
 }
 
@@ -88,6 +93,7 @@ async function onPickAvatar(e) {
     const resp = await uploadMedia(file)
     form.value.avatarUrl = resp.url
   } catch (err) {
+    if (handleAuthError(err)) return
     error.value = err.message || '头像上传失败'
   } finally {
     uploading.value = false
@@ -119,6 +125,7 @@ async function save() {
       saved.value = false
     }, 2000)
   } catch (err) {
+    if (handleAuthError(err)) return
     error.value = err.message || '保存失败'
   } finally {
     saving.value = false
