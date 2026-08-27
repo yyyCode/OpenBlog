@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onMounted, provide, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import BlogHeader from './components/BlogHeader.vue'
 import WelcomeGate from './components/WelcomeGate.vue'
@@ -24,17 +24,26 @@ function toggleWidgets() {
   widgetsOpen.value = !widgetsOpen.value
 }
 
-onMounted(() => {
-  postSiteVisit().catch(() => {})
-})
-
-onMounted(async () => {
-  if (isConsole.value) return
+async function loadProfile() {
+  if (route.path.startsWith('/console')) return
   try {
     profile.value = await fetchPublicProfile()
   } catch {
     profile.value = null
   }
+}
+
+watch(
+  () => route.fullPath,
+  () => loadProfile()
+)
+
+onMounted(() => {
+  postSiteVisit().catch(() => {})
+})
+
+onMounted(async () => {
+  await loadProfile()
   // 加载站点配置
   try {
     siteConfig.value = await fetchSiteConfig()
