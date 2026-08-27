@@ -48,8 +48,8 @@ CSS 沿用站点现有卡片风格（`vue/src/assets/blog.css` 与 `ConsoleProfi
   - **头像**：大图预览（`UserAvatar`）+「更换头像」`<input type=file accept=image/*>` → `uploadMedia(file)` → 拿 `resp.url` 暂存到表单（此时未落库）。
   - **用户名**：可编辑（3–32 字符，后端 `@Size` 已校验）。
   - **签名 bio**：可编辑（≤512）。
-  - **邮箱**：只读展示（改邮箱缺少验证码重验流程，本期不做）。
 - **保存**：一次性 `PUT /api/v1/users/me`（payload：username / bio / avatarUrl）→ 用返回的 MeResponse 刷新本地 → 成功提示。Header 在路由变化时自动重载、侧边栏 `GET /profile`（auth-aware）自动同步新头像/名字。
+- **不展示邮箱**：MeResponse 不含 email 字段，展示需后端改动，本期不做。
 - **退出登录**：`clearAuth()` → `router.push('/login')`。
 
 ## 路由守卫
