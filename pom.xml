@@ -16,12 +16,10 @@
     <description>OpenBlog</description>
     <modules>
         <module>OpenBlog-common</module>
-        <module>OpenBlog-framework-redis</module>
-        <module>OpenBlog-framework-elasticsearch</module>
+        <module>OpenBlog-framework</module>
         <module>OpenBlog-api</module>
         <module>OpenBlog-email</module>
         <module>OpenBlog-business</module>
-        <module>OpenBlog-framework-audit</module>
     </modules>
     <properties>
         <java.version>17</java.version>

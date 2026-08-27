@@ -13,9 +13,10 @@
 | `OpenBlog-email` | 独立邮件服务（端口 8083）：阿里云 DirectMail + Dubbo RPC + Nacos 注册 |
 | `OpenBlog-api` | 共享 API 聚合模块 |
 | ├ `OpenBlog-email-api` | Email RPC 接口与 DTO |
-| `OpenBlog-framework-redis` | Redis 封装：`RedisOps`、Key 管理、滑动窗口限流 |
-| `OpenBlog-framework-elasticsearch` | Elasticsearch 封装：索引与搜索 |
-| `OpenBlog-framework-audit` | 可插拔审计框架：`@AuditLog` 注解 + AOP + SPI 扩展点 |
+| `OpenBlog-framework` | 框架封装（父聚合） |
+| ├ `framework-redis` | Redis 封装：`RedisOps`、Key 管理、滑动窗口限流 |
+| ├ `framework-elasticsearch` | Elasticsearch 封装：索引与搜索 |
+| └ `framework-audit` | 可插拔审计框架：`@AuditLog` 注解 + AOP + SPI 扩展点 |
 | `vue` | Vue 3 前端（Vite 8） |
 | `sql` | 数据库脚本：建表、迁移、Mock 数据 |
 

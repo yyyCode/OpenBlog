@@ -63,10 +63,11 @@ OpenBlog 定位为**面向个人博客场景的全栈项目**，覆盖了博客�
 
 ### 自定义框架模块
 
-项目拆分为多模块 Maven 工程，其中两个自研框架模块值得单独说明：
+项目拆分为多模块 Maven 工程，框架封装统一收拢在 `OpenBlog-framework` 父聚合下，其中三个子模块值得单独说明：
 
-- **OpenBlog-framework-redis**：对 Redis 操作的统一封装，提供 `RedisOps` 接口（内置容错）、`RedisKeys` 统一 Key 管理、滑动窗口限流器等基础设施。业务模块不直接依赖 `StringRedisTemplate`。
-- **OpenBlog-framework-elasticsearch**：预留的 Elasticsearch 集成模块，为后续搜索能力升级做准备。
+- **framework-redis**（`com.yqz.openblog.redis`）：对 Redis 操作的统一封装，提供 `RedisOps` 接口（内置容错）、`RedisKeys` 统一 Key 管理、滑动窗口限流器等基础设施。业务模块不直接依赖 `StringRedisTemplate`。
+- **framework-elasticsearch**（`com.yqz.openblog.search`）：预留的 Elasticsearch 集成模块，为后续搜索能力升级做准备。
+- **framework-audit**（`com.yqz.openblog.audit`）：可插拔审计框架，`@AuditLog` 注解 + AOP 切面 + SPI 扩展点。
 
 ---
 
@@ -147,8 +148,10 @@ SPA（单页应用）对搜索引擎不友好是个老问题。OpenBlog 没有�
 
 ```
 OpenBlog/
-├── OpenBlog-framework-redis/         # Redis 框架封装（自研模块）
-├── OpenBlog-framework-elasticsearch/  # ES 集成预留（自研模块）
+├── OpenBlog-framework/               # 框架封装（父聚合）
+│   ├── framework-redis/              # Redis 框架封装（自研模块）
+│   ├── framework-elasticsearch/      # ES 集成预留（自研模块）
+│   └── framework-audit/              # 审计框架（自研模块）
 ├── OpenBlog-business/                # 业务主模块
 │   └── src/main/
 │       ├── java/com/yqz/openblog/
