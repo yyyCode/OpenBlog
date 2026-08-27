@@ -15,7 +15,7 @@ INSERT IGNORE INTO site_config (config_key, config_value) VALUES
 ('source_code_url',  'https://github.com/yyyCode/OpenBlog.git'),
 ('ai_platform_url',  'http://ai.wecode.xin/#/chat/default'),
 ('blog_name',        '烧仙草冰室'),
-('hero_title',       '设计，创造，思考未来'),
+('hero_title',       '热爱技术 持续生长'),
 ('hero_subtitle',    '探索 AI、设计与技术的交集\n分享关于智能交互、AI 驱动产品与数字创新的实战经验。'),
 ('about_text',       '这里是个人博客，用来记录设计、技术与思考。'),
 ('default_avatar_url','https://via.placeholder.com/120x120.png?text=OpenBlog'),
