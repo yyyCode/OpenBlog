@@ -74,22 +74,6 @@
           反馈
         </router-link>
 
-        <a
-          class="site-nav-link site-nav-link-sm-hide"
-          :href="(siteConfig && siteConfig.source_code_url) || 'https://github.com/yyyCode/OpenBlog.git'"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span class="site-nav-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 .5C5.73.5.75 5.67.75 12.09c0 5.15 3.28 9.52 7.83 11.06.57.11.78-.25.78-.55 0-.27-.01-1.17-.02-2.12-3.18.71-3.85-1.39-3.85-1.39-.52-1.36-1.28-1.72-1.28-1.72-1.05-.74.08-.73.08-.73 1.16.08 1.77 1.23 1.77 1.23 1.03 1.8 2.7 1.28 3.36.98.1-.77.4-1.28.73-1.57-2.54-.3-5.21-1.3-5.21-5.79 0-1.28.44-2.33 1.16-3.15-.12-.29-.5-1.48.11-3.08 0 0 .95-.31 3.11 1.2.9-.26 1.86-.39 2.82-.39.96 0 1.92.13 2.82.39 2.16-1.51 3.11-1.2 3.11-1.2.61 1.6.23 2.79.11 3.08.72.82 1.16 1.87 1.16 3.15 0 4.5-2.68 5.49-5.23 5.79.41.36.78 1.07.78 2.17 0 1.57-.02 2.83-.02 3.22 0 .3.21.67.79.55 4.55-1.54 7.83-5.91 7.83-11.06C23.25 5.67 18.27.5 12 .5z"
-              />
-            </svg>
-          </span>
-          源码
-        </a>
-
         <div class="site-nav-auth site-nav-auth-trailing" aria-label="账户">
           <button
             type="button"
@@ -100,6 +84,17 @@
             <UserAvatar :url="me ? me.avatarUrl : ''" :size="32" />
           </button>
         </div>
+
+        <router-link to="/about-us" class="site-nav-link site-nav-link-sm-hide" active-class="active">
+          <span class="site-nav-ico" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8h.01" />
+              <path d="M11 12h1v5h1" />
+            </svg>
+          </span>
+          关于我们
+        </router-link>
       </nav>
     </div>
   </header>
@@ -111,8 +106,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { fetchMe } from '../api/admin'
 import { getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
 import UserAvatar from './UserAvatar.vue'
-
-defineEmits(['toggle-widgets'])
 
 const route = useRoute()
 const router = useRouter()

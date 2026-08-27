@@ -1,49 +1,25 @@
 <script setup>
-import { computed, onMounted, provide, ref, watch } from 'vue'
+import { computed, onMounted, provide, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import BlogHeader from './components/BlogHeader.vue'
 import WelcomeGate from './components/WelcomeGate.vue'
 import BackToTop from './components/BackToTop.vue'
-import WidgetsDrawer from './components/WidgetsDrawer.vue'
 import RightDock from './components/RightDock.vue'
 import Live2dCharacter from './components/Live2dCharacter.vue'
-import { postSiteVisit } from './api/site'
-import { fetchSiteConfig } from './api/site'
-import { fetchPublicProfile } from './api/profile'
+import { postSiteVisit, fetchSiteConfig } from './api/site'
 
 const route = useRoute()
 const isConsole = computed(() => route.path.startsWith('/console'))
-const widgetsOpen = ref(false)
-const profile = ref(null)
 const siteConfig = ref({})
 
 // 提供 siteConfig 给所有子组件
 provide('siteConfig', siteConfig)
-
-function toggleWidgets() {
-  widgetsOpen.value = !widgetsOpen.value
-}
-
-async function loadProfile() {
-  if (route.path.startsWith('/console')) return
-  try {
-    profile.value = await fetchPublicProfile()
-  } catch {
-    profile.value = null
-  }
-}
-
-watch(
-  () => route.fullPath,
-  () => loadProfile()
-)
 
 onMounted(() => {
   postSiteVisit().catch(() => {})
 })
 
 onMounted(async () => {
-  await loadProfile()
   // 加载站点配置
   try {
     siteConfig.value = await fetchSiteConfig()
@@ -56,9 +32,8 @@ onMounted(async () => {
 <template>
   <div class="blog-app">
     <WelcomeGate v-if="!isConsole" />
-    <BlogHeader v-if="!isConsole" @toggle-widgets="toggleWidgets" />
-    <RightDock v-if="!isConsole" @toggle-profile="toggleWidgets" />
-    <WidgetsDrawer v-if="!isConsole" :open="widgetsOpen" :profile="profile" @close="widgetsOpen = false" />
+    <BlogHeader v-if="!isConsole" />
+    <RightDock v-if="!isConsole" />
     <BackToTop v-if="!isConsole" />
     <Live2dCharacter v-if="!isConsole" />
     <router-view />
