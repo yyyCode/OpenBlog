@@ -3,6 +3,7 @@ package com.yqz.openblog;
 import com.yqz.openblog.config.AuthSecurityProperties;
 import com.yqz.openblog.config.CorsProperties;
 import com.yqz.openblog.config.SiteProperties;
+import com.yqz.openblog.notification.NotificationProperties;
 import com.yqz.openblog.seo.SeoProperties;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.springframework.boot.SpringApplication;
@@ -29,7 +30,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
         SiteProperties.class,
         CorsProperties.class,
         AuthSecurityProperties.class,
-        SeoProperties.class
+        SeoProperties.class,
+        NotificationProperties.class
 })
 @ComponentScan(
         basePackages = "com.yqz.openblog",

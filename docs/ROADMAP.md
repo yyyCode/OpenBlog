@@ -10,7 +10,7 @@
 
 | # | 任务 | 状态 | 目标 |
 |---|------|------|------|
-| 1 | 完善 email 服务,真正实现邮箱注册验证 | 🔲 待排期 | 注册流程真实发送验证邮件 |
+| 1 | 完善 email 服务,真正实现邮箱注册验证 | ✅ 已完成 | 注册流程真实发送验证邮件;通知抽象层(统一渠道,当前 email 直发) |
 | 2 | 首页前端动态化 | 🔲 待排期 | 设计动态首页 |
 | 3 | 部署 Docker 化 + 启动加速 | 🔲 待排期 | 后端 docker 启动,加快启动 |
 
@@ -53,6 +53,12 @@
 - 验证码**前置** vs **建号后激活**(现有 `PendingUser` 后台审核是管理员审核概念,是否要与此结合?)
 - email 模块现有 HTTP 管理接口(`/api/v1/email/*`)是否保留?
 - 验证码邮件是否需要图形验证码之外的防刷(滑块已有,是否足够)?
+
+### 完成情况(2026-08-28)
+
+- 注册验证码链路已闭环:business `EmailCodeService`(验证码生成 / Redis 存储 / 冷却 / 校验)→ 统一通知抽象层 → email 模块 Dubbo 直发(幂等:retries=0 + 幂等键 + `email_records.idempotency_key` 唯一索引)。
+- **通知抽象层**(`com.yqz.openblog.notification`):`NotificationChannel` 策略 + `AbstractNotificationChannel` 模板方法 + `NotificationTemplateService` 占位符渲染 + `ChannelRegistry` 路由 + `NotificationService` 门面。当前只实现 EMAIL 渠道(经 Dubbo),SMS / 飞书 / MQ 为预留扩展位,接入时主链路零改动。
+- 重放问题与幂等设计详见 `docs/dev-experiences.md`(2026-08-27)。
 
 ---
 
@@ -120,5 +126,6 @@
 ## 通用待办(非当前优先级)
 
 - 单元测试补充(README 待办项)。
+- 通知服务化(未来):本地消息表 + MQ 异步消费 + 延时队列重试,替换 `NotificationService.submit` 的同步发送实现;短信 / 飞书渠道按同一 Channel 抽象扩展。完整设计见 `docs/designs/notification-mq-async.md`。
 - 版本号收敛到根 pom `dependencyManagement`。
 - `MybatisPlusMetaObjectHandler` 迁移至 framework 模块(common 抽取时遗留)。

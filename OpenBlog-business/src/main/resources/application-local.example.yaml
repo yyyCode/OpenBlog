@@ -10,6 +10,12 @@ spring:
       port: 6379
       password: ${SPRING_DATA_REDIS_PASSWORD:}
 
+# RocketMQ（通知异步投递，P1）。本地开发可先不部署 RocketMQ，同步验证码链路不受影响
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: openblog-notification-producer
+
 openblog:
   cache:
     # 已发布文章正文 Redis TTL（分钟），可按需覆盖
@@ -26,6 +32,20 @@ openblog:
       ttl-seconds: 300
     login-lockout:
       enabled: false
+    email-code:
+      code-ttl-seconds: 300
+      resend-cooldown-seconds: 60
+      max-verify-attempts: 5
+  notification:
+    # 统一通知抽象层。当前只 email 渠道生效；SMS / 飞书为未来扩展位
+    email:
+      enabled: true
+      default-subject: OpenBlog
+    outbox:
+      enabled: true
+      relay-interval-ms: 5000
+      publish-window-ms: 1000
+      max-retry: 8
   jwt:
     secret: ${OPENBLOG_JWT_SECRET:REPLACE_WITH_LONG_RANDOM_AT_LEAST_32_CHARS}
   storage:
