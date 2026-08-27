@@ -86,7 +86,6 @@
               inputmode="email"
               placeholder="支持 QQ / 163 / Gmail 等"
             />
-            <div class="auth-hint">{{ ALLOWED_EMAIL_MESSAGE }}</div>
           </div>
           <div class="auth-field">
             <div class="auth-label">邮箱验证码</div>
@@ -110,7 +109,6 @@
                 @click="sendCode"
               >{{ codeCooldown > 0 ? codeCooldown + 's 后重发' : (sendingCode ? '发送中…' : '获取验证码') }}</button>
             </div>
-            <div class="auth-hint">验证码将发送至你的邮箱，5 分钟内有效</div>
           </div>
           <div class="auth-field">
             <div class="auth-label">密码</div>
@@ -147,7 +145,6 @@
               inputmode="email"
               placeholder="输入注册时使用的邮箱"
             />
-            <div class="auth-hint">{{ ALLOWED_EMAIL_MESSAGE }}</div>
           </div>
           <div class="auth-field">
             <div class="auth-label">新密码</div>
