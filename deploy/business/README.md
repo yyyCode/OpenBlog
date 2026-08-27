@@ -56,10 +56,23 @@ compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/www
 容器 `/app/application.yaml` 即可覆盖 jar 内配置（Spring Boot 外部配置文件优先级更高）。例如
 服务器 IP 变化、切 storage 类型、改 Redis 密码时，改这一个文件 + 重启容器即可，不用重新打包。
 
-## 扩展：message 服务同理
+## message 服务（暂未 Docker 化，手动部署）
 
-`OpenBlog-message` 也是独立服务，参照本目录再加一份 `deploy/message/`（Dockerfile +
-docker-compose + deploy 脚本），端口 8083，JAVA_OPTS 由原宝塔命令决定。当前先只做 business。
+`OpenBlog-message`（端口 8083，邮件通道）目前仍是宝塔 Java 项目，未走 Docker/CI，需手动部署：
+
+```bash
+# 本机（项目根目录）打包
+mvn -pl OpenBlog-message -am package -DskipTests
+
+# 上传到服务器并重启（路径换成你服务器上 message 服务的实际目录）
+scp OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar root@10.21.76.221:/www/wwwroot/java/openblog-message/
+# 宝塔面板重启 openblog-message 项目（或 systemctl restart openblog-message）
+```
+
+> ⚠️ **business 与 message 必须一起升级**。RPC 按接口全限定名匹配
+> `com.yqz.openblog.message.api.EmailRpcService`。只升级 business 时，message 在 Nacos
+> 仍注册旧接口包名 → business 订阅不到 → "No provider" → 5002「邮件服务暂不可用」。
+> 升级 message 后到 Nacos 服务列表确认 provider 为新包名（`openblog-message`）再联调。
 
 ## 进阶：CI 全自动（已实现）
 
@@ -78,6 +91,10 @@ docker-compose + deploy 脚本），端口 8083，JAVA_OPTS 由原宝塔命令�
 
 ## 常见问题
 
+- **验证码发不出，business 日志抛 5002「邮件服务暂不可用 / No provider」**：message 服务（8083）
+  没在跑，或 Nacos 里注册的接口包名与 business 不一致。到 Nacos 服务列表核对 provider 是否为
+  `openblog-message` / `com.yqz.openblog.message.api.EmailRpcService`；改名后 business 与
+  message 必须一起重新部署（见上文「message 服务」）。
 - **8082 被占用**：宝塔 Java 项目没停，先停掉。
 - **容器起不来 / 一直重启**：`docker logs openblog-business` 看日志；多为连不上
   Nacos/MySQL/Redis（确认服务器能访问 10.21.76.221 对应端口、防火墙/安全组放行）。

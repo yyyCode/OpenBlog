@@ -16,13 +16,9 @@ on:
   push:
     branches:
       - master
-    paths:
-      - 'OpenBlog-business/**'
-      - 'OpenBlog-framework*/**'
-      - 'vue/**'
-      - 'pom.xml'
-      - 'deploy/business/**'
-      - '.github/workflows/ci.yml'
+    # 文档（*.md）变更不触发部署；具体哪些 job 要跑由 jobs.changes 细粒度过滤
+    paths-ignore:
+      - '**/*.md'
 
 jobs:
   # 检测变更范围，供后续 job 条件判断

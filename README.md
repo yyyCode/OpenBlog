@@ -72,17 +72,27 @@ cd vue && npm install && npm run dev
 
 ## 部署
 
+后端两个服务需要**一起构建、一起升级**（business 经 Dubbo 调 message，接口包名强耦合）：
+
 ```bash
-# 后端
-mvn -DskipTests package -pl OpenBlog-business -am
-java -jar -Xmx1024M -Xms256M OpenBlog-business/target/OpenBlog-business-*.jar
+# 1) business（Web 服务，8082）—— CI 已接入：push master 自动 Docker 部署
+mvn -pl OpenBlog-business -am package -DskipTests
+# 产物 OpenBlog-business/target/OpenBlog-business-1.0.0-SNAPSHOT.jar，Docker 化部署见 deploy/business/README.md
+
+# 2) message（消息服务，8083，邮件通道）—— 暂未接入 CI，需手动部署
+mvn -pl OpenBlog-message -am package -DskipTests
+# 产物 OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar，上传服务器替换旧 jar 后重启
 
 # 前端
 cd vue && npm run build
 # dist/ 交由 Nginx 托管，API 反代到 8082
 ```
 
-CI/CD：push `master` 自动触发构建与部署（GitHub Actions + 自托管 Runner）。
+> ⚠️ business 与 message 的 RPC 接口按全限定名匹配（`com.yqz.openblog.message.api.EmailRpcService`），
+> 升级后必须**同时重新部署**两者；只升一个会导致 Nacos 里 provider/consumer 对不上，
+> business 抛 "No provider"（5002 邮件服务暂不可用）。
+
+CI/CD：push `master` 自动构建并 Docker 部署 business（GitHub Actions + 自托管 Runner）；message 暂未接入 CI。
 
 ---
 
