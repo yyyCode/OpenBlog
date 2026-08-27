@@ -1,0 +1,77 @@
+# OpenBlog-business Docker 化部署
+
+将 business 服务从「宝塔 Java 项目手动上传 + 重启」改为 **Docker 容器 + 一键脚本**。
+
+## 部署流程
+
+```
+本地（开发机）                              服务器（宝塔，如 10.21.76.221）
+┌─────────────────────────┐   scp    ┌───────────────────────────────────────┐
+│ ./deploy.sh             │ ───────► │ /www/wwwroot/java/openblog/            │
+│  ├─ mvn package (fat jar)│  上传    │   OpenBlog-business-1.0.0-SNAPSHOT.jar │
+│  ├─ scp jar/Dockerfile/ │          │   Dockerfile                           │
+│  │   docker-compose.yml │          │   docker-compose.yml                   │
+│  └─ ssh 触发部署          │          │ docker compose up -d --build          │
+└─────────────────────────┘          └───────────────────────────────────────┘
+```
+
+外部依赖（MySQL / Redis / Nacos / RocketMQ / MinIO）都在局域网 `10.21.76.221`，
+容器走默认 bridge 网络直接可达，**compose 里不需要编排任何依赖**。
+
+## 一次部署（替代手动上传 + 宝塔重启）
+
+```bash
+cd deploy/business
+./deploy.sh root@10.21.76.221
+# 若你的服务器 SSH 用户/地址不同，换成自己的；默认 root@10.21.76.221
+```
+
+脚本做了三件事：
+
+1. 本地 `mvn -pl OpenBlog-business -am package -DskipTests`（只编 business 及其依赖）
+2. `scp` 上传 jar + Dockerfile + docker-compose.yml 到服务器
+3. 服务器 `docker compose up -d --build --remove-orphans`（jar 变了 → 重建镜像 → 重建容器）
+
+## 与宝塔原配置的对应关系
+
+| 宝塔配置 | Docker 化 |
+|----------|-----------|
+| 启动命令 `java -jar -Xmx1024M -Xms256M jar` | `JAVA_OPTS="-Xmx1024M -Xms256M"`，且正确放在 `-jar` 前（宝塔原文顺序其实是错的，`-Xmx` 被当成了程序参数） |
+| 端口 8082 | `ports: "8082:8082"`，宿主机 `127.0.0.1:8082` 行为不变 |
+| 项目路径 `/www/wwwroot/java/openblog/` | 服务器同一目录放 jar + 部署文件，容器内 `/app/app.jar` |
+| 宝塔进程守护 | `restart: always`（容器随 Docker 自启、崩溃自动拉起） |
+| JDK 17 | `eclipse-temurin:17-jre` 基础镜像 |
+
+## 首次迁移步骤
+
+1. **服务器装 Docker**：宝塔面板 → 软件商店 → 安装「Docker 管理器」（或用 docker-ce）
+2. **停掉宝塔的 Java 项目**（`openblog` 项目停止），否则与容器抢 8082 端口
+3. **配置免密 SSH**：`ssh-copy-id root@服务器IP`（Windows 用户：Git Bash 里执行）
+4. 执行 `./deploy.sh`，观察 `docker logs -f openblog-business` 确认启动正常
+5. 验证：Nginx 代理（`https://www.wecode.xin`）指向 `127.0.0.1:8082` 无需改动
+
+## 覆盖配置（不重新打 jar）
+
+compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/wwwroot/java/openblog/` 并挂载到
+容器 `/app/application.yaml` 即可覆盖 jar 内配置（Spring Boot 外部配置文件优先级更高）。例如
+服务器 IP 变化、切 storage 类型、改 Redis 密码时，改这一个文件 + 重启容器即可，不用重新打包。
+
+## 扩展：message 服务同理
+
+`OpenBlog-message` 也是独立服务，参照本目录再加一份 `deploy/message/`（Dockerfile +
+docker-compose + deploy 脚本），端口 8083，JAVA_OPTS 由原宝塔命令决定。当前先只做 business。
+
+## 进阶：CI 全自动
+
+若想「push 即自动部署」，可用 GitHub Actions：push 到 master → 构建 jar → 构建镜像 →
+推 GHCR 镜像仓库 → SSH 到服务器 pull + `docker compose up -d`。需要配 registry token 与
+SSH 密钥 secrets。需要的话可以在此基础上加，但个人博客用本地 `./deploy.sh` 已经够快。
+
+## 常见问题
+
+- **8082 被占用**：宝塔 Java 项目没停，先停掉。
+- **容器起不来 / 一直重启**：`docker logs openblog-business` 看日志；多为连不上
+  Nacos/MySQL/Redis（确认服务器能访问 10.21.76.221 对应端口、防火墙/安全组放行）。
+- **图片不显示**：storage 走 MinIO（10.21.76.221:9000），容器内无需挂上传目录；
+  若曾切回 `type=local`，需挂载 `/www/wwwroot/java/uploads`。
+- **DNS/主机名**：容器用宿主机同一份外网访问能力，Nacos/Dubbo 消费注册均按 IP，无额外配置。

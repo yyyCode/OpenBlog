@@ -1,0 +1,32 @@
+# OpenBlog-business Docker 编排
+#
+# 外部依赖（MySQL/Redis/Nacos/RocketMQ/MinIO）均在局域网 10.21.76.221，
+# 容器走默认 bridge 网络即可直达，无需 host 网络。
+# 发布 8082 后，宿主机 127.0.0.1:8082 行为与宝塔 Nginx 代理前完全一致。
+
+services:
+  business:
+    image: openblog-business:latest
+    build:
+      context: .
+    container_name: openblog-business
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      TZ: Asia/Shanghai
+      # 与宝塔原启动一致的内存上限/初始堆
+      JAVA_OPTS: "-Xmx1024M -Xms256M"
+    # 可选挂载：
+    # 1) 不改 jar 覆盖配置 → 把服务器上的 application.yaml 放到 REMOTE_DIR 并挂载到
+    #    /app/application.yaml（Spring Boot 工作目录外部配置优先级高于 jar 内内置）
+    # volumes:
+    #   - /www/wwwroot/java/openblog/application.yaml:/app/application.yaml:ro
+    # 2) 若日后切回 openblog.storage.type=local，需挂载上传目录
+    #   - /www/wwwroot/java/uploads:/www/wwwroot/java/uploads
+    networks:
+      - openblog-net
+
+networks:
+  openblog-net:
+    driver: bridge
