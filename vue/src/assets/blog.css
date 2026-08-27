@@ -391,61 +391,96 @@ body {
   grid-template-columns: 1fr;
 }
 
-.home-hero {
-  max-width: none;
-  margin: 0;
-  padding: 52px 0 18px;
+/* ===== 首页：两屏全屏滚动（口号区 + 文章区） ===== */
+/* 进入首页时 HomeView 给 <html> 加此 class，开启滚动吸附；离开移除 */
+html.homepage-scroll-snap {
+  scroll-snap-type: y proximity;
+  scroll-padding-top: var(--header-h, 60px);
 }
 
-.home-hero-inner {
-  max-width: 720px;
-  margin: 0 auto;
+.home-screens .home-screen {
+  min-height: calc(100dvh - var(--header-h, 60px));
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 第 1 屏：口号区 */
+.home-screen-slogan {
+  background-color: #ffffff;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  padding: 40px 24px 64px;
 }
-
-.home-hero-title {
+[data-theme='dark'] .home-screen-slogan {
+  background-color: #0f1114;
+}
+.home-slogan-title {
   margin: 0;
-  font-size: 42px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: var(--text);
-  text-align: center;
+  font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', serif;
+  font-weight: 700;
+  font-size: clamp(38px, 6vw, 84px);
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  color: #1f2329;
 }
-
-.home-hero-sub {
-  margin: 12px 0 0;
-  font-size: 16px;
-  line-height: 1.6;
+[data-theme='dark'] .home-slogan-title {
+  color: #e5e7eb;
+}
+.home-slogan-title .hl {
+  color: #3370ff;
+}
+[data-theme='dark'] .home-slogan-title .hl {
+  color: #4a7fff;
+}
+.home-slogan-sub {
+  margin: 22px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--muted);
+}
+.home-slogan-scroll-hint {
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  right: 0;
   text-align: center;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #b9bec6;
 }
 
-@media (max-width: 1024px) {
-  .home-hero-title { font-size: 36px; }
-  .home-hero-sub { font-size: 15px; }
+/* 第 2 屏：文章区（精选 + 最新，一屏放下） */
+.home-screen-articles {
+  background: var(--bg);
+  display: flex;
+  align-items: center;
 }
+.home-screen-articles .blog-container {
+  padding-top: 28px;
+  padding-bottom: 36px;
+}
+.home-screen-articles .home-section {
+  margin-top: 28px;
+}
+.home-screen-articles .home-section-latest {
+  padding-bottom: 0;
+}
+.home-screen-articles .home-latest-grid {
+  gap: 18px;
+}
+
 @media (max-width: 680px) {
-  .home-hero { padding-top: 34px; }
-  .home-hero-title { font-size: 28px; }
-  .home-hero-sub { font-size: 14px; }
-}
-
-/* 首页 Hero 图片 */
-.home-hero-image-wrap {
-  width: 100%;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--placeholder-tint);
-  aspect-ratio: 16 / 9;
-  margin-bottom: 32px;
-}
-
-.home-hero-image {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
+  .home-slogan-title {
+    letter-spacing: 0.04em;
+  }
 }
 
 
