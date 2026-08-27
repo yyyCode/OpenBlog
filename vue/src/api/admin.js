@@ -10,10 +10,18 @@ export function login(account, password) {
 
 /** 前台账号注册（与控制台管理员登录入口分离） */
 export function register(payload) {
-  const { username, email, password } = payload
+  const { username, email, password, code } = payload
   return request('/api/v1/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ username, email, password, code })
+  })
+}
+
+/** 发送邮箱注册验证码 */
+export function sendEmailCode(email) {
+  return request('/api/v1/auth/email-code', {
+    method: 'POST',
+    body: JSON.stringify({ email })
   })
 }
 

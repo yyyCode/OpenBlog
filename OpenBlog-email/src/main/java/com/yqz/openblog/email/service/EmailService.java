@@ -14,6 +14,7 @@ import com.yqz.openblog.email.repo.EmailRecordMapper;
 import com.yqz.openblog.email.sender.DirectMailSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -35,15 +36,47 @@ public class EmailService {
 
     /**
      * 发送邮件并记录到数据库。
+     * <p>
+     * 幂等设计：调用方可携带 idempotencyKey（如 UUID）。同一幂等键的请求——
+     * 无论被 Dubbo 消费端重试、网络重放还是并发重提——都只实际发送一次：
+     * 命中已有记录时直接复用返回，不再调用发信通道。唯一索引 uk_idempotency_key
+     * 是硬兜底，保证并发双插时也只有一个能真正发送。
      */
     public EmailSendResult send(EmailSendRequest req) {
+        String key = req.getIdempotencyKey();
+        if (key != null && !key.isBlank()) {
+            EmailRecord existing = emailRecordMapper.selectOne(
+                    Wrappers.lambdaQuery(EmailRecord.class).eq(EmailRecord::getIdempotencyKey, key));
+            if (existing != null) {
+                log.info("Idempotent replay: reuse recordId={}, key={}, status={}",
+                        existing.getId(), key, existing.getStatus());
+                return toResult(existing);
+            }
+        }
+        return doSend(req, key);
+    }
+
+    private EmailSendResult doSend(EmailSendRequest req, String idempotencyKey) {
         // 1. 先写 PENDING 记录
         EmailRecord record = new EmailRecord();
         record.setRecipient(req.getRecipient());
         record.setSubject(req.getSubject());
         record.setBody(req.getBody());
         record.setStatus(EmailStatus.PENDING);
-        emailRecordMapper.insert(record);
+        record.setIdempotencyKey(idempotencyKey);
+        try {
+            emailRecordMapper.insert(record);
+        } catch (DuplicateKeyException e) {
+            // 并发双插撞唯一索引：另一执行者已写入。查回其记录返回，不重复发送。
+            EmailRecord existing = emailRecordMapper.selectOne(
+                    Wrappers.lambdaQuery(EmailRecord.class).eq(EmailRecord::getIdempotencyKey, idempotencyKey));
+            if (existing != null) {
+                log.info("Idempotent race: reuse recordId={}, key={}, status={}",
+                        existing.getId(), idempotencyKey, existing.getStatus());
+                return toResult(existing);
+            }
+            throw e;
+        }
 
         // 2. 发送邮件
         try {
@@ -58,15 +91,19 @@ public class EmailService {
         }
         emailRecordMapper.updateById(record);
 
+        return toResult(record);
+    }
+
+    private EmailSendResult toResult(EmailRecord r) {
         return new EmailSendResult(
-                record.getId(),
-                record.getRecipient(),
-                record.getSubject(),
-                record.getStatus().name(),
-                record.getErrorMsg(),
-                record.getRequestId(),
-                record.getSentAt(),
-                record.getCreatedAt()
+                r.getId(),
+                r.getRecipient(),
+                r.getSubject(),
+                r.getStatus().name(),
+                r.getErrorMsg(),
+                r.getRequestId(),
+                r.getSentAt(),
+                r.getCreatedAt()
         );
     }
 

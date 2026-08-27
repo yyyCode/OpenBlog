@@ -89,6 +89,30 @@
             <div class="auth-hint">{{ ALLOWED_EMAIL_MESSAGE }}</div>
           </div>
           <div class="auth-field">
+            <div class="auth-label">邮箱验证码</div>
+            <div class="auth-code-row">
+              <input
+                ref="codeInputRef"
+                v-model="emailCode"
+                class="auth-input"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="one-time-code"
+                placeholder="6 位数字验证码"
+                :disabled="!codeSent"
+                @keyup.enter="doRegister"
+              />
+              <button
+                class="auth-submit auth-code-btn"
+                type="button"
+                :disabled="sendingCode || codeCooldown > 0"
+                @click="sendCode"
+              >{{ codeCooldown > 0 ? codeCooldown + 's 后重发' : (sendingCode ? '发送中…' : '获取验证码') }}</button>
+            </div>
+            <div class="auth-hint">验证码将发送至你的邮箱，5 分钟内有效</div>
+          </div>
+          <div class="auth-field">
             <div class="auth-label">密码</div>
             <input
               v-model="regPassword"
@@ -169,9 +193,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { login, register, changePassword } from '../api/admin'
+import { login, register, changePassword, sendEmailCode } from '../api/admin'
 import { getAccessTokenRole } from '../auth/session'
 import { ALLOWED_EMAIL_MESSAGE, isAllowedMailboxEmail } from '../utils/allowedEmail'
 
@@ -188,6 +212,12 @@ const username = ref('')
 const email = ref('')
 const regPassword = ref('')
 const registerError = ref('')
+const emailCode = ref('')
+const codeSent = ref(false)
+const sendingCode = ref(false)
+const codeCooldown = ref(0)
+let codeTimer = null
+const codeInputRef = ref(null)
 
 const changeEmail = ref('')
 const newPassword = ref('')
@@ -238,6 +268,57 @@ onMounted(() => {
   syncTabFromRoute()
 })
 
+onUnmounted(() => stopCountdown())
+
+// 邮箱变更后，旧的验证码/倒计时即失效
+watch(email, () => {
+  emailCode.value = ''
+  codeSent.value = false
+  stopCountdown()
+})
+
+function startCountdown(seconds) {
+  stopCountdown()
+  codeCooldown.value = Math.max(0, seconds)
+  codeTimer = setInterval(() => {
+    codeCooldown.value -= 1
+    if (codeCooldown.value <= 0) {
+      stopCountdown()
+    }
+  }, 1000)
+}
+
+function stopCountdown() {
+  if (codeTimer) {
+    clearInterval(codeTimer)
+    codeTimer = null
+  }
+}
+
+async function sendCode() {
+  registerError.value = ''
+  const em = (email.value || '').trim()
+  if (!em) {
+    registerError.value = '请先填写邮箱'
+    return
+  }
+  if (!isAllowedMailboxEmail(em)) {
+    registerError.value = ALLOWED_EMAIL_MESSAGE
+    return
+  }
+  sendingCode.value = true
+  try {
+    const resp = await sendEmailCode(em)
+    codeSent.value = true
+    startCountdown(resp?.cooldownSeconds || 60)
+    nextTick(() => codeInputRef.value?.focus())
+  } catch (e) {
+    registerError.value = e?.message || '验证码发送失败'
+  } finally {
+    sendingCode.value = false
+  }
+}
+
 function safeSiteRedirect(raw) {
   if (typeof raw !== 'string') return '/'
   const t = raw.trim()
@@ -284,15 +365,27 @@ async function doRegister() {
     registerError.value = ALLOWED_EMAIL_MESSAGE
     return
   }
+  const code = (emailCode.value || '').trim()
+  if (!codeSent.value || !code) {
+    registerError.value = '请先获取并输入邮箱验证码'
+    return
+  }
+  if (!/^\d{6}$/.test(code)) {
+    registerError.value = '验证码为 6 位数字'
+    return
+  }
   if (pw.length < 6) {
     registerError.value = '密码至少 6 位'
     return
   }
   busy.value = true
   try {
-    const resp = await register({ username: u, email: em, password: pw })
+    const resp = await register({ username: u, email: em, password: pw, code })
     storeSession(resp.accessToken, resp.refreshToken)
     regPassword.value = ''
+    emailCode.value = ''
+    codeSent.value = false
+    stopCountdown()
     const r = route.query.redirect
     const target = safeSiteRedirect(typeof r === 'string' ? r : '')
     router.push(target)
@@ -341,3 +434,21 @@ async function doChangePassword() {
   }
 }
 </script>
+
+<style scoped>
+.auth-code-row {
+  display: flex;
+  gap: 8px;
+}
+.auth-code-row .auth-input {
+  flex: 1;
+  min-width: 0;
+}
+.auth-code-btn {
+  flex-shrink: 0;
+  width: auto;
+  padding: 10px 14px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+</style>

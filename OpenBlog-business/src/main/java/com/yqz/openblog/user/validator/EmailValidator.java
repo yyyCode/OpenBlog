@@ -108,7 +108,8 @@ public class EmailValidator {
         }
 
         // 4. 拒绝 + 别名（常见攻击手段：同一邮箱无限注册）
-        if (lower.indexOf('+', 0) < atIndex && lower.charAt(lower.indexOf('+')) == '+') {
+        int plusIndex = lower.indexOf('+');
+        if (plusIndex >= 0 && plusIndex < atIndex) {
             return "不支持带 + 别名的邮箱地址";
         }
 

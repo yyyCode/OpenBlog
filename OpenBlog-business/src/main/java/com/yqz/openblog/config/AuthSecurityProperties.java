@@ -10,6 +10,7 @@ public class AuthSecurityProperties {
 
     private Slider slider = new Slider();
     private LoginLockout loginLockout = new LoginLockout();
+    private EmailCode emailCode = new EmailCode();
 
     public Slider getSlider() {
         return slider;
@@ -25,6 +26,14 @@ public class AuthSecurityProperties {
 
     public void setLoginLockout(LoginLockout loginLockout) {
         this.loginLockout = loginLockout;
+    }
+
+    public EmailCode getEmailCode() {
+        return emailCode;
+    }
+
+    public void setEmailCode(EmailCode emailCode) {
+        this.emailCode = emailCode;
     }
 
     public static class Slider {
@@ -99,6 +108,45 @@ public class AuthSecurityProperties {
 
         public void setLockoutSeconds(int lockoutSeconds) {
             this.lockoutSeconds = lockoutSeconds;
+        }
+    }
+
+    public static class EmailCode {
+        /**
+         * 验证码有效时间（秒），默认 5 分钟。
+         */
+        private int codeTtlSeconds = 300;
+        /**
+         * 重新发送冷却时间（秒），默认 60 秒。
+         */
+        private int resendCooldownSeconds = 60;
+        /**
+         * 校验失败允许的最大次数，超过后验证码作废，默认 5 次。
+         */
+        private int maxVerifyAttempts = 5;
+
+        public int getCodeTtlSeconds() {
+            return codeTtlSeconds;
+        }
+
+        public void setCodeTtlSeconds(int codeTtlSeconds) {
+            this.codeTtlSeconds = codeTtlSeconds;
+        }
+
+        public int getResendCooldownSeconds() {
+            return resendCooldownSeconds;
+        }
+
+        public void setResendCooldownSeconds(int resendCooldownSeconds) {
+            this.resendCooldownSeconds = resendCooldownSeconds;
+        }
+
+        public int getMaxVerifyAttempts() {
+            return maxVerifyAttempts;
+        }
+
+        public void setMaxVerifyAttempts(int maxVerifyAttempts) {
+            this.maxVerifyAttempts = maxVerifyAttempts;
         }
     }
 }

@@ -10,6 +10,13 @@ public class EmailSendRequest implements Serializable {
     private String subject;
     private String body;
 
+    /**
+     * 幂等键（业务方生成，如 UUID）。provider 据此去重：
+     * 同一幂等键的请求无论被重试/重放多少次，只发送一次。
+     * 可空 —— 兼容旧调用方（无幂等键时按原逻辑直接发送）。
+     */
+    private String idempotencyKey;
+
     public EmailSendRequest() {}
 
     public EmailSendRequest(String recipient, String subject, String body) {
@@ -26,4 +33,7 @@ public class EmailSendRequest implements Serializable {
 
     public String getBody() { return body; }
     public void setBody(String body) { this.body = body; }
+
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
 }
