@@ -10,3 +10,8 @@ export function fetchPublicProfile() {
   return request(`/api/v1/profile`)
 }
 
+export function fetchOwnerProfile() {
+  // 关于我们页：始终匿名请求，确保返回站点作者（而非当前登录用户）
+  return request(`/api/v1/profile`)
+}
+
