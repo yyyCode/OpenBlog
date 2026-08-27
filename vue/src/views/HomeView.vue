@@ -83,19 +83,19 @@ const siteConfig = inject('siteConfig')
 
 // ---- 第 1 屏：口号 ----
 const heroImageUrl = computed(() =>
-  (siteConfig.value && siteConfig.value.hero_image_url) || ''
+  (siteConfig && siteConfig.value && siteConfig.value.hero_image_url) || ''
 )
 // 默认纯白背景；hero_image_url 非空则整屏图片背景（白色垫底兜底）
 const sloganBgStyle = computed(() => {
   if (!heroImageUrl.value) return {}
-  return { backgroundImage: `url(${heroImageUrl.value})` }
+  return { backgroundImage: 'url("' + heroImageUrl.value + '")' }
 })
 
 const heroTitle = computed(() =>
-  (siteConfig.value && siteConfig.value.hero_title) || '热爱技术 持续生长'
+  (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '热爱技术 持续生长'
 )
 const heroSubtitle = computed(() =>
-  (siteConfig.value && siteConfig.value.hero_subtitle) || ''
+  (siteConfig && siteConfig.value && siteConfig.value.hero_subtitle) || ''
 )
 
 // 把「热爱」「生长」包上蓝色高亮 span（v-html 渲染；文案变了则不高亮，不报错）
@@ -120,7 +120,9 @@ onMounted(async () => {
     const items = list?.items || []
     const featuredFromList =
       items.find(a => a?.featured || a?.isFeatured || a?.pinned || a?.pin) || items[0]
-    featuredArticle.value = featuredFromList?.id ? await fetchArticleDetail(featuredFromList.id) : {}
+    featuredArticle.value = featuredFromList?.id
+      ? await fetchArticleDetail(featuredFromList.id).catch(() => featuredFromList)
+      : {}
 
     latestArticles.value = items
       .filter(a => a?.id && a.id !== featuredFromList?.id)
@@ -135,14 +137,22 @@ onUnmounted(() => {
 })
 
 // 只在首页开启滚动吸附：实测吸顶导航高度写入 --header-h，再给 <html> 加类
-function enableHomepageSnap() {
+function measureHeaderHeight() {
   const bar = document.querySelector('.site-top-bar')
-  const headerH = (bar && bar.offsetHeight) || 60
-  document.documentElement.style.setProperty('--header-h', `${headerH}px`)
+  return (bar && bar.offsetHeight) || 60
+}
+function enableHomepageSnap() {
+  document.documentElement.style.setProperty('--header-h', `${measureHeaderHeight()}px`)
   document.documentElement.classList.add('homepage-scroll-snap')
+  window.addEventListener('resize', onViewportResize)
 }
 function disableHomepageSnap() {
+  window.removeEventListener('resize', onViewportResize)
   document.documentElement.classList.remove('homepage-scroll-snap')
+  document.documentElement.style.removeProperty('--header-h')
+}
+function onViewportResize() {
+  document.documentElement.style.setProperty('--header-h', `${measureHeaderHeight()}px`)
 }
 
 function go(id) {
