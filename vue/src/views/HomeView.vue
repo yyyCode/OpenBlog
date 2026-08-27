@@ -1,29 +1,26 @@
 <template>
-  <div class="blog-container">
-    <section class="home-hero">
-      <!-- Hero 图片 -->
-      <div v-if="heroImageUrl" class="home-hero-image-wrap">
-        <img class="home-hero-image" :src="heroImageUrl" alt="网站主旨图" />
+  <div class="home-screens">
+    <!-- 第 1 屏：口号区 -->
+    <section class="home-screen home-screen-slogan" :style="sloganBgStyle">
+      <div class="home-slogan-inner">
+        <h1 class="home-slogan-title" v-html="sloganTitleHtml"></h1>
+        <p v-if="heroSubtitle" class="home-slogan-sub" v-html="heroSubtitleHtml"></p>
       </div>
-      <div class="home-hero-inner">
-        <h1 class="home-hero-title" v-html="heroTitleHtml"></h1>
-        <p class="home-hero-sub" v-html="heroSubtitleHtml"></p>
-      </div>
+      <div class="home-slogan-scroll-hint">▼ 下滑</div>
     </section>
 
-    <div class="page-grid home-grid">
-      <!-- 左侧：主内容（精选/最新一篇） -->
-      <div>
+    <!-- 第 2 屏：文章区 -->
+    <section class="home-screen home-screen-articles">
+      <div class="blog-container">
         <div v-if="loading" class="card">
           <div class="card-body" style="padding: 22px; color: var(--muted)">加载中...</div>
         </div>
 
         <div v-else>
           <div class="card">
-            <div class="home-featured">
-              <div v-if="!featuredArticle?.id" style="padding: 22px; color: var(--muted)">暂无文章</div>
-
-              <div v-else class="home-featured-grid" @click="go(featuredArticle.id)">
+            <div v-if="!featuredArticle?.id" style="padding: 22px; color: var(--muted)">暂无文章</div>
+            <div v-else class="home-featured" @click="go(featuredArticle.id)">
+              <div class="home-featured-grid">
                 <div class="home-featured-cover">
                   <img
                     v-if="featuredArticle.coverMediaKey"
@@ -34,9 +31,7 @@
                 <div class="home-featured-body">
                   <div class="home-featured-badge">精选文章</div>
                   <div class="home-featured-title">{{ featuredArticle.title }}</div>
-                  <div class="home-featured-excerpt">
-                    {{ featuredArticle.summary || '' }}
-                  </div>
+                  <div class="home-featured-excerpt">{{ featuredArticle.summary || '' }}</div>
                   <div class="home-featured-meta">
                     <span>{{ formatDate(featuredArticle.publishedAt) }}</span>
                     <span>·</span>
@@ -48,16 +43,13 @@
             </div>
           </div>
 
-          <section class="home-section home-section-latest">
+          <section v-if="latestArticles.length" class="home-section home-section-latest">
             <div class="home-section-head">
               <h2 class="home-section-title">最新文章</h2>
               <router-link class="home-section-more" to="/all">查看全部 →</router-link>
             </div>
 
-            <div v-if="latestArticles.length === 0" class="card">
-              <div class="card-body" style="padding: 22px; color: var(--muted)">暂无文章</div>
-            </div>
-            <div v-else class="home-latest-grid">
+            <div class="home-latest-grid">
               <div v-for="a in latestArticles" :key="a.id" class="home-post-card" @click="go(a.id)">
                 <div class="home-post-cover">
                   <img v-if="a.coverMediaKey" :src="coverUrl(a.coverMediaKey)" alt="cover" />
@@ -74,56 +66,63 @@
               </div>
             </div>
           </section>
-
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
-import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
 
-const heroImageUrl = computed(() => {
-  return (siteConfig && siteConfig.value && siteConfig.value.hero_image_url) || ''
+// ---- 第 1 屏：口号 ----
+const heroImageUrl = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.hero_image_url) || ''
+)
+// 默认纯白背景；hero_image_url 非空则整屏图片背景（白色垫底兜底）
+const sloganBgStyle = computed(() => {
+  if (!heroImageUrl.value) return {}
+  return { backgroundImage: 'url("' + heroImageUrl.value + '")' }
 })
 
-const heroTitle = computed(() => {
-  const text = (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '设计，创造，思考未来'
-  return text
-})
+const heroTitle = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '热爱技术 持续生长'
+)
+const heroSubtitle = computed(() =>
+  (siteConfig && siteConfig.value && siteConfig.value.hero_subtitle) || ''
+)
 
-const heroSubtitle = computed(() => {
-  const text = (siteConfig && siteConfig.value && siteConfig.value.hero_subtitle) || '探索 AI、设计与技术的交集\n分享关于智能交互、AI 驱动产品与数字创新的实战经验。'
-  return text
+// 把「热爱」「生长」包上蓝色高亮 span（v-html 渲染；文案变了则不高亮，不报错）
+const sloganTitleHtml = computed(() => {
+  return heroTitle.value
+    .replace(/热爱/g, '<span class="hl">热爱</span>')
+    .replace(/生长/g, '<span class="hl">生长</span>')
+    .replace(/\n/g, '<br />')
 })
+const heroSubtitleHtml = computed(() => heroSubtitle.value.replace(/\n/g, '<br />'))
 
-const heroTitleHtml = computed(() => {
-  return heroTitle.value.replace(/\n/g, '<br />')
-})
-
-const heroSubtitleHtml = computed(() => {
-  return heroSubtitle.value.replace(/\n/g, '<br />')
-})
-
+// ---- 第 2 屏：文章 ----
 const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
 
 onMounted(async () => {
+  enableHomepageSnap()
   loading.value = true
   try {
     const list = await fetchArticles({ page: 0, size: 8 })
     const items = list?.items || []
     const featuredFromList =
       items.find(a => a?.featured || a?.isFeatured || a?.pinned || a?.pin) || items[0]
-    featuredArticle.value = featuredFromList?.id ? await fetchArticleDetail(featuredFromList.id) : {}
+    featuredArticle.value = featuredFromList?.id
+      ? await fetchArticleDetail(featuredFromList.id).catch(() => featuredFromList)
+      : {}
 
     latestArticles.value = items
       .filter(a => a?.id && a.id !== featuredFromList?.id)
@@ -132,6 +131,29 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+onUnmounted(() => {
+  disableHomepageSnap()
+})
+
+// 只在首页开启滚动吸附：实测吸顶导航高度写入 --header-h，再给 <html> 加类
+function measureHeaderHeight() {
+  const bar = document.querySelector('.site-top-bar')
+  return (bar && bar.offsetHeight) || 60
+}
+function enableHomepageSnap() {
+  document.documentElement.style.setProperty('--header-h', `${measureHeaderHeight()}px`)
+  document.documentElement.classList.add('homepage-scroll-snap')
+  window.addEventListener('resize', onViewportResize)
+}
+function disableHomepageSnap() {
+  window.removeEventListener('resize', onViewportResize)
+  document.documentElement.classList.remove('homepage-scroll-snap')
+  document.documentElement.style.removeProperty('--header-h')
+}
+function onViewportResize() {
+  document.documentElement.style.setProperty('--header-h', `${measureHeaderHeight()}px`)
+}
 
 function go(id) {
   router.push(`/article/${id}`)
@@ -146,4 +168,3 @@ function formatDate(v) {
   }
 }
 </script>
-
