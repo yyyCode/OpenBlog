@@ -9,6 +9,7 @@ import AdminLoginView from '../views/AdminLoginView.vue'
 import ChangelogListView from '../views/ChangelogListView.vue'
 import ChangelogDetailView from '../views/ChangelogDetailView.vue'
 import AboutView from '../views/AboutView.vue'
+import AboutUsView from '../views/AboutUsView.vue'
 import FeedbackView from '../views/FeedbackView.vue'
 import SearchResultsView from '../views/SearchResultsView.vue'
 import SiteAuthView from '../views/SiteAuthView.vue'
@@ -52,6 +53,11 @@ const routes = [
     path: '/about',
     name: 'about',
     component: AboutView
+  },
+  {
+    path: '/about-us',
+    name: 'aboutUs',
+    component: AboutUsView
   },
   {
     path: '/search',
