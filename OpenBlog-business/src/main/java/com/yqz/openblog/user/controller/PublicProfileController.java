@@ -47,21 +47,27 @@ public class PublicProfileController {
 
         // MVP：个人博客通常只有一个作者，但数据库可能存在多条 AUTHOR 数据：
         // 优先展示最近一次更新的 ACTIVE 作者，避免前端一直显示旧数据。
+        // selectOne 必须加 LIMIT 1：数据库可能存在多条 AUTHOR/用户记录，
+        // 否则会抛 TooManyResultsException（Expected one result... but found: N）。
         User u = userMapper.selectOne(
                 Wrappers.lambdaQuery(User.class)
                         .eq(User::getRole, UserRole.AUTHOR)
                         .eq(User::getStatus, "ACTIVE")
                         .orderByDesc(User::getUpdatedAt)
+                        .last("LIMIT 1")
         );
         if (u == null) {
             u = userMapper.selectOne(
                     Wrappers.lambdaQuery(User.class)
                             .eq(User::getRole, UserRole.AUTHOR)
                             .orderByAsc(User::getId)
+                            .last("LIMIT 1")
             );
         }
         if (u == null) {
-            u = userMapper.selectOne(Wrappers.lambdaQuery(User.class).orderByAsc(User::getId));
+            u = userMapper.selectOne(
+                    Wrappers.lambdaQuery(User.class).orderByAsc(User::getId).last("LIMIT 1")
+            );
         }
         if (u == null) {
             return ApiResponse.ok(new PublicProfileResponse());
