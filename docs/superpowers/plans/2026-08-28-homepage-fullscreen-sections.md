@@ -41,7 +41,7 @@
 本文件是种子 SQL，不会自动重跑。**上线后需在控制台（站点配置）把 hero_title 改成「热爱技术 持续生长」**，或手动执行：
 
 ```sql
-UPDATE site_config SET value = '热爱技术 持续生长' WHERE `key` = 'hero_title';
+UPDATE site_config SET config_value = '热爱技术 持续生长' WHERE config_key = 'hero_title';
 ```
 
 （此处无需执行，只记录。）
