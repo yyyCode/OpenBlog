@@ -64,6 +64,17 @@
           论坛
         </router-link>
 
+        <router-link to="/about-us" class="site-nav-link site-nav-link-sm-hide" active-class="active">
+          <span class="site-nav-ico" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8h.01" />
+              <path d="M11 12h1v5h1" />
+            </svg>
+          </span>
+          关于我们
+        </router-link>
+
         <router-link to="/feedback" class="site-nav-link" active-class="active">
           <span class="site-nav-ico" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -84,17 +95,6 @@
             <UserAvatar :url="me ? me.avatarUrl : ''" :size="32" />
           </button>
         </div>
-
-        <router-link to="/about-us" class="site-nav-link site-nav-link-sm-hide" active-class="active">
-          <span class="site-nav-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 8h.01" />
-              <path d="M11 12h1v5h1" />
-            </svg>
-          </span>
-          关于我们
-        </router-link>
       </nav>
     </div>
   </header>
