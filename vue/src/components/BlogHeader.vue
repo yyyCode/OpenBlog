@@ -91,15 +91,14 @@
         </a>
 
         <div class="site-nav-auth site-nav-auth-trailing" aria-label="账户">
-          <template v-if="me">
-            <span class="site-nav-user-name" :title="displayName">{{ displayName }}</span>
-            <button type="button" class="site-nav-link site-nav-link-btn site-nav-pill-outline" @click="logout">
-              退出
-            </button>
-          </template>
-          <router-link v-else to="/login" class="site-nav-link site-nav-pill-solid site-nav-auth-entry">
-            登录/注册
-          </router-link>
+          <button
+            type="button"
+            class="site-nav-auth-avatar-btn"
+            :title="me ? displayName : '登录/注册'"
+            @click="goAuth"
+          >
+            <UserAvatar :url="me ? me.avatarUrl : ''" :size="32" />
+          </button>
         </div>
       </nav>
     </div>
@@ -110,7 +109,8 @@
 import { computed, inject, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchMe } from '../api/admin'
-import { clearAuth, getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
+import { getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
+import UserAvatar from './UserAvatar.vue'
 
 defineEmits(['toggle-widgets'])
 
@@ -153,14 +153,29 @@ onMounted(() => {
   loadMe()
 })
 
-function logout() {
-  clearAuth()
-  me.value = null
-  if (route.path.startsWith('/console')) {
-    router.push('/console/login')
+function goAuth() {
+  if (me.value) {
+    router.push('/profile')
   } else {
-    router.push('/')
+    router.push('/login')
   }
 }
 
 </script>
+
+<style scoped>
+.site-nav-auth-avatar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 999px;
+  line-height: 0;
+}
+.site-nav-auth-avatar-btn:hover {
+  opacity: 0.85;
+}
+</style>

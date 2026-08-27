@@ -32,6 +32,7 @@ import ProjectsListView from '../views/ProjectsListView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
 import ForumListView from '../views/ForumListView.vue'
+import ProfileView from '../views/ProfileView.vue'
 import ForumTopicView from '../views/ForumTopicView.vue'
 import ForumComposeView from '../views/ForumComposeView.vue'
 import ConsoleForumView from '../views/ConsoleForumView.vue'
@@ -98,6 +99,11 @@ const routes = [
     path: '/login',
     name: 'siteAuth',
     component: SiteAuthView
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: ProfileView
   },
   {
     path: '/register',
@@ -177,6 +183,15 @@ function safeConsoleRedirect(raw) {
 }
 
 router.beforeEach((to) => {
+  // 个人中心：需登录，未登录跳登录页（登录成功后经 redirect 回跳）
+  if (to.path === '/profile') {
+    if (!isConsoleSessionValid()) {
+      clearAuth()
+      return { path: '/login', query: { redirect: '/profile' } }
+    }
+    return true
+  }
+
   if (!to.path.startsWith('/console')) return true
 
   const isLoginPage = to.path === '/console/login'
