@@ -1,9 +1,9 @@
 package com.yqz.openblog.notification.channel;
 
 import com.yqz.openblog.common.BizException;
-import com.yqz.openblog.email.api.EmailRpcService;
-import com.yqz.openblog.email.api.EmailSendRequest;
-import com.yqz.openblog.email.api.EmailSendResult;
+import com.yqz.openblog.message.api.EmailRpcService;
+import com.yqz.openblog.message.api.EmailSendRequest;
+import com.yqz.openblog.message.api.EmailSendResult;
 import com.yqz.openblog.notification.AbstractNotificationChannel;
 import com.yqz.openblog.notification.NotificationChannelType;
 import com.yqz.openblog.notification.NotificationMessage;

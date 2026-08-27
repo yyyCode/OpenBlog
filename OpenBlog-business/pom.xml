@@ -55,10 +55,10 @@
             <version>3.5.16</version>
         </dependency>
 
-        <!-- Email RPC interface -->
+        <!-- Message RPC interface -->
         <dependency>
             <groupId>com.yqz</groupId>
-            <artifactId>OpenBlog-email-api</artifactId>
+            <artifactId>OpenBlog-message-api</artifactId>
             <version>${project.version}</version>
         </dependency>
 

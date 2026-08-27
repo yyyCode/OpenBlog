@@ -23,8 +23,8 @@
 - **注册流程不发邮件**:`AuthService.register()`(`OpenBlog-business/.../user/service/AuthService.java:69`)流程为
   滑块验证 → 邮箱格式白名单(`AllowedMailbox`:QQ/网易/谷歌系)→ 用户名/邮箱唯一性 → **直接创建 ACTIVE READER → 返回 token**(注册即登录)。
 - **email 基础设施已就绪,只差接线**:
-  - RPC 契约 `EmailRpcService.send(EmailSendRequest)`(`OpenBlog-api/OpenBlog-email-api/`)
-  - Provider:`EmailRpcServiceImpl` `@DubboService`(email 模块),委托 `EmailService.send()`,经阿里云 DirectMail 真实发送,落 `email_record` 表
+  - RPC 契约 `EmailRpcService.send(EmailSendRequest)`(`OpenBlog-api/OpenBlog-message-api/`)
+  - Provider:`EmailRpcServiceImpl` `@DubboService`(message 模块),委托 `EmailService.send()`,经阿里云 DirectMail 真实发送,落 `email_record` 表
   - **business 侧目前没有 `@DubboReference` 消费调用**(全库检索确认)——链路已通但未接入
 - Redis 封装可用(`OpenBlog-framework-redis`,`RedisOps`),适合存验证码。
 

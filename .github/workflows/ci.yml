@@ -39,8 +39,8 @@ jobs:
             backend:
               - 'OpenBlog-business/**'
               - 'OpenBlog-framework*/**'
-              - 'OpenBlog-email/**'
-              - 'OpenBlog-email-api/**'
+              - 'OpenBlog-message/**'
+              - 'OpenBlog-message-api/**'
               - 'pom.xml'
             frontend:
               - 'vue/**'

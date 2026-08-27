@@ -10,9 +10,9 @@
 |------|------|
 | `OpenBlog-common` | 公共模块：统一响应 `ApiResponse`、`PageResult`、`BizException`、异常处理自动装配 |
 | `OpenBlog-business` | 主业务服务（端口 8082）：文章、评论、论坛、用户、认证、SEO、媒体管理 |
-| `OpenBlog-email` | 独立邮件服务（端口 8083）：阿里云 DirectMail + Dubbo RPC + Nacos 注册 |
+| `OpenBlog-message` | 独立消息服务（端口 8083）：邮件通道（阿里云 DirectMail）+ Dubbo RPC + Nacos 注册 |
 | `OpenBlog-api` | 共享 API 聚合模块 |
-| ├ `OpenBlog-email-api` | Email RPC 接口与 DTO |
+| ├ `OpenBlog-message-api` | Message RPC 接口与 DTO |
 | `OpenBlog-framework` | 框架封装（父聚合） |
 | ├ `framework-redis` | Redis 封装：`RedisOps`、Key 管理、滑动窗口限流 |
 | ├ `framework-elasticsearch` | Elasticsearch 封装：索引与搜索 |

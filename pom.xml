@@ -18,7 +18,7 @@
         <module>OpenBlog-common</module>
         <module>OpenBlog-framework</module>
         <module>OpenBlog-api</module>
-        <module>OpenBlog-email</module>
+        <module>OpenBlog-message</module>
         <module>OpenBlog-business</module>
     </modules>
     <properties>

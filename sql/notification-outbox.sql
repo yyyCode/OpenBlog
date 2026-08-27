@@ -1,7 +1,7 @@
 -- 通知本地消息表（Transactional Outbox）
 -- 业务库（business 同一库）。submitAsync 与业务动作同事务写入，Relay 扫 PENDING 发布到 MQ，
 -- 保证「业务提交」与「通知入队」原子，消息不丢失。消费端按 message_id 幂等，不重复。
--- 说明：与 OpenBlog-email 的 email_records 职责不同 —— 那是发送结果记录，这是待投递任务。
+-- 说明：与 OpenBlog-message 的 email_records 职责不同 —— 那是发送结果记录，这是待投递任务。
 CREATE TABLE IF NOT EXISTS notification_outbox (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     message_id VARCHAR(64) NOT NULL COMMENT '全局幂等键（UUID），MQ 消息与消费去重共用',

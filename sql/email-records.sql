@@ -1,4 +1,4 @@
--- 邮件发送记录表（OpenBlog-email 服务独占）
+-- 邮件发送记录表（OpenBlog-message 服务独占）
 CREATE TABLE IF NOT EXISTS email_records (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     recipient VARCHAR(128) NOT NULL COMMENT '收件人',

@@ -4,16 +4,18 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.yqz</groupId>
-        <artifactId>OpenBlog</artifactId>
+        <artifactId>OpenBlog-api</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>OpenBlog-api</artifactId>
-    <packaging>pom</packaging>
-    <name>OpenBlog-api</name>
-    <description>API aggregator module — shared RPC interfaces and DTOs</description>
+    <artifactId>OpenBlog-message-api</artifactId>
+    <name>OpenBlog-message-api</name>
+    <description>Message RPC interface &amp; shared DTOs</description>
 
-    <modules>
-        <module>OpenBlog-message-api</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+    </dependencies>
 </project>

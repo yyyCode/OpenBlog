@@ -1,0 +1,46 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: openblog-message
+  datasource:
+    url: jdbc:mysql://10.21.76.221:3306/openblog?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 12345678aa
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# Dubbo
+dubbo:
+  application:
+    name: openblog-message
+    logger: slf4j
+  protocol:
+    name: dubbo
+    port: 20883
+  registry:
+    address: nacos://10.21.76.221:8848?username=nacos&password=nacos
+    check: false
+    parameters:
+      namespace: public
+  config-center:
+    address: nacos://10.21.76.221:8848?username=nacos&password=nacos
+    check: false
+  scan:
+    base-packages: com.yqz.openblog.message.service
+
+# 阿里云 DirectMail
+openblog:
+  message:
+    aliyun:
+      enabled: true
+      access-key-id: ${ALIYUN_AK:}
+      access-key-secret: ${ALIYUN_SK:}
+      region-id: cn-hangzhou
+      from-address: ${ALIYUN_FROM:}
+      from-alias: OpenBlog
