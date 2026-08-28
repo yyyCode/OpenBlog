@@ -29,6 +29,7 @@ import ConsoleUserDetailView from '../views/ConsoleUserDetailView.vue'
 import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
 import JobNavView from '../views/JobNavView.vue'
+import JobSubView from '../views/JobSubView.vue'
 import ProjectsListView from '../views/ProjectsListView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
@@ -68,6 +69,18 @@ const routes = [
     path: '/jobs',
     name: 'jobNav',
     component: JobNavView
+  },
+  {
+    path: '/jobs/interview',
+    name: 'jobInterviewTips',
+    component: JobSubView,
+    props: { title: '面试技巧' }
+  },
+  {
+    path: '/jobs/companies',
+    name: 'jobSmallCompanies',
+    component: JobSubView,
+    props: { title: '小而美公司' }
   },
   {
     path: '/projects',
