@@ -1202,7 +1202,8 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = "openblog.jwt.secret=openblog-gateway-test-secret-key-0123456789abcdef")
 class GatewayApplicationTest {
 
     @Autowired
@@ -1256,7 +1257,10 @@ spring:
 
 openblog:
   jwt:
-    secret: ${OPENBLOG_JWT_SECRET:openblog-jwt-secret-key-please-change-me-0123456789abcdef}
+    # 默认值留空 → JwtVerifier 构造器守卫（<32 字符）fail-fast：
+    # 生产漏配 OPENBLOG_JWT_SECRET 时网关立即拒绝启动，绝不回退到公开默认密钥（防伪造 token）。
+    # 本地测试由 GatewayApplicationTest 的 @SpringBootTest(properties=...) 显式注入测试密钥。
+    secret: ${OPENBLOG_JWT_SECRET:}
   gateway:
     auth:
       skip-paths:
@@ -1659,6 +1663,7 @@ Expected: gateway 5 个测试类全绿；business 现有测试不受影响。
 - [ ] 伪造/过期 token 访问需鉴权路径 → 网关 401（`ApiResponse{4010}`），前端跳登录。
 - [ ] 高频调用登录接口 → 429 限流文案（Redis 键 `gateway:rl:{IP}_/api/v1/auth/login`）。
 - [ ] 响应头与错误响应体均带 `X-Trace-Id` / `traceId`。
+- [ ] JWT 密钥同源：business 与 gateway 均经 env 注入同一 `OPENBLOG_JWT_SECRET` 且非公开占位值；容器未设该 env 时 gateway 应拒绝启动（fail-fast，日志 `openblog.jwt.secret 长度须至少 32 字符`）。**注意 business 的 application.yaml 目前仍是公开占位默认值（预存风险），上线前确认 business 也已用 env 覆盖。**
 - [ ] CORS：生产域名正常；非白名单 Origin 被拒。
 - [ ] 网关容器 `restart: always`；`docker compose stop gateway` 后 Nginx 502（预期）→ 改回直连 8082 重建 vue 容器即恢复（回退演练）。
 - [ ] 仅改 `OpenBlog-gateway/**` 的 PR 只触发 gateway 链（CI 独立验证）。
