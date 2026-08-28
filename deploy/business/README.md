@@ -71,10 +71,10 @@ compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/www
 ## 进阶：CI 全自动（已实现）
 
 `.github/workflows/ci.yml` 中，push 到 master（或手动 `workflow_dispatch`）触发
-`deploy-backend` job，在服务器上的自托管 Runner（`openblog-backend`）直接执行：
+`deploy-business` job，在服务器上的自托管 Runner（`openblog-backend`）直接执行：
 
 1. `actions/checkout` 拿到本目录的 `Dockerfile` / `docker-compose.yml` / `.dockerignore`
-2. 下载 `build-backend` 产出的 jar
+2. 下载 `build-business` 产出的 jar
 3. 停掉旧 systemd 服务 `openblog`（释放 8082），备份旧 jar
 4. 拷贝 jar + 部署文件到 `/www/wwwroot/java/openblog/`
 5. `docker compose up -d --build --remove-orphans` 并打印容器状态
