@@ -69,6 +69,27 @@
         </div>
       </div>
     </section>
+
+    <!-- 第 3 屏：网站时间线 -->
+    <section class="home-screen home-screen-timeline">
+      <div class="home-timeline">
+        <h2 class="home-timeline-title">网站历程</h2>
+        <div class="home-timeline-items">
+          <div
+            v-for="(m, i) in milestones"
+            :key="m.date + '-' + i"
+            class="home-timeline-item"
+          >
+            <span class="home-timeline-dot" aria-hidden="true"></span>
+            <div class="home-timeline-card">
+              <div class="home-timeline-date">{{ m.date }}</div>
+              <div class="home-timeline-name">{{ m.name }}</div>
+              <div class="home-timeline-desc">{{ m.desc }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -106,6 +127,15 @@ const sloganTitleHtml = computed(() => {
     .replace(/\n/g, '<br />')
 })
 const heroSubtitleHtml = computed(() => heroSubtitle.value.replace(/\n/g, '<br />'))
+
+// ---- 第 3 屏：网站时间线（静态内置关键节点） ----
+const milestones = [
+  { date: '2026-03', name: '网站上线', desc: 'OpenBlog 博客正式上线' },
+  { date: '2026-05', name: '基础功能完善', desc: '后台管理、SEO、对象存储、文章导入导出' },
+  { date: '2026-07', name: '体验优化', desc: '首页 Hero 图、双 Token 无感刷新' },
+  { date: '2026-08', name: 'Docker 自动化部署', desc: '后端迁移 Docker Compose，CI 自动部署' },
+  { date: '2026-08', name: '首页改版 · 全屏滚动', desc: '口号区 + 精选文章区全屏滚动' }
+]
 
 // ---- 第 2 屏：文章 ----
 const loading = ref(true)
