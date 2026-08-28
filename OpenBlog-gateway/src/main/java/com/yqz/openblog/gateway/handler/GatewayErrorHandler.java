@@ -38,16 +38,16 @@ public class GatewayErrorHandler implements ErrorWebExceptionHandler {
         String message;
 
         if (ex instanceof ResponseStatusException rse) {
-            HttpStatus s = HttpStatus.valueOf(rse.getStatusCode().value());
-            if (s == HttpStatus.NOT_FOUND || s == HttpStatus.SERVICE_UNAVAILABLE) {
+            int s = rse.getStatusCode().value();
+            if (s == HttpStatus.NOT_FOUND.value() || s == HttpStatus.SERVICE_UNAVAILABLE.value()) {
                 status = HttpStatus.BAD_GATEWAY;
                 code = 5000;
                 message = "服务暂不可用";
-            } else if (s == HttpStatus.UNAUTHORIZED) {
+            } else if (s == HttpStatus.UNAUTHORIZED.value()) {
                 status = HttpStatus.UNAUTHORIZED;
                 code = 4010;
                 message = "登录已失效";
-            } else if (s == HttpStatus.TOO_MANY_REQUESTS) {
+            } else if (s == HttpStatus.TOO_MANY_REQUESTS.value()) {
                 status = HttpStatus.TOO_MANY_REQUESTS;
                 code = 4290;
                 message = "请求过于频繁，请稍后再试";
@@ -67,8 +67,8 @@ public class GatewayErrorHandler implements ErrorWebExceptionHandler {
             message = "系统繁忙";
         }
 
-        log.error("gateway error: method={} path={} ex={}", exchange.getRequest().getMethod(),
-                exchange.getRequest().getPath(), ex.toString());
+        log.error("gateway error: method={} path={}", exchange.getRequest().getMethod(),
+                exchange.getRequest().getPath(), ex);
         return GatewayResponses.writeJson(exchange, objectMapper, status, code, message);
     }
 }
