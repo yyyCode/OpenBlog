@@ -92,4 +92,14 @@ class JwtCheckFilterTest {
         filter.filter(ex, c -> Mono.empty()).block();
         assertThat(ex.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    @Test
+    void validTokenWithoutUidClaim_returns401() {
+        SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        String noUid = Jwts.builder()
+                .signWith(key, SignatureAlgorithm.HS256).compact();
+        ServerWebExchange ex = exchange("/api/v1/user/profile", noUid);
+        filter.filter(ex, c -> Mono.empty()).block();
+        assertThat(ex.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
 }

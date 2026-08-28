@@ -3,6 +3,7 @@ package com.yqz.openblog.gateway.filter;
 import com.yqz.openblog.gateway.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 public class JwtVerifier {
 
     private final SecretKey key;
+    private final JwtParser parser;
 
     public JwtVerifier(JwtProperties props) {
         String secret = props.getSecret();
@@ -25,6 +27,7 @@ public class JwtVerifier {
             throw new IllegalStateException("openblog.jwt.secret 长度须至少 32 字符（与 business 同源）");
         }
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.parser = Jwts.parser().verifyWith(key).build();
     }
 
     /** @return 解析出的 userId；token 缺失/无效/过期返回 null */
@@ -33,8 +36,7 @@ public class JwtVerifier {
             return null;
         }
         try {
-            Claims claims = Jwts.parser().verifyWith(key).build()
-                    .parseSignedClaims(token).getPayload();
+            Claims claims = parser.parseSignedClaims(token).getPayload();
             Object uid = claims.get("uid");
             if (uid instanceof Integer i) {
                 return i.longValue();
