@@ -3435,28 +3435,28 @@ html.homepage-scroll-snap {
 /* ---- Footer ---- */
 .site-footer {
   margin-top: 48px;
-  padding: 18px 24px;
+  padding: 20px max(var(--page-pad), env(safe-area-inset-left, 0px));
   background: #111111;
 }
 
 .site-footer-inner {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  font-size: 13px;
+  font-size: 15px;
   color: #c9cdd4;
 }
 
 .site-footer-feedback {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: #e5e7eb;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .site-footer-feedback:hover {
@@ -3466,7 +3466,7 @@ html.homepage-scroll-snap {
 .site-footer-info {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   white-space: nowrap;
 }
 
