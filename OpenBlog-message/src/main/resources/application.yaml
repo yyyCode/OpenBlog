@@ -54,6 +54,10 @@ openblog:
       relay-interval-ms: 5000
       publish-window-ms: 1000
       max-retry: 8
+    mq:
+      # MQ 异步投递消费者默认关闭：当前无 submitAsync 调用方（机制保留待接线）。
+      # 开启后 message 启动将连接 RocketMQ（name-server），consumer 就绪并接收 openblog_notification 消息。
+      enabled: false
 
 # RocketMQ（通知异步投递）。name-server 指向部署 RocketMQ 的机器
 rocketmq:
