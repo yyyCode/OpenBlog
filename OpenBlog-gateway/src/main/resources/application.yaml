@@ -1,0 +1,82 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: openblog-gateway
+  data:
+    redis:
+      host: 10.21.76.221
+      port: 6739
+      password: 12345678aa
+  cloud:
+    gateway:
+      # SCG 2025.0.x (spring-cloud-gateway-server-webflux 4.3.x) 配置前缀：
+      # 经典 spring.cloud.gateway.* 前缀已迁移到 spring.cloud.gateway.server.webflux.*，
+      # 使用旧前缀时 routes/globalcors 不会被绑定（上下文测试会得到 0 条路由）。
+      server:
+        webflux:
+          routes:
+            - id: business-api
+              uri: http://host.docker.internal:8082
+              predicates:
+                - Path=/api/**
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns:
+                  - "https://www.wecode.xin"
+                  - "http://localhost:5173"
+                  - "http://localhost"
+                allowed-methods:
+                  - "GET"
+                  - "POST"
+                  - "PUT"
+                  - "DELETE"
+                  - "OPTIONS"
+                allowed-headers: "*"
+                allow-credentials: false
+                max-age: 3600
+
+openblog:
+  jwt:
+    # 默认值留空 → JwtVerifier 构造器守卫（<32 字符）fail-fast：
+    # 生产漏配 OPENBLOG_JWT_SECRET 时网关立即拒绝启动，绝不回退到公开默认密钥（防伪造 token）。
+    # 本地测试由 GatewayApplicationTest 的 @SpringBootTest(properties=...) 显式注入测试密钥。
+    secret: ${OPENBLOG_JWT_SECRET:}
+  gateway:
+    auth:
+      skip-paths:
+        - /api/v1/auth/login
+        - /api/v1/auth/register
+        - /api/v1/auth/email-code
+        - /api/v1/auth/slider-challenge
+        - /api/v1/auth/slider-complete
+        - /api/v1/auth/refresh
+    rate-limit:
+      enabled: true
+      rules:
+        - path: /api/v1/auth/login
+          window-ms: 60000
+          limit: 10
+          scope: IP
+        - path: /api/v1/auth/email-code
+          window-ms: 60000
+          limit: 5
+          scope: IP
+        - path: /api/v1/auth/refresh
+          window-ms: 60000
+          limit: 20
+          scope: IP
+        - path: /api/v1/comments/**
+          window-ms: 60000
+          limit: 30
+          scope: IP_UID
+        - path: /api/v1/forum/**
+          window-ms: 60000
+          limit: 30
+          scope: IP_UID
+        - path: /api/v1/feedback/**
+          window-ms: 60000
+          limit: 20
+          scope: IP
