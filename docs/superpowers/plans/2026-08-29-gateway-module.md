@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 新增独立 `OpenBlog-gateway` 模块（Spring Cloud Gateway / WebFlux，8080），承接 `/api/**` 的统一 JWT 粗校验、限流防刷、traceId 透传、统一错误兜底与 CORS 收敛；Nginx `/api/` 改指网关，business 保留完整授权。
+**Goal:** 新增独立 `OpenBlog-gateway` 模块（Spring Cloud Gateway / WebFlux，8090），承接 `/api/**` 的统一 JWT 粗校验、限流防刷、traceId 透传、统一错误兜底与 CORS 收敛；Nginx `/api/` 改指网关，business 保留完整授权。
 
-**Architecture:** Nginx(边缘) `/api/**` → Gateway(8080) GlobalFilter 链（TraceIdFilter -3 → JwtCheckFilter -2 → RateLimitFilter -1）→ 静态路由转发 business:8082；`GatewayErrorHandler`（ErrorWebExceptionHandler）统一兜底。sitemap/robots/seo/爬虫路径保持 Nginx 直连 business。
+**Architecture:** Nginx(边缘) `/api/**` → Gateway(8090) GlobalFilter 链（TraceIdFilter -3 → JwtCheckFilter -2 → RateLimitFilter -1）→ 静态路由转发 business:8082；`GatewayErrorHandler`（ErrorWebExceptionHandler）统一兜底。sitemap/robots/seo/爬虫路径保持 Nginx 直连 business。
 
 **Tech Stack:** Spring Cloud Gateway 4.3.x（Spring Cloud 2025.0.x Northfields BOM）+ Spring Boot 3.5.12 + Java 17 + WebFlux + jjwt 0.12.5 + framework-redis（SlidingWindowLimiter）+ OpenBlog-common（仅 ApiResponse）。
 
@@ -202,7 +202,7 @@ public class GatewayApplication {
 
 ```yaml
 server:
-  port: 8080
+  port: 8090
 
 spring:
   application:
@@ -1257,7 +1257,7 @@ Expected: FAIL（无 application.yaml 路由配置，断言 0 > 0 失败；或�
 
 ```yaml
 server:
-  port: 8080
+  port: 8090
 
 spring:
   application:
@@ -1382,7 +1382,7 @@ git commit -m "security(business): restrict CORS allowed-origin-patterns to real
 
 ---
 
-## Task 8: Nginx `/api/` 改指网关 8080
+## Task 8: Nginx `/api/` 改指网关 8090
 
 **Files:**
 - Modify: `vue/nginx.conf:41-46`（仅 `/api/` 块）
@@ -1393,7 +1393,7 @@ git commit -m "security(business): restrict CORS allowed-origin-patterns to real
 
 ```nginx
     location ^~ /api/ {
-        proxy_pass http://host.docker.internal:8080;
+        proxy_pass http://host.docker.internal:8090;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -1406,14 +1406,14 @@ git commit -m "security(business): restrict CORS allowed-origin-patterns to real
 
 - [ ] **Step 2: 校验 Nginx 语法（本机无 nginx 可跳过，提交前确认目标行唯一）**
 
-Run: `grep -n "host.docker.internal:8080" vue/nginx.conf`
+Run: `grep -n "host.docker.internal:8090" vue/nginx.conf`
 Expected: 仅 `/api/` 块一处出现。
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add vue/nginx.conf
-git commit -m "feat(gateway): route /api/** through gateway 8080 in nginx"
+git commit -m "feat(gateway): route /api/** through gateway 8090 in nginx"
 ```
 
 ---
@@ -1443,7 +1443,7 @@ COPY ${JAR_FILE} app.jar
 
 ENV JAVA_OPTS="-Xmx512M -Xms128M"
 
-EXPOSE 8080
+EXPOSE 8090
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
 ```
@@ -1454,7 +1454,7 @@ ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
 # OpenBlog-gateway Docker 编排
 #
 # 外部依赖（Redis 10.21.76.221:6739）走默认 bridge 网络直达。
-# 发布 8080；/api/** 经网关转发到宿主机 business（host.docker.internal:8082，--add-host 由 CI/部署注入）。
+# 发布 8090；/api/** 经网关转发到宿主机 business（host.docker.internal:8082，--add-host 由 CI/部署注入）。
 # JWT secret 经 env OPENBLOG_JWT_SECRET 注入，须与 business 同值。
 
 services:
@@ -1465,7 +1465,7 @@ services:
     container_name: openblog-gateway
     restart: always
     ports:
-      - "8080:8080"
+      - "8090:8090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -1489,13 +1489,13 @@ networks:
 !Dockerfile
 ```
 
-> **端口暴露安全**：8080 发布在宿主机 0.0.0.0，会被 nginx（vue 容器，经 host.docker.internal）访问，但**也直接暴露给外网**。上线时须在宝塔/防火墙放行规则里仅允许内网访问 8080（外部只暴露 80/443），否则攻击者绕过 nginx 直连网关触发 JWT/限流路径（含限流 X-Forwarded-For 伪造面）。compose 端口建议 `"8080:8080"` 保持，靠宿主防火墙收敛。
+> **端口暴露安全**：8090 发布在宿主机 0.0.0.0，会被 nginx（vue 容器，经 host.docker.internal）访问，但**也直接暴露给外网**。上线时须在宝塔/防火墙放行规则里仅允许内网访问 8090（外部只暴露 80/443），否则攻击者绕过 nginx 直连网关触发 JWT/限流路径（含限流 X-Forwarded-For 伪造面）。compose 端口建议 `"8090:8090"` 保持，靠宿主防火墙收敛。
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add deploy/gateway
-git commit -m "feat(gateway): dockerize gateway service (port 8080)"
+git commit -m "feat(gateway): dockerize gateway service (port 8090)"
 ```
 
 ---
@@ -1582,7 +1582,7 @@ filter 块末尾追加：
           TARGET_DIR="/www/wwwroot/java/openblog-gateway"
           TARGET_JAR="$TARGET_DIR/OpenBlog-gateway-1.0.0-SNAPSHOT.jar"
 
-          # 1. 停掉旧进程（若有，释放 8080）
+          # 1. 停掉旧进程（若有，释放 8090）
           systemctl stop openblog-gateway 2>/dev/null || true
 
           # 2. 备份旧 jar
@@ -1643,13 +1643,13 @@ git commit -m "ci(gateway): add independent gateway build/deploy chain"
 `README.md` 模块表新增：
 
 ```markdown
-| `OpenBlog-gateway` | API 网关（端口 8080）：统一 JWT 粗校验 / 限流 / traceId / 统一错误兜底 / CORS |
+| `OpenBlog-gateway` | API 网关（端口 8090）：统一 JWT 粗校验 / 限流 / traceId / 统一错误兜底 / CORS |
 ```
 
 `README.md` 部署节新增：
 
 ```bash
-# 3) gateway（API 网关，8080）—— CI 已接入：push master 自动 Docker 部署
+# 3) gateway（API 网关，8090）—— CI 已接入：push master 自动 Docker 部署
 mvn -pl OpenBlog-gateway -am package -DskipTests
 # 产物 OpenBlog-gateway/target/OpenBlog-gateway-1.0.0-SNAPSHOT.jar，Docker 化部署见 deploy/gateway/
 ```
@@ -1664,8 +1664,8 @@ mvn -pl OpenBlog-gateway -am package -DskipTests
 # OpenBlog-gateway 部署
 
 ## 切换节奏（首次上线顺序）
-1. 部署 gateway 容器（8080）—— CI deploy-gateway 或手动 `docker compose up -d --build`
-2. 重建 vue 容器让 `/api/` 指向网关：`sh vue/docker.sh`（nginx.conf 已改 8080）
+1. 部署 gateway 容器（8090）—— CI deploy-gateway 或手动 `docker compose up -d --build`
+2. 重建 vue 容器让 `/api/` 指向网关：`sh vue/docker.sh`（nginx.conf 已改 8090）
 3. 验证：登录 / 读文章 / 写评论；未带 token 访问受保护接口 → business 401；伪造 token → 网关 401
 4. 回退预案：nginx.conf `/api/` 改回 `host.docker.internal:8082` 重建 vue 容器，网关可保留不停
 

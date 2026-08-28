@@ -220,7 +220,7 @@ API 网关是系统的**统一流量入口**，位于客户端与服务之间，
 - **自身 HA**：网关至少 2 副本 + `restart: always`，否则等于新增 SPOF。
 
 ```
-浏览器 → Nginx(静态+TLS) → Spring Cloud Gateway(8080) → business :8082
+浏览器 → Nginx(静态+TLS) → Spring Cloud Gateway(8090) → business :8082
                                               └────────► message :8083（未来开放 HTTP 时）
 ```
 
