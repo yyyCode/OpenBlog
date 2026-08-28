@@ -70,7 +70,7 @@ scp OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar root@10.21.76.22
 ```
 
 > ⚠️ **business 与 message 必须一起升级**。RPC 按接口全限定名匹配
-> `com.yqz.openblog.message.api.EmailRpcService`。只升级 business 时，message 在 Nacos
+> `com.yqz.openblog.message.api.NotificationRpcService`。只升级 business 时，message 在 Nacos
 > 仍注册旧接口包名 → business 订阅不到 → "No provider" → 5002「邮件服务暂不可用」。
 > 升级 message 后到 Nacos 服务列表确认 provider 为新包名（`openblog-message`）再联调。
 
@@ -93,7 +93,7 @@ scp OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar root@10.21.76.22
 
 - **验证码发不出，business 日志抛 5002「邮件服务暂不可用 / No provider」**：message 服务（8083）
   没在跑，或 Nacos 里注册的接口包名与 business 不一致。到 Nacos 服务列表核对 provider 是否为
-  `openblog-message` / `com.yqz.openblog.message.api.EmailRpcService`；改名后 business 与
+  `openblog-message` / `com.yqz.openblog.message.api.NotificationRpcService`；改名后 business 与
   message 必须一起重新部署（见上文「message 服务」）。
 - **8082 被占用**：宝塔 Java 项目没停，先停掉。
 - **容器起不来 / 一直重启**：`docker logs openblog-business` 看日志；多为连不上

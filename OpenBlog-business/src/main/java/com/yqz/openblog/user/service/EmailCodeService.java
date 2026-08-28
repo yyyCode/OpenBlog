@@ -115,7 +115,7 @@ public class EmailCodeService {
             redisOps.delete(codeKey);
             redisOps.delete(cooldownKey);
             log.warn("Dubbo 调用通知服务失败。email={}", email, e);
-            throw new BizException(5002, "邮件服务暂不可用，请稍后再试");
+            throw new BizException(NotificationRpcService.ERROR_CODE_EMAIL_UNAVAILABLE, "邮件服务暂不可用，请稍后再试");
         }
 
         return cfg.getResendCooldownSeconds();

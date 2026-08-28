@@ -88,7 +88,7 @@ cd vue && npm run build
 # dist/ 交由 Nginx 托管，API 反代到 8082
 ```
 
-> ⚠️ business 与 message 的 RPC 接口按全限定名匹配（`com.yqz.openblog.message.api.EmailRpcService`），
+> ⚠️ business 与 message 的 RPC 接口按全限定名匹配（`com.yqz.openblog.message.api.NotificationRpcService`），
 > 升级后必须**同时重新部署**两者；只升一个会导致 Nacos 里 provider/consumer 对不上，
 > business 抛 "No provider"（5002 邮件服务暂不可用）。
 
