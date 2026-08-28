@@ -15,6 +15,7 @@ jobs:
     outputs:
       business: ${{ steps.filter.outputs.business }}
       message: ${{ steps.filter.outputs.message }}
+      gateway: ${{ steps.filter.outputs.gateway }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +35,12 @@ jobs:
               - 'OpenBlog-common/**'
               - 'OpenBlog-api/**'
               - 'deploy/message/**'
+              - 'pom.xml'
+            gateway:
+              - 'OpenBlog-gateway/**'
+              - 'OpenBlog-common/**'
+              - 'OpenBlog-framework*/**'
+              - 'deploy/gateway/**'
               - 'pom.xml'
             frontend:
               - 'vue/**'
@@ -198,6 +205,87 @@ jobs:
           $DC up -d --build --remove-orphans
           $DC ps
           echo "==> Deployed OpenBlog-message via Docker"
+
+  # ============ gateway 链（独立，与 business/message 互不影响） ============
+  build-gateway:
+    needs: changes
+    if: ${{ needs.changes.outputs.gateway == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+      - name: Build gateway (Maven)
+        run: mvn -B -ntp package -DskipTests -pl OpenBlog-gateway -am
+      - name: Upload gateway JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-jar
+          path: OpenBlog-gateway/target/OpenBlog-gateway-*.jar
+          retention-days: 1
+
+  deploy-gateway:
+    needs: build-gateway
+    if: ${{ needs.build-gateway.result == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: openblog-backend
+
+    steps:
+      - name: Checkout（获取 deploy/gateway 下的 Docker 部署文件）
+        uses: actions/checkout@v4
+      - name: Download gateway JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: gateway-jar
+          path: gateway
+      - name: Deploy via Docker（构建镜像 + 重启容器 + 注入 JWT secret）
+        env:
+          OPENBLOG_JWT_SECRET: ${{ secrets.OPENBLOG_JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          TARGET_DIR="/www/wwwroot/java/openblog-gateway"
+          TARGET_JAR="$TARGET_DIR/OpenBlog-gateway-1.0.0-SNAPSHOT.jar"
+
+          # 1. 停掉旧进程（若有，释放 8080）
+          systemctl stop openblog-gateway 2>/dev/null || true
+
+          # 2. 备份旧 jar
+          mkdir -p "$TARGET_DIR"
+          if [ -f "$TARGET_JAR" ]; then
+            mkdir -p "$TARGET_DIR/backup"
+            cp "$TARGET_JAR" "$TARGET_DIR/backup/OpenBlog-gateway-$(date +%Y%m%d-%H%M%S).jar" 2>/dev/null || true
+          fi
+
+          # 3. 拷贝新 jar + Docker 部署文件
+          JAR_FILE=$(ls gateway/OpenBlog-gateway-*.jar | head -1)
+          cp "$JAR_FILE" "$TARGET_JAR"
+          cp deploy/gateway/Dockerfile deploy/gateway/docker-compose.yml deploy/gateway/.dockerignore "$TARGET_DIR/"
+
+          # 4. JWT secret 写入服务器 .env（compose 自动加载）
+          printf 'OPENBLOG_JWT_SECRET=%s\n' "$OPENBLOG_JWT_SECRET" > "$TARGET_DIR/.env"
+
+          # 5. Docker 构建并启动容器
+          cd "$TARGET_DIR"
+          docker info >/dev/null 2>&1 || { echo "!! Docker 守护进程未运行，请先启动 Docker" >&2; exit 1; }
+          if docker compose version >/dev/null 2>&1; then
+            DC="docker compose"
+          elif docker-compose version >/dev/null 2>&1; then
+            DC="docker-compose"
+          else
+            echo "!! 服务器上没有 docker compose / docker-compose" >&2
+            exit 1
+          fi
+          echo "==> 使用: $DC"
+          $DC up -d --build --remove-orphans
+          $DC ps
+          echo "==> Deployed OpenBlog-gateway via Docker"
 
   # ============ 前端链（原样保留） ============
   build-frontend:
