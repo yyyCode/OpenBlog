@@ -159,7 +159,7 @@ public class GatewayApplication { ... }
 | `openblog.gateway.rate-limit.rules[].window-ms` / `.limit` | `60000` / `60` | 窗口与阈值 |
 | `openblog.gateway.rate-limit.rules[].scope` | `IP` | `IP` 或 `IP_UID` |
 
-> **CORS 收敛**：走 SCG 内置 `spring.cloud.gateway.globalcors.cors-configurations`（`allowedOrigins` 填真实域名白名单，`allowCredentials=false` 与现状一致），不另设自定义 CORS 属性/过滤器，避免双 CORS 机制。business 侧 `allowed-origin-patterns: ["*"]` 的收紧作为同 PR 的配套改动（网关成为唯一入口后，直连 8082 已不对浏览器暴露）。
+> **CORS 收敛**：走 SCG 内置 `spring.cloud.gateway.server.webflux.globalcors.cors-configurations`（SCG 4.3.x / Spring Cloud 2025.0.x 实测前缀，旧 `spring.cloud.gateway.globalcors.*` 在 4.3.5 不绑定，已用 javap 验证；`allowedOrigins` 填真实域名白名单，`allowCredentials=false` 与现状一致），不另设自定义 CORS 属性/过滤器，避免双 CORS 机制。business 侧 `allowed-origin-patterns: ["*"]` 的收紧作为同 PR 的配套改动（网关成为唯一入口后，直连 8082 已不对浏览器暴露）。
 
 ---
 
