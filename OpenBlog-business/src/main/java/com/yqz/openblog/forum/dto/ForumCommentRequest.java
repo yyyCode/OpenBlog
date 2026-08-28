@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 public class ForumCommentRequest {
 
     @NotBlank
-    @Size(max = 2000)
+    @Size(max = 200)
     private String content;
 
     public String getContent() {

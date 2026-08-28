@@ -152,7 +152,11 @@ public class ForumService {
      */
     public ForumCommentResponse createComment(Long topicId, Long uid, ForumCommentRequest req) {
         ensureUserActive(uid);
-        checkSensitive(req.getContent());
+        String content = req.getContent();
+        checkSensitive(content);
+        if (content.split("\n", -1).length > 10) {
+            throw new BizException(4001, "评论不能超过 10 行");
+        }
 
         ForumTopic topic = forumTopicMapper.selectById(topicId);
         if (topic == null || topic.getStatus() == ForumTopicStatus.HIDDEN) {
