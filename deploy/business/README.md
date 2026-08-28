@@ -56,18 +56,12 @@ compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/www
 容器 `/app/application.yaml` 即可覆盖 jar 内配置（Spring Boot 外部配置文件优先级更高）。例如
 服务器 IP 变化、切 storage 类型、改 Redis 密码时，改这一个文件 + 重启容器即可，不用重新打包。
 
-## message 服务（暂未 Docker 化，手动部署）
+## message 服务（统一通知服务，8083）
 
-`OpenBlog-message`（端口 8083，邮件通道）目前仍是宝塔 Java 项目，未走 Docker/CI，需手动部署：
-
-```bash
-# 本机（项目根目录）打包
-mvn -pl OpenBlog-message -am package -DskipTests
-
-# 上传到服务器并重启（路径换成你服务器上 message 服务的实际目录）
-scp OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar root@10.21.76.221:/www/wwwroot/java/openblog-message/
-# 宝塔面板重启 openblog-message 项目（或 systemctl restart openblog-message）
-```
+`OpenBlog-message` 已 Docker 化 + 接入 CI：push master（或 workflow_dispatch）触发 `build-message` / `deploy-message`，
+在自托管 Runner 上构建镜像并部署到 `/www/wwwroot/java/openblog-message/`（端口 8083 + Dubbo 20883）。
+部署文件见 `deploy/message/`；需在 GitHub Actions Secrets 配置 `ALIYUN_AK` / `ALIYUN_SK` / `ALIYUN_FROM`
+（部署时写入服务器 .env，容器经 compose 读取，见 `.github/workflows/ci.yml` 的 deploy-message）。
 
 > ⚠️ **business 与 message 必须一起升级**。RPC 按接口全限定名匹配
 > `com.yqz.openblog.message.api.NotificationRpcService`。只升级 business 时，message 在 Nacos
