@@ -91,7 +91,9 @@ openblog:
   # 生产环境请改为前端实际域名，例如 https://blog.example.com
   cors:
     allowed-origin-patterns:
-      - "*"
+      - "https://www.wecode.xin"
+      - "http://localhost:5173"
+      - "http://localhost"
   auth-security:
     slider:
       enabled: false
