@@ -1211,6 +1211,7 @@ git commit -m "feat(gateway): rate limiting via framework-redis SlidingWindowLim
 ```java
 package com.yqz.openblog.gateway;
 
+import com.yqz.openblog.gateway.config.GatewayProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -1225,10 +1226,24 @@ class GatewayApplicationTest {
     @Autowired
     private RouteLocator routeLocator;
 
+    @Autowired
+    private GatewayProperties gatewayProperties;
+
     @Test
     void contextLoadsAndRoutesConfigured() {
         int routes = routeLocator.getRoutes().collectList().block().size();
         assertThat(routes).isGreaterThan(0);
+    }
+
+    @Test
+    void gatewayConfigBinds() {
+        // 锁定 skip-paths / 限流规则的绑定（评审重要发现：路径拼错会静默失效限流）
+        assertThat(gatewayProperties.getAuth().getSkipPaths())
+                .contains("/api/v1/auth/email-code");
+        assertThat(gatewayProperties.getRateLimit().getRules())
+                .anyMatch(r -> "/api/v1/auth/email-code".equals(r.getPath()));
+        assertThat(gatewayProperties.getRateLimit().getRules())
+                .anyMatch(r -> r.getScope() == GatewayProperties.Scope.IP_UID);
     }
 }
 ```
@@ -1282,8 +1297,7 @@ openblog:
       skip-paths:
         - /api/v1/auth/login
         - /api/v1/auth/register
-        - /api/v1/auth/email/code
-        - /api/v1/auth/captcha
+        - /api/v1/auth/email-code
         - /api/v1/auth/refresh
     rate-limit:
       enabled: true
@@ -1292,7 +1306,7 @@ openblog:
           window-ms: 60000
           limit: 10
           scope: IP
-        - path: /api/v1/auth/email/code
+        - path: /api/v1/auth/email-code
           window-ms: 60000
           limit: 5
           scope: IP
@@ -1339,6 +1353,8 @@ git commit -m "feat(gateway): full config with routes, globalcors, redis, rate-l
 
 **Files:**
 - Modify: `OpenBlog-business/src/main/resources/application.yaml:92-94`
+
+> **双 CORS 协调（评审建议）**：请求经网关时 `Origin` 头会原样透传到 business，因此网关 `globalcors` 与 business `CorsFilter` **都会**写 `Access-Control-Allow-Origin`。浏览器对两个 ACAO 头按逗号合并后判定——若值不一致则报 CORS 错误。因此 business 此处的域名白名单**必须与网关 `spring.cloud.gateway.server.webflux.globalcors.cors-configurations` 的 `allowed-origins` 完全一致**（同为 `https://www.wecode.xin`、`http://localhost:5173`、`http://localhost`）。一致时两者并存无害；上线后需用真实浏览器跨域验证一次（见 Task 11 验收清单）。若后续直连 8082 的 SEO 路径也产生 CORS 需求，再单独评估。
 
 - [ ] **Step 1: 修改 CORS 白名单**
 
