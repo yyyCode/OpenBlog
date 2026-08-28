@@ -1051,6 +1051,12 @@ class RateLimitFilterTest {
 }
 ```
 
+> **评审补充测试（必做，锁定两个修复）**：
+> 1. `xRealIpPreferredOverXff`：同时带 `X-Real-IP: 9.9.9.9` 与 `X-Forwarded-For: 1.2.3.4` → `tryAcquire` 的 key 含 `9.9.9.9`（ArgumentCaptor 捕获 key 断言，防伪造头绕过）。
+> 2. `ipUidScope_usesUidFromValidToken`：`Authorization: Bearer <真实签名 uid=42>` + scope IP_UID → key 含 `_42_`；`ipUidScope_degradesToIpWithoutToken`：无 token → key 不含 `_`+uid。
+> 3. `redisError_failsOpen`：`limiter.tryAcquire(...)` 抛 `RuntimeException` → 请求放行（status null），不 500。
+> 4. `nullPathRule_skipped`：rule.path 为 null → 不调用 limiter。
+
 - [ ] **Step 2: 运行确认失败**
 
 Run: `mvn -pl :OpenBlog-gateway test -Dtest=RateLimitFilterTest`
@@ -1125,8 +1131,15 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
                 uid = resolveUid(exchange);
             }
             String key = "gateway:rl:" + ip + (uid != null ? "_" + uid : "") + "_" + rule.getPath();
-            return limiter.tryAcquire(key, rule.getWindowMs(), rule.getLimit(),
-                    System.currentTimeMillis(), UUID.randomUUID().toString());
+            try {
+                return limiter.tryAcquire(key, rule.getWindowMs(), rule.getLimit(),
+                        System.currentTimeMillis(), UUID.randomUUID().toString());
+            } catch (RuntimeException e) {
+                // 限流后端故障（Redis 不可达等）→ 放行（fail-open，与 business 一致），
+                // 避免限流组件故障拖垮整个 API；代价是故障期间限流暂时失效。
+                log.warn("rate limit backend unavailable, allowing request: key={} err={}", key, e.toString());
+                return true;
+            }
         }).subscribeOn(Schedulers.boundedElastic()).flatMap(allowed -> {
             if (allowed) {
                 return chain.filter(exchange);
@@ -1149,13 +1162,16 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     }
 
     private String clientIp(ServerWebExchange exchange) {
-        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
+        // 优先 X-Real-IP：nginx 边缘已用 proxy_set_header X-Real-IP $remote_addr 覆写，不可伪造。
+        // 不得信任 X-Forwarded-For 首跳——nginx 用 $proxy_add_x_forwarded_for 追加真实 IP，
+        // 首跳是客户端可伪造值，用作限流 key 会被换头绕过（评审 Critical #1）。
         String realIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
         if (realIp != null && !realIp.isBlank()) {
             return realIp;
+        }
+        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
         }
         if (exchange.getRequest().getRemoteAddress() != null) {
             return exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
@@ -1456,6 +1472,8 @@ networks:
 !OpenBlog-gateway-*.jar
 !Dockerfile
 ```
+
+> **端口暴露安全**：8080 发布在宿主机 0.0.0.0，会被 nginx（vue 容器，经 host.docker.internal）访问，但**也直接暴露给外网**。上线时须在宝塔/防火墙放行规则里仅允许内网访问 8080（外部只暴露 80/443），否则攻击者绕过 nginx 直连网关触发 JWT/限流路径（含限流 X-Forwarded-For 伪造面）。compose 端口建议 `"8080:8080"` 保持，靠宿主防火墙收敛。
 
 - [ ] **Step 4: Commit**
 
