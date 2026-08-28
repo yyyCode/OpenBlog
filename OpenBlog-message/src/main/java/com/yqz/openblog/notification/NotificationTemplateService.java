@@ -1,6 +1,7 @@
 package com.yqz.openblog.notification;
 
 import com.yqz.openblog.common.BizException;
+import com.yqz.openblog.message.api.NotificationRpcService;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -14,8 +15,8 @@ import java.util.Map;
 @Service
 public class NotificationTemplateService {
 
-    /** 注册验证码模板 code。 */
-    public static final String REGISTER_VERIFICATION_CODE = "register-verification-code";
+    /** 注册验证码模板 code（与共享契约同源，见 NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE）。 */
+    public static final String REGISTER_VERIFICATION_CODE = NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE;
 
     private static final Map<String, String> TEMPLATES = Map.of(
             REGISTER_VERIFICATION_CODE,

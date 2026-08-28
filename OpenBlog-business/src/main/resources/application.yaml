@@ -58,12 +58,6 @@ dubbo:
   consumer:
     check: false
 
-# RocketMQ（通知异步投递，P1）。name-server 指向部署 RocketMQ 的机器
-rocketmq:
-  name-server: 10.21.76.221:9876
-  producer:
-    group: openblog-notification-producer
-
 audit:
   enabled: true
   async: true
@@ -111,18 +105,6 @@ openblog:
       code-ttl-seconds: 300
       resend-cooldown-seconds: 60
       max-verify-attempts: 5
-  notification:
-    # 统一通知抽象层。当前只 email 渠道生效；SMS / 飞书为未来扩展位
-    email:
-      enabled: true
-      default-subject: OpenBlog
-    # 本地消息表 + MQ 异步投递（P1）：submitAsync 写 outbox → Relay 发布 → Consumer 投递
-    # topic / consumer-group 见 NotificationTopics 常量（单一来源）
-    outbox:
-      enabled: true
-      relay-interval-ms: 5000
-      publish-window-ms: 1000
-      max-retry: 8
   jwt:
     secret: openblog-jwt-secret-key-please-change-me-0123456789abcdef
     issuer: openblog

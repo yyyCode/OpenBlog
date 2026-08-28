@@ -7,6 +7,7 @@ import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  * 超过重试上限进 RocketMQ DLQ（死信）留待人工 / 告警（P2 再细化 FAILED/DEAD 状态机）。
  * 重投期间 outbox 保持 PUBLISHED，与「已发布未送达」的实际状态一致。
  */
+@ConditionalOnProperty(prefix = "openblog.notification.mq", name = "enabled", havingValue = "true", matchIfMissing = false)
 @Component
 @RocketMQMessageListener(
         topic = NotificationTopics.TOPIC,

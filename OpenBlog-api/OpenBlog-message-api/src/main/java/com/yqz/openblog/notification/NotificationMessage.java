@@ -1,5 +1,6 @@
 package com.yqz.openblog.notification;
 
+import java.io.Serializable;
 import java.util.Map;
 
 /**
@@ -9,7 +10,9 @@ import java.util.Map;
  * 经 {@link NotificationTemplateService} 渲染成各渠道内容。未来接 SMS/飞书时扩展 templateCode
  * 与模板即可，调用方无需感知渠道实现差异。
  */
-public class NotificationMessage {
+public class NotificationMessage implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 全局幂等键（业务方生成，如 UUID）：贯穿 outbox / MQ / 消费端投递。
