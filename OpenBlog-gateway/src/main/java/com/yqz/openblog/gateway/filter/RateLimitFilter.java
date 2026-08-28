@@ -64,8 +64,14 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
                 uid = resolveUid(exchange);
             }
             String key = "gateway:rl:" + ip + (uid != null ? "_" + uid : "") + "_" + rule.getPath();
-            return limiter.tryAcquire(key, rule.getWindowMs(), rule.getLimit(),
-                    System.currentTimeMillis(), UUID.randomUUID().toString());
+            try {
+                return limiter.tryAcquire(key, rule.getWindowMs(), rule.getLimit(),
+                        System.currentTimeMillis(), UUID.randomUUID().toString());
+            } catch (RuntimeException e) {
+                // Redis 不可用时放行（fail open），避免把每个限流路径都打成 500
+                log.warn("rate limit backend unavailable, allowing request: key={} err={}", key, e.toString());
+                return true;
+            }
         }).subscribeOn(Schedulers.boundedElastic()).flatMap(allowed -> {
             if (allowed) {
                 return chain.filter(exchange);
@@ -88,13 +94,14 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     }
 
     private String clientIp(ServerWebExchange exchange) {
-        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
+        // nginx 用 $remote_addr 覆写 X-Real-IP（不可伪造），优先使用；X-Forwarded-For 首跳是客户端可控的，仅作回退。
         String realIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
         if (realIp != null && !realIp.isBlank()) {
             return realIp;
+        }
+        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
         }
         if (exchange.getRequest().getRemoteAddress() != null) {
             return exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
