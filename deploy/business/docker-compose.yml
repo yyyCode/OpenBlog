@@ -17,6 +17,8 @@ services:
       TZ: Asia/Shanghai
       # 与宝塔原启动一致的内存上限/初始堆
       JAVA_OPTS: "-Xmx1024M -Xms256M"
+      # 与 gateway 共用同一 JWT secret（须与 OPENBLOG_JWT_SECRET 同值，否则网关校验全 401）
+      OPENBLOG_JWT_SECRET: ${OPENBLOG_JWT_SECRET}
     # 可选挂载：
     # 1) 不改 jar 覆盖配置 → 把服务器上的 application.yaml 放到 REMOTE_DIR 并挂载到
     #    /app/application.yaml（Spring Boot 工作目录外部配置优先级高于 jar 内内置）

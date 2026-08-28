@@ -108,7 +108,7 @@ openblog:
       resend-cooldown-seconds: 60
       max-verify-attempts: 5
   jwt:
-    secret: openblog-jwt-secret-key-please-change-me-0123456789abcdef
+    secret: ${OPENBLOG_JWT_SECRET:openblog-jwt-secret-key-please-change-me-0123456789abcdef}
     issuer: openblog
     access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 2592000

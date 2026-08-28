@@ -84,7 +84,9 @@ jobs:
         with:
           name: business-jar
           path: business
-      - name: Deploy via Docker（构建镜像 + 重启容器）
+      - name: Deploy via Docker（构建镜像 + 重启容器 + 注入 JWT secret）
+        env:
+          OPENBLOG_JWT_SECRET: ${{ secrets.OPENBLOG_JWT_SECRET }}
         run: |
           set -euo pipefail
           TARGET_DIR="/www/wwwroot/java/openblog"
@@ -99,6 +101,9 @@ jobs:
             mkdir -p "$TARGET_DIR/backup"
             cp "$TARGET_JAR" "$TARGET_DIR/backup/OpenBlog-business-$(date +%Y%m%d-%H%M%S).jar" 2>/dev/null || true
           fi
+
+          # 3.5 写入 .env（compose 自动加载），JWT secret 与 gateway 同值
+          printf 'OPENBLOG_JWT_SECRET=%s\n' "$OPENBLOG_JWT_SECRET" > "$TARGET_DIR/.env"
 
           # 3. 拷贝新 jar + Docker 部署文件
           JAR_FILE=$(ls business/OpenBlog-business-*.jar | head -1)
@@ -224,7 +229,7 @@ jobs:
           distribution: "temurin"
           cache: "maven"
       - name: Build gateway (Maven)
-        run: mvn -B -ntp package -DskipTests -pl OpenBlog-gateway -am
+        run: mvn -B -ntp package -pl OpenBlog-gateway -am
       - name: Upload gateway JAR
         uses: actions/upload-artifact@v4
         with:
