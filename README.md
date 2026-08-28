@@ -81,7 +81,7 @@ mvn -pl OpenBlog-business -am package -DskipTests
 
 # 2) message（统一通知服务，8083）—— CI 已接入：push master 自动 Docker 部署
 mvn -pl OpenBlog-message -am package -DskipTests
-# 产物 OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar，Docker 化部署见 deploy/message/.
+# 产物 OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar，Docker 化部署见 deploy/message/
 
 # 前端
 cd vue && npm run build
