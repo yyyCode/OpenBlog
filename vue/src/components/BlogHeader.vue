@@ -3,7 +3,7 @@
     <div class="site-top-bar-inner">
       <router-link to="/" class="site-brand" aria-label="返回首页">
         <img class="site-brand-logo" src="/site-icon.png" alt="" aria-hidden="true" />
-        <span class="site-brand-text">{{ (siteConfig && siteConfig.blog_name) || '微码平台' }}</span>
+        <span class="site-brand-text"><span class="brand-hl">W</span>e<span class="brand-hl">C</span>ode</span>
       </router-link>
 
       <div class="site-search-bar" aria-label="搜索">
@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchMe } from '../api/admin'
 import { getStoredAccessToken, isJwtExpired, isLikelyJwt } from '../auth/session'
@@ -110,7 +110,6 @@ import UserAvatar from './UserAvatar.vue'
 const route = useRoute()
 const router = useRouter()
 const me = ref(null)
-const siteConfig = inject('siteConfig')
 
 const displayName = computed(() => {
   const m = me.value
