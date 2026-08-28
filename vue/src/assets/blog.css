@@ -483,7 +483,7 @@ html.homepage-scroll-snap {
   }
 }
 
-/* ===== 第 3 屏：网站时间线（手写轻量，随全屏滚动吸附） ===== */
+/* ===== 第 3 屏：网站时间线（横向交替，随全屏滚动吸附） ===== */
 .home-screen-timeline {
   background: var(--bg);
   display: flex;
@@ -493,12 +493,12 @@ html.homepage-scroll-snap {
 
 .home-timeline {
   width: 100%;
-  max-width: 860px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
 .home-timeline-title {
-  margin: 0 0 40px;
+  margin: 0 0 24px;
   text-align: center;
   font-size: clamp(24px, 3.5vw, 34px);
   font-weight: 700;
@@ -506,50 +506,37 @@ html.homepage-scroll-snap {
   color: var(--text);
 }
 
+/* 横向轨道：固定高度，中轴横穿中间 */
 .home-timeline-items {
   position: relative;
-  padding: 4px 0;
+  display: flex;
+  height: 360px;
 }
 
-/* 中央竖线 */
+/* 横向中轴 */
 .home-timeline-items::before {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 2px;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
   background: var(--border);
-  transform: translateX(-50%);
+  transform: translateY(-50%);
 }
 
 .home-timeline-item {
   position: relative;
-  width: 50%;
-  box-sizing: border-box;
-  padding: 0 40px 28px;
-  display: flex;
+  flex: 1;
+  min-width: 0;
 }
 
-/* 奇数项在左、偶数项在右，卡片靠中线摆放 */
-.home-timeline-item:nth-child(odd) {
-  left: 0;
-  justify-content: flex-end;
-}
-
-.home-timeline-item:nth-child(even) {
-  left: 50%;
-  justify-content: flex-start;
-}
-
-.home-timeline-item:last-child {
-  padding-bottom: 0;
-}
-
-/* 中线上的节点圆点 */
+/* 节点圆点，居中落在中轴上 */
 .home-timeline-dot {
   position: absolute;
-  top: 18px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -559,21 +546,27 @@ html.homepage-scroll-snap {
   z-index: 1;
 }
 
-.home-timeline-item:nth-child(odd) .home-timeline-dot {
-  right: -6px;
-}
-
-.home-timeline-item:nth-child(even) .home-timeline-dot {
-  left: -6px;
-}
-
+/* 信息卡片：奇数项在轴上方，偶数项在轴下方 */
 .home-timeline-card {
-  width: min(90%, 340px);
+  position: absolute;
+  left: 50%;
+  width: min(88%, 190px);
+  box-sizing: border-box;
   padding: 12px 16px;
   border-radius: 10px;
   background: var(--surface-soft);
   border: 1px solid var(--border);
   text-align: left;
+}
+
+.home-timeline-item:nth-child(odd) .home-timeline-card {
+  bottom: calc(50% + 18px);
+  transform: translateX(-50%);
+}
+
+.home-timeline-item:nth-child(even) .home-timeline-card {
+  top: calc(50% + 18px);
+  transform: translateX(-50%);
 }
 
 .home-timeline-date {
@@ -597,31 +590,41 @@ html.homepage-scroll-snap {
   color: var(--muted);
 }
 
-/* 移动端：左侧单列 */
+/* 移动端：横向放不下，退化为左侧竖向单列 */
 @media (max-width: 680px) {
   .home-screen-timeline {
     padding: 40px 20px;
   }
   .home-timeline-title {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
+  }
+  .home-timeline-items {
+    display: block;
+    height: auto;
   }
   .home-timeline-items::before {
+    top: 0;
+    bottom: 0;
     left: 7px;
+    width: 2px;
+    height: auto;
     transform: none;
   }
-  .home-timeline-item,
-  .home-timeline-item:nth-child(odd),
-  .home-timeline-item:nth-child(even) {
-    width: 100%;
-    left: 0;
-    justify-content: flex-start;
+  .home-timeline-item {
     padding: 0 0 20px 26px;
   }
-  .home-timeline-item .home-timeline-dot {
-    left: 2px;
-    right: auto;
+  .home-timeline-item:last-child {
+    padding-bottom: 0;
   }
-  .home-timeline-card {
+  .home-timeline-dot {
+    top: 18px;
+    left: 2px;
+    transform: none;
+  }
+  .home-timeline-item:nth-child(odd) .home-timeline-card,
+  .home-timeline-item:nth-child(even) .home-timeline-card {
+    position: static;
+    transform: none;
     width: 100%;
   }
 }
