@@ -154,6 +154,10 @@ jobs:
           name: message-jar
           path: message
       - name: Deploy via Docker（构建镜像 + 重启容器 + 注入阿里云凭据）
+        env:
+          ALIYUN_AK: ${{ secrets.ALIYUN_AK }}
+          ALIYUN_SK: ${{ secrets.ALIYUN_SK }}
+          ALIYUN_FROM: ${{ secrets.ALIYUN_FROM }}
         run: |
           set -euo pipefail
           TARGET_DIR="/www/wwwroot/java/openblog-message"
@@ -176,7 +180,7 @@ jobs:
 
           # 4. 阿里云凭据写入服务器 .env（compose 自动加载），供 message 容器读取
           printf 'ALIYUN_AK=%s\nALIYUN_SK=%s\nALIYUN_FROM=%s\n' \
-            "${{ secrets.ALIYUN_AK }}" "${{ secrets.ALIYUN_SK }}" "${{ secrets.ALIYUN_FROM }}" \
+            "$ALIYUN_AK" "$ALIYUN_SK" "$ALIYUN_FROM" \
             > "$TARGET_DIR/.env"
 
           # 5. Docker 构建并启动容器
