@@ -68,6 +68,10 @@ compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/www
 > 仍注册旧接口包名 → business 订阅不到 → "No provider" → 5002「邮件服务暂不可用」。
 > 升级 message 后到 Nacos 服务列表确认 provider 为新包名（`openblog-message`）再联调。
 
+## 网关
+
+OpenBlog-gateway（API 网关，8080）已 Docker 化 + 接入 CI，部署与切换节奏见 `deploy/gateway/README.md`。
+
 ## 进阶：CI 全自动（已实现）
 
 `.github/workflows/ci.yml` 中，push 到 master（或手动 `workflow_dispatch`）触发

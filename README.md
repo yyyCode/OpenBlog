@@ -11,6 +11,7 @@
 | `OpenBlog-common` | 公共模块：统一响应 `ApiResponse`、`PageResult`、`BizException`、异常处理自动装配 |
 | `OpenBlog-business` | 主业务服务（端口 8082）：文章、评论、论坛、用户、认证、SEO、媒体管理 |
 | `OpenBlog-message` | 独立消息服务（端口 8083）：邮件通道（阿里云 DirectMail）+ Dubbo RPC + Nacos 注册 |
+| `OpenBlog-gateway` | API 网关（端口 8080）：统一 JWT 粗校验 / 限流 / traceId / 统一错误兜底 / CORS |
 | `OpenBlog-api` | 共享 API 聚合模块 |
 | ├ `OpenBlog-message-api` | Message RPC 接口与 DTO |
 | `OpenBlog-framework` | 框架封装（父聚合） |
@@ -72,7 +73,7 @@ cd vue && npm install && npm run dev
 
 ## 部署
 
-后端两个服务需要**一起构建、一起升级**（business 经 Dubbo 调 message，接口包名强耦合）：
+后端三个服务：business 与 message 需**一起构建、一起升级**（business 经 Dubbo 调 message，接口包名强耦合）；gateway 是独立入口，可单独部署。
 
 ```bash
 # 1) business（Web 服务，8082）—— CI 已接入：push master 自动 Docker 部署
@@ -83,16 +84,20 @@ mvn -pl OpenBlog-business -am package -DskipTests
 mvn -pl OpenBlog-message -am package -DskipTests
 # 产物 OpenBlog-message/target/OpenBlog-message-1.0.0-SNAPSHOT.jar，Docker 化部署见 deploy/message/
 
+# 3) gateway（API 网关，8080）—— CI 已接入：push master 自动 Docker 部署
+mvn -pl OpenBlog-gateway -am package -DskipTests
+# 产物 OpenBlog-gateway/target/OpenBlog-gateway-1.0.0-SNAPSHOT.jar，Docker 化部署见 deploy/gateway/README.md
+
 # 前端
 cd vue && npm run build
-# dist/ 交由 Nginx 托管，API 反代到 8082
+# dist/ 交由 Nginx 托管，API 反代到 gateway 8080
 ```
 
 > ⚠️ business 与 message 的 RPC 接口按全限定名匹配（`com.yqz.openblog.message.api.NotificationRpcService`），
 > 升级后必须**同时重新部署**两者；只升一个会导致 Nacos 里 provider/consumer 对不上，
 > business 抛 "No provider"（5002 邮件服务暂不可用）。
 
-CI/CD：push `master` 自动构建并 Docker 部署 business（GitHub Actions + 自托管 Runner）；message 也已 Docker 化并接入 CI（双链独立）。
+CI/CD：push master 自动构建并 Docker 部署 business / message / gateway（GitHub Actions + 自托管 Runner，三条链独立，互不影响）。
 
 ---
 

@@ -9,7 +9,7 @@ on:
       - '**/*.md'
 
 jobs:
-  # 检测变更范围。business 与 message 两条链互不影响；共享契约（OpenBlog-api/**）变更会同时触发双链。
+  # 检测变更范围。business / message / gateway 三条链互不影响；共享契约（OpenBlog-api/**）变更会同时触发 business 与 message 双链。
   changes:
     runs-on: ubuntu-latest
     outputs:
