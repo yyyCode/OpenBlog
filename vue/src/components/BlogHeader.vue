@@ -58,7 +58,6 @@
 
           <transition name="job-nav-drop">
             <div v-if="jobNavOpen" class="site-nav-dropdown-panel">
-              <div class="site-nav-dropdown-head">🏠</div>
               <router-link to="/jobs/interview" class="site-nav-dropdown-item" @click="jobNavOpen = false">面试技巧</router-link>
               <router-link to="/jobs/companies" class="site-nav-dropdown-item" @click="jobNavOpen = false">小而美公司</router-link>
             </div>
@@ -177,13 +176,6 @@ function goAuth() {
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-
-.site-nav-dropdown-head {
-  font-size: 14px;
-  color: var(--muted);
-  padding: 6px 10px;
-  text-align: left;
 }
 
 .site-nav-dropdown-item {
