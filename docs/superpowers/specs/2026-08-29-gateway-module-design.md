@@ -20,7 +20,7 @@ OpenBlog 当前边缘是 Nginx 容器（静态 + `/api/**` 反代到 business:80
 3. **限流防刷**：复用 `framework-redis` 的 `SlidingWindowLimiter`，对登录/验证码/评论/论坛/反馈等敏感路径按 IP[_uid] 滑动窗口限流。
 4. **可观测**：traceId 生成/透传，错误响应统一携带 traceId。
 5. **统一兜底**：网关级 `ErrorWebExceptionHandler`，响应契约与 business 的 `ApiResponse` 完全一致（前端零改动）。
-6. **CORS 收敛**：在网关层按真实域名白名单收敛（business 侧 `*` 后续一并收紧）。
+6. **CORS 收敛**：网关用 SCG `globalcors` 按真实域名白名单收敛；business 侧 `*` 同 PR 配套收紧（网关成为唯一浏览器入口后）。
 7. **部署独立**：gateway 自身 Docker 化 + 接入 CI 独立链（与 business/message 流水线互不影响）。
 
 ### 非目标（Out of scope，v1 明确不做）
@@ -128,6 +128,7 @@ public class GatewayApplication { ... }
   - `/api/v1/comments/**`、`/api/v1/forum/**`（发帖/回复）
   - `/api/v1/feedback/**`
 - 判定：`SlidingWindowLimiter.tryAcquire(key, windowMs, limit, nowMs, member)`，key = `gateway:rl:{IP}[_{uid}]_{path}`，member = UUID 唯一值。
+- **scope=IP_UID 的 uid 来源**：RateLimitFilter 执行时 token 已由 JwtCheckFilter（order -2 < -1）校验通过；对 IP_UID 规则，本过滤器用同一 jjwt 逻辑从 `Authorization: Bearer` 解析出 `uid`（无 token 的请求该规则退化为纯 IP 维度）。
 - 超限 → 429 `ApiResponse{4290, "请求过于频繁，请稍后再试"}`。
 - **响应式适配**：阻塞 Redis 调用包 `Mono.fromCallable(...).subscribeOn(Schedulers.boundedElastic())`，禁止在 Netty 事件循环线程同步阻塞。
 
@@ -157,7 +158,8 @@ public class GatewayApplication { ... }
 | `openblog.gateway.rate-limit.rules[].path` | — | 限流路径 |
 | `openblog.gateway.rate-limit.rules[].window-ms` / `.limit` | `60000` / `60` | 窗口与阈值 |
 | `openblog.gateway.rate-limit.rules[].scope` | `IP` | `IP` 或 `IP_UID` |
-| `openblog.gateway.cors.allowed-origins` | 真实域名列表 | CORS 收敛白名单 |
+
+> **CORS 收敛**：走 SCG 内置 `spring.cloud.gateway.globalcors.cors-configurations`（`allowedOrigins` 填真实域名白名单，`allowCredentials=false` 与现状一致），不另设自定义 CORS 属性/过滤器，避免双 CORS 机制。business 侧 `allowed-origin-patterns: ["*"]` 的收紧作为同 PR 的配套改动（网关成为唯一入口后，直连 8082 已不对浏览器暴露）。
 
 ---
 
