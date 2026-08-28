@@ -3289,34 +3289,59 @@ html.homepage-scroll-snap {
 /* ---- Footer ---- */
 .site-footer {
   margin-top: 48px;
-  padding: 24px 16px;
-  text-align: center;
-  border-top: 1px solid var(--border-light, #e5e7eb);
+  padding: 18px 24px;
+  background: #111111;
 }
 
 .site-footer-inner {
   max-width: 1200px;
   margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   font-size: 13px;
-  color: var(--muted);
+  color: #c9cdd4;
+}
+
+.site-footer-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.site-footer-feedback:hover {
+  color: #5a8dff;
+}
+
+.site-footer-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .site-footer-sep {
-  margin: 0 8px;
-  color: var(--border, #ccc);
+  color: #4b5563;
 }
 
 .site-footer-icp {
-  color: var(--muted);
+  color: #c9cdd4;
   text-decoration: none;
 }
 
 .site-footer-icp:hover {
-  color: var(--accent, #4a90d9);
+  color: #5a8dff;
 }
 
-[data-theme='dark'] .site-footer {
-  border-top-color: var(--border-dark, #334155);
+@media (max-width: 640px) {
+  .site-footer-inner {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 /* ── Admin user management ── */
