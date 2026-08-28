@@ -36,7 +36,9 @@ onMounted(async () => {
     <RightDock v-if="!isConsole" />
     <BackToTop v-if="!isConsole" />
     <Live2dCharacter v-if="!isConsole" />
-    <router-view />
+    <main class="site-main">
+      <router-view />
+    </main>
     <footer v-if="!isConsole" class="site-footer">
       <div class="site-footer-inner">
         <span class="site-footer-info">

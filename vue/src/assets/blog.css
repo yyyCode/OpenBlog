@@ -42,6 +42,15 @@ body {
 
 .blog-app {
   min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 内容区占据剩余高度，保证内容不足时底部栏仍贴在视口底部 */
+.site-main {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
 }
 
 .blog-container {
