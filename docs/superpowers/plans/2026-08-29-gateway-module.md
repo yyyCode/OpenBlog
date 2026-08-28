@@ -52,6 +52,9 @@ OpenBlog-gateway/
 - Create: `OpenBlog-gateway/pom.xml`
 - Create: `OpenBlog-gateway/src/main/java/com/yqz/openblog/gateway/GatewayApplication.java`
 - Create: `OpenBlog-gateway/src/main/resources/application.yaml`
+- Create（空占位，仅保证编译；Task 4 填充完整字段）:
+  - `OpenBlog-gateway/src/main/java/com/yqz/openblog/gateway/config/GatewayProperties.java`（prefix `openblog.gateway`）
+  - `OpenBlog-gateway/src/main/java/com/yqz/openblog/gateway/config/JwtProperties.java`（prefix `openblog.jwt`）
 
 - [ ] **Step 1: 修改根 pom，注册模块并引入 Spring Cloud 2025.0.x BOM**
 
