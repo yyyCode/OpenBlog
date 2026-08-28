@@ -45,15 +45,25 @@
           项目推荐
         </router-link>
 
-        <router-link to="/jobs" class="site-nav-link" active-class="active">
-          <span class="site-nav-ico" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-              <path d="M9 7V5h6v2" />
-            </svg>
-          </span>
-          求职导航
-        </router-link>
+        <div class="site-nav-dropdown" @mouseenter="jobNavOpen = true" @mouseleave="jobNavOpen = false">
+          <router-link to="/jobs" class="site-nav-link" active-class="active" @click="jobNavOpen = false">
+            <span class="site-nav-ico" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+                <path d="M9 7V5h6v2" />
+              </svg>
+            </span>
+            求职导航
+          </router-link>
+
+          <transition name="job-nav-drop">
+            <div v-if="jobNavOpen" class="site-nav-dropdown-panel">
+              <div class="site-nav-dropdown-head">🏠</div>
+              <router-link to="/jobs/interview" class="site-nav-dropdown-item" @click="jobNavOpen = false">面试技巧</router-link>
+              <router-link to="/jobs/companies" class="site-nav-dropdown-item" @click="jobNavOpen = false">小而美公司</router-link>
+            </div>
+          </transition>
+        </div>
 
         <router-link to="/forum" class="site-nav-link" active-class="active">
           <span class="site-nav-ico" aria-hidden="true">
@@ -100,6 +110,7 @@ import UserAvatar from './UserAvatar.vue'
 const route = useRoute()
 const router = useRouter()
 const me = ref(null)
+const jobNavOpen = ref(false)
 
 const displayName = computed(() => {
   const m = me.value
@@ -146,6 +157,61 @@ function goAuth() {
 </script>
 
 <style scoped>
+/* 求职导航下拉 */
+.site-nav-dropdown {
+  position: relative;
+}
+
+.site-nav-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 152px;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.site-nav-dropdown-head {
+  font-size: 14px;
+  color: var(--muted);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.site-nav-dropdown-item {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.site-nav-dropdown-item:hover {
+  background: var(--surface-soft);
+  color: var(--accent);
+}
+
+.job-nav-drop-enter-active,
+.job-nav-drop-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.job-nav-drop-enter-from,
+.job-nav-drop-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-4px);
+}
+
 .site-nav-auth-avatar-btn {
   display: inline-flex;
   align-items: center;
