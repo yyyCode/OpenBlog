@@ -13,6 +13,6 @@ COPY ${JAR_FILE} app.jar
 
 ENV JAVA_OPTS="-Xmx512M -Xms128M"
 
-EXPOSE 8080
+EXPOSE 8090
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

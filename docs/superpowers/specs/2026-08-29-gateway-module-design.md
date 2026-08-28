@@ -53,7 +53,7 @@ OpenBlog 当前边缘是 Nginx 容器（静态 + `/api/**` 反代到 business:80
 Nginx 容器（边缘，18088→80）
    ├─ 静态资源 / index.html                                   （原样）
    ├─ /sitemap.xml、/robots.txt、/seo/**、/article/N(爬虫) → business:8082  （原样直连，绕过网关）
-   └─ /api/**  ──►  OpenBlog-gateway:8080（新模块，WebFlux）
+   └─ /api/**  ──►  OpenBlog-gateway:8090（新模块，WebFlux）
                         │
    ┌────────────────────┴───────────────────────────────────┐
    │  GlobalFilter 链（按 order 依次执行）                     │
@@ -74,7 +74,7 @@ Nginx 容器（边缘，18088→80）
 | 路由 | 静态 URI `http://host.docker.internal:8082` | 单实例 + 无 Spring Cloud Discovery；扩容后再切 `lb://` |
 | 限流 | 复用 `framework-redis` `SlidingWindowLimiter`（Redis ZSET+Lua） | 零新依赖、已生产验证、原子滑动窗口 |
 | 技术栈 | Spring Cloud Gateway 4.3.x（Spring Cloud 2025.0.x + Boot 3.5.12），WebFlux | 与现有 Java 17 栈同代际，官方网关 |
-| 端口 | 8080 | 网关容器对外端口 |
+| 端口 | 8090 | 网关容器对外端口 |
 | common 复用 | 仅 `ApiResponse` POJO，`exclude=CommonAutoConfiguration` | 避免 servlet `@RestControllerAdvice` 污染 WebFlux |
 | Nginx 路径 | 仅 `/api/` 改指网关；sitemap/robots/seo/爬虫保持直连 business | 最小改动；SEO 路径不经过鉴权/限流，直连更稳 |
 
@@ -194,9 +194,9 @@ public class GatewayApplication { ... }
 
 ## 7. 部署与 CI
 
-- **`deploy/gateway/`**：`Dockerfile`（`eclipse-temurin:17-jre`，fat jar）+ `docker-compose.yml`（8080:8080，`restart: always`，`JAVA_OPTS` 对齐）。
+- **`deploy/gateway/`**：`Dockerfile`（`eclipse-temurin:17-jre`，fat jar）+ `docker-compose.yml`（8090:8090，`restart: always`，`JAVA_OPTS` 对齐）。
 - **CI（`.github/workflows/ci.yml`）**：`changes` 增加 `gateway` 输出（过滤：`OpenBlog-gateway/**`、`OpenBlog-common/**`、`OpenBlog-framework*/**`、`deploy/gateway/**`、`pom.xml`）→ `build-gateway` → `deploy-gateway`，**无跨链 needs**（与 business/message 双链并存，互不影响）。
-- **Nginx 切换节奏**：网关上线后重建 vue 容器把 `/api/` 指向 8080。**上线清单顺序**：①部署网关容器 → ②重建 vue 容器（`/api/` → 网关）→ ③验证 → ④留回退预案（改回 8082 重建）。
+- **Nginx 切换节奏**：网关上线后重建 vue 容器把 `/api/` 指向 8090。**上线清单顺序**：①部署网关容器 → ②重建 vue 容器（`/api/` → 网关）→ ③验证 → ④留回退预案（改回 8082 重建）。
 
 ---
 
@@ -207,7 +207,7 @@ public class GatewayApplication { ... }
 3. JwtCheckFilter + 白名单 + `JwtProperties`（与 business 同源）。
 4. RateLimitFilter + GatewayProperties + 规则配置。
 5. 单测补齐（WebTestClient）。
-6. `vue/nginx.conf` `/api/` 改指 8080 + `deploy/gateway/` Docker 化。
+6. `vue/nginx.conf` `/api/` 改指 8090 + `deploy/gateway/` Docker 化。
 7. CI 加 gateway 独立链 + README/文档更新。
 8. 上线与回退预案验证。
 

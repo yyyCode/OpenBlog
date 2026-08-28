@@ -70,7 +70,7 @@ compose 里已留注释，把服务器上的 `application.yaml` 放到 `/www/www
 
 ## 网关
 
-OpenBlog-gateway（API 网关，8080）已 Docker 化 + 接入 CI，部署与切换节奏见 `deploy/gateway/README.md`。
+OpenBlog-gateway（API 网关，8090）已 Docker 化 + 接入 CI，部署与切换节奏见 `deploy/gateway/README.md`。
 
 ## 进阶：CI 全自动（已实现）
 

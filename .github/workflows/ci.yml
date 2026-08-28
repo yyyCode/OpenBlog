@@ -258,7 +258,7 @@ jobs:
           TARGET_DIR="/www/wwwroot/java/openblog-gateway"
           TARGET_JAR="$TARGET_DIR/OpenBlog-gateway-1.0.0-SNAPSHOT.jar"
 
-          # 1. 停掉旧进程（若有，释放 8080）
+          # 1. 停掉旧进程（若有，释放 8090）
           systemctl stop openblog-gateway 2>/dev/null || true
 
           # 2. 备份旧 jar

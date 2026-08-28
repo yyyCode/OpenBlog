@@ -1,7 +1,7 @@
 # OpenBlog-gateway Docker 编排
 #
 # 外部依赖（Redis 10.21.76.221:6739）走默认 bridge 网络直达。
-# 发布 8080；/api/** 经网关转发到宿主机 business（host.docker.internal:8082，由本文件 extra_hosts 提供 host-gateway 映射）。
+# 发布 8090；/api/** 经网关转发到宿主机 business（host.docker.internal:8082，由本文件 extra_hosts 提供 host-gateway 映射）。
 # JWT secret 经 env OPENBLOG_JWT_SECRET 注入，须与 business 同值。
 
 services:
@@ -11,9 +11,9 @@ services:
       context: .
     container_name: openblog-gateway
     restart: always
-    # 安全：8080 直接绑定 0.0.0.0 会暴露网关给外网，须在宿主防火墙仅放行内网访问（外部只暴露 80/443），详见 deploy/gateway/README.md
+    # 安全：8090 直接绑定 0.0.0.0 会暴露网关给外网，须在宿主防火墙仅放行内网访问（外部只暴露 80/443），详见 deploy/gateway/README.md
     ports:
-      - "8080:8080"
+      - "8090:8090"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
