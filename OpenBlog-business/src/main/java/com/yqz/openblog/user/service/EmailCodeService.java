@@ -3,15 +3,16 @@ package com.yqz.openblog.user.service;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.config.AuthSecurityProperties;
+import com.yqz.openblog.message.api.NotificationRpcService;
+import com.yqz.openblog.message.api.NotificationSendResult;
 import com.yqz.openblog.notification.NotificationChannelType;
 import com.yqz.openblog.notification.NotificationMessage;
-import com.yqz.openblog.notification.NotificationService;
-import com.yqz.openblog.notification.NotificationTemplateService;
 import com.yqz.openblog.redis.core.RedisKeys;
 import com.yqz.openblog.redis.core.RedisOps;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserMapper;
 import com.yqz.openblog.user.validator.EmailValidator;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,18 +39,19 @@ public class EmailCodeService {
     private final AuthSecurityProperties authSecurityProperties;
     private final UserMapper userMapper;
     private final EmailValidator emailValidator;
-    private final NotificationService notificationService;
+
+    /** Dubbo 调统一通知服务。retries=0：同步链路 messageId 为空 → 渠道每次生成新幂等键，重试会重复发信。 */
+    @DubboReference(retries = 0, timeout = 5000)
+    private NotificationRpcService notificationRpcService;
 
     public EmailCodeService(RedisOps redisOps,
                             AuthSecurityProperties authSecurityProperties,
                             UserMapper userMapper,
-                            EmailValidator emailValidator,
-                            NotificationService notificationService) {
+                            EmailValidator emailValidator) {
         this.redisOps = redisOps;
         this.authSecurityProperties = authSecurityProperties;
         this.userMapper = userMapper;
         this.emailValidator = emailValidator;
-        this.notificationService = notificationService;
     }
 
     /**
@@ -88,23 +90,32 @@ public class EmailCodeService {
         redisOps.set(codeKey, code, Duration.ofSeconds(Math.max(30, cfg.getCodeTtlSeconds())));
         redisOps.set(cooldownKey, "1", Duration.ofSeconds(Math.max(10, cfg.getResendCooldownSeconds())));
 
-        // 经统一通知抽象层投递：EMAIL 渠道 → EmailNotificationChannel → Dubbo 调 email 模块。
+        // 经 Dubbo 调 message 模块统一通知服务，EMAIL 渠道在 message 内部路由投递。
         // 幂等保障由渠道内部完成（retries=0 + 幂等键 + email_records 唯一索引），
         // 见 EmailService.send 幂等逻辑与 docs/dev-experiences.md。
         try {
-            notificationService.submit(NotificationMessage.builder()
+            NotificationSendResult result = notificationRpcService.submit(NotificationMessage.builder()
                     .channel(NotificationChannelType.EMAIL)
                     .recipient(email)
                     .subject(SUBJECT)
-                    .templateCode(NotificationTemplateService.REGISTER_VERIFICATION_CODE)
+                    .templateCode(NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE)
                     .params(Map.of("code", code))
                     .build());
+            if (!result.isSuccess()) {
+                throw new BizException(result.getErrorCode(), result.getErrorMsg());
+            }
         } catch (BizException e) {
-            // 发送失败（渠道抛 5002）：清理验证码与冷却，允许立即重试。
+            // 发送失败（通知服务返回 5002 等）：清理验证码与冷却，允许立即重试。
             redisOps.delete(codeKey);
             redisOps.delete(cooldownKey);
             log.warn("发送注册验证码失败。email={}", email, e);
             throw e;
+        } catch (Exception e) {
+            // message 服务不可达 / Dubbo 传输异常：同样清理后按 5002 降级，避免脏状态。
+            redisOps.delete(codeKey);
+            redisOps.delete(cooldownKey);
+            log.warn("Dubbo 调用通知服务失败。email={}", email, e);
+            throw new BizException(5002, "邮件服务暂不可用，请稍后再试");
         }
 
         return cfg.getResendCooldownSeconds();

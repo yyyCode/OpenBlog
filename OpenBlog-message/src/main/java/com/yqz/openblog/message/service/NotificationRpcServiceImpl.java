@@ -33,6 +33,10 @@ public class NotificationRpcServiceImpl implements NotificationRpcService {
             log.warn("通知投递失败 channel={} code={} msg={}",
                     message == null ? "null" : message.getChannel(), e.getCode(), e.getMessage());
             return NotificationSendResult.fail(e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            // 非业务异常（DB/序列化等）：显式转通用错误码返回，不依赖 Dubbo 异常序列化。
+            log.error("通知投递发生未预期异常 channel={}", message == null ? "null" : message.getChannel(), e);
+            return NotificationSendResult.fail(NotificationRpcService.ERROR_CODE_INTERNAL, "通知服务内部错误，请稍后再试");
         }
     }
 }

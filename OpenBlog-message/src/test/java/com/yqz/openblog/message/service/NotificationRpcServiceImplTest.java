@@ -1,6 +1,7 @@
 package com.yqz.openblog.message.service;
 
 import com.yqz.openblog.common.BizException;
+import com.yqz.openblog.message.api.NotificationRpcService;
 import com.yqz.openblog.message.api.NotificationSendResult;
 import com.yqz.openblog.notification.NotificationChannelType;
 import com.yqz.openblog.notification.NotificationMessage;
@@ -66,5 +67,16 @@ class NotificationRpcServiceImplTest {
 
         assertFalse(result.isSuccess());
         assertEquals(4000, result.getErrorCode());
+    }
+
+    @Test
+    void submit_unexpectedException_mapsToInternalError() {
+        doThrow(new RuntimeException("db down"))
+                .when(notificationService).submit(any(NotificationMessage.class));
+
+        NotificationSendResult result = rpcService.submit(message());
+
+        assertFalse(result.isSuccess());
+        assertEquals(NotificationRpcService.ERROR_CODE_INTERNAL, result.getErrorCode());
     }
 }
