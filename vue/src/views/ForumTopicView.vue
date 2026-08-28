@@ -26,14 +26,16 @@
 
           <div v-if="me" class="forum-comment-form">
             <textarea
-              v-model="commentText"
+              :value="commentText"
               class="forum-comment-input"
               placeholder="写下你的评论..."
               rows="3"
-              maxlength="2000"
+              maxlength="200"
+              @input="onCommentInput"
+              @keydown.enter.prevent="onCommentKeydownEnter"
             ></textarea>
             <div class="forum-comment-form-actions">
-              <span class="forum-comment-char-count">{{ commentText.length }}/2000</span>
+              <span class="forum-comment-char-count">{{ commentText.length }}/200</span>
               <button class="btn primary" :disabled="!commentText.trim() || submitting" @click="submitComment">
                 {{ submitting ? '提交中...' : '发表评论' }}
               </button>
@@ -104,6 +106,31 @@ const commentsTotal = ref(0)
 const commentText = ref('')
 const submitting = ref(false)
 const commentError = ref('')
+
+// 评论限制：最多 200 字、最多 10 行（与后端一致）
+const MAX_COMMENT_LEN = 200
+const MAX_COMMENT_LINES = 10
+
+function onCommentInput(e) {
+  commentText.value = sanitizeComment(e.target.value)
+}
+
+function sanitizeComment(v) {
+  const lines = v.split('\n')
+  if (lines.length > MAX_COMMENT_LINES) {
+    v = lines.slice(0, MAX_COMMENT_LINES).join('\n')
+  }
+  if (v.length > MAX_COMMENT_LEN) {
+    v = v.slice(0, MAX_COMMENT_LEN)
+  }
+  return v
+}
+
+function onCommentKeydownEnter(e) {
+  if (commentText.value.split('\n').length >= MAX_COMMENT_LINES) {
+    e.preventDefault()
+  }
+}
 
 const renderedContent = computed(() => {
   if (!topic.value?.content) return ''
