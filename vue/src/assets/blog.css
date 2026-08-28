@@ -2001,6 +2001,11 @@ html.homepage-scroll-snap {
   display: inline-block;
 }
 
+/* 顶部栏品牌 WeCode 中 W/C 的浅蓝高亮 */
+.site-brand-text .brand-hl {
+  color: #5a8dff;
+}
+
 .site-search-bar {
   display: inline-flex;
   align-items: center;
