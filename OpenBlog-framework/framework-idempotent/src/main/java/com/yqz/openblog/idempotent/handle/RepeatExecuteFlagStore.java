@@ -11,12 +11,12 @@ public interface RepeatExecuteFlagStore {
     /** 幂等标识是否已写入 success */
     boolean isSuccess(String flagKey);
 
-    /** 写入 success 标识，TTL 秒 */
+    /** 写入 success 标识，TTL 秒；ttlSeconds<=0 时静默忽略写入（调用方需保证正 TTL） */
     void setFlag(String flagKey, long ttlSeconds);
 
     /** 读取上次结果 JSON（RETURN_SAME_RESULT 用） */
     Optional<String> getResult(String resultKey);
 
-    /** 写入结果 JSON，TTL 秒 */
+    /** 写入结果 JSON，TTL 秒；ttlSeconds<=0 时静默忽略写入（调用方需保证正 TTL） */
     void setResult(String resultKey, String json, long ttlSeconds);
 }
