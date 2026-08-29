@@ -8,6 +8,16 @@ export function fetchProjectDetail(id) {
   return request(`/api/v1/projects/${id}`)
 }
 
+/** 控制台管理列表：含草稿，仅 ADMIN */
+export function fetchAdminProjects(page = 0, size = 50) {
+  return request(`/api/v1/projects/admin?page=${page}&size=${size}`, { withAuth: true })
+}
+
+/** 控制台取单条（含草稿正文），仅 ADMIN */
+export function fetchAdminProjectDetail(id) {
+  return request(`/api/v1/projects/${id}`, { withAuth: true })
+}
+
 export function createProject(payload) {
   return request('/api/v1/projects', {
     method: 'POST',

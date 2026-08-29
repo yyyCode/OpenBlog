@@ -110,7 +110,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { fetchProjects, createProject, updateProject, deleteProject } from '../api/project'
+import { fetchAdminProjects, fetchAdminProjectDetail, createProject, updateProject, deleteProject } from '../api/project'
 import { showMessage } from '../utils/message'
 
 const loading = ref(true)
@@ -137,7 +137,8 @@ function emptyForm() {
 async function load() {
   loading.value = true
   try {
-    const res = await fetchProjects(0, 100)
+    // 控制台用管理接口，草稿/已发布都可见可管理（公开列表只返回已发布）
+    const res = await fetchAdminProjects(0, 100)
     items.value = res?.items || []
   } finally {
     loading.value = false
@@ -160,8 +161,8 @@ function editItem(item) {
     status: item.status || 'DRAFT'
   }
   showEditor.value = true
-  // 加载完整详情获取 contentMarkdown
-  import('../api/project').then(m => m.fetchProjectDetail(item.id)).then(d => {
+  // 加载完整详情获取 contentMarkdown（用带鉴权的 admin 详情，草稿也能取到）
+  import('../api/project').then(m => m.fetchAdminProjectDetail(item.id)).then(d => {
     if (d?.contentMarkdown) form.value.contentMarkdown = d.contentMarkdown
   }).catch(() => {})
 }
