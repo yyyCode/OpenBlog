@@ -64,4 +64,51 @@ class RepeatExecuteKeyResolverTest {
 
         assertEquals(List.of("7"), keys);
     }
+
+    @Test
+    void nullIntermediateProperty_skipsThatKey() throws Exception {
+        Method method = Target.class.getMethod("create", Long.class, Long.class, TestReq.class);
+        MethodSignature sig = mock(MethodSignature.class);
+        when(sig.getMethod()).thenReturn(method);
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        when(pjp.getSignature()).thenReturn(sig);
+        when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, null});
+
+        RepeatExecuteKeyResolver resolver = new RepeatExecuteKeyResolver();
+        List<String> keys = resolver.resolve(pjp, new String[]{"#req.requestId", "#uid"});
+
+        assertEquals(List.of("7"), keys);
+    }
+
+    @Test
+    void nullOrEmptyKeysArray_returnsEmptyList() throws Exception {
+        Method method = Target.class.getMethod("create", Long.class, Long.class, TestReq.class);
+        MethodSignature sig = mock(MethodSignature.class);
+        when(sig.getMethod()).thenReturn(method);
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        when(pjp.getSignature()).thenReturn(sig);
+        when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, new TestReq()});
+
+        RepeatExecuteKeyResolver resolver = new RepeatExecuteKeyResolver();
+        assertEquals(List.of(), resolver.resolve(pjp, null));
+        assertEquals(List.of(), resolver.resolve(pjp, new String[]{}));
+    }
+
+    @Test
+    void nullPropertyValue_resolvesToEmptyString() throws Exception {
+        Method method = Target.class.getMethod("create", Long.class, Long.class, TestReq.class);
+        MethodSignature sig = mock(MethodSignature.class);
+        when(sig.getMethod()).thenReturn(method);
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        when(pjp.getSignature()).thenReturn(sig);
+        when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, new TestReq()});
+
+        RepeatExecuteKeyResolver resolver = new RepeatExecuteKeyResolver();
+        List<String> keys = resolver.resolve(pjp, new String[]{"#req.requestId"});
+
+        assertEquals(List.of(""), keys);
+    }
 }
