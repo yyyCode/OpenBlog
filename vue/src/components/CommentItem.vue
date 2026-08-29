@@ -6,7 +6,7 @@
         <div class="comment-author">{{ authorLabel }}</div>
         <div class="comment-time">{{ timeLabel }}</div>
         <div class="comment-actions">
-          <button type="button" class="comment-link" @click="$emit('reply', comment)">回复</button>
+          <button type="button" class="comment-link" @click="openReply">回复</button>
           <button
             v-if="canDelete"
             type="button"
@@ -34,6 +34,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { newRequestId } from '../utils/uuid'
 
 const props = defineProps({
   comment: { type: Object, required: true },
@@ -44,6 +45,7 @@ const emit = defineEmits(['reply', 'delete', 'submit-reply'])
 
 const replying = ref(false)
 const replyText = ref('')
+let replyRequestId = ''
 
 watch(
   () => props.comment?.id,
@@ -88,16 +90,19 @@ function cancelReply() {
   replyText.value = ''
 }
 
+function openReply() {
+  replyRequestId = newRequestId()   // 每次打开回复框生成新 ID，双击复用同一 ID
+  replying.value = true
+}
+
 function submitReply() {
   const text = replyText.value.trim()
   if (!text) return
-  emit('submit-reply', { parent: props.comment, content: text, done: cancelReply })
+  emit('submit-reply', { parent: props.comment, content: text, requestId: replyRequestId, done: cancelReply })
 }
 
 defineExpose({
-  openReply() {
-    replying.value = true
-  }
+  openReply
 })
 </script>
 

@@ -69,6 +69,7 @@ import { getStoredAccessToken, isConsoleSessionValid } from '../auth/session'
 import { showMessage } from '../utils/message'
 import { fetchMe } from '../api/admin'
 import { createComment, deleteComment, listComments, replyComment } from '../api/comment'
+import { newRequestId } from '../utils/uuid'
 import CommentItem from './CommentItem.vue'
 
 const props = defineProps({
@@ -147,12 +148,16 @@ function goLogin() {
   router.push({ path: '/login', query: { redirect } })
 }
 
+// 当前"编辑会话"的幂等 ID：成功后重新生成，失败保持不变（保证重试不误伤、双击去重）
+let topLevelRequestId = newRequestId()
+
 async function postTopLevel() {
   const content = text.value.trim()
   if (!content) return
   posting.value = true
   try {
-    await createComment(props.articleId, content)
+    await createComment(props.articleId, content, topLevelRequestId)
+    topLevelRequestId = newRequestId()
     text.value = ''
     showMessage('评论已发布')
     await Promise.all([loadMeIfNeeded(), reload()])
@@ -163,13 +168,13 @@ async function postTopLevel() {
   }
 }
 
-async function onSubmitReply({ parent, content, done }) {
+async function onSubmitReply({ parent, content, requestId, done }) {
   if (!isLoggedIn.value) {
     showMessage('请先登录')
     return
   }
   try {
-    await replyComment(parent.id, content)
+    await replyComment(parent.id, content, requestId)
     done?.()
     showMessage('回复已发布')
     await Promise.all([loadMeIfNeeded(), reload()])
