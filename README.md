@@ -18,6 +18,7 @@
 | ├ `framework-redis` | Redis 封装：`RedisOps`、Key 管理、滑动窗口限流 |
 | ├ `framework-elasticsearch` | Elasticsearch 封装：索引与搜索 |
 | └ `framework-audit` | 可插拔审计框架：`@AuditLog` 注解 + AOP + SPI 扩展点 |
+| ├ `framework-idempotent` | 幂等框架：`@RepeatExecuteLimit` 注解 + AOP，本地锁 + Redisson 分布式锁 + Redis 标识双重检测，防重复点击/重复执行 |
 | `vue` | Vue 3 前端（Vite 8） |
 | `sql` | 数据库脚本：建表、迁移、Mock 数据 |
 
