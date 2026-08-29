@@ -19,5 +19,6 @@
         <module>framework-redis</module>
         <module>framework-elasticsearch</module>
         <module>framework-audit</module>
+        <module>framework-idempotent</module>
     </modules>
 </project>
