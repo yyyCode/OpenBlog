@@ -968,6 +968,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -981,7 +982,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -1024,6 +1027,12 @@ class RepeatExecuteLimitAspectTest {
         @RepeatExecuteLimit(name = "comment_create", keys = {"#articleId", "#uid", "#req.requestId"},
                 durationTime = 30, strategy = IdempotentStrategy.RETURN_SAME_RESULT)
         public Result create(Long articleId, Long uid, TestReq req) {
+            return new Result("ok");
+        }
+
+        @RepeatExecuteLimit(name = "comment_create", keys = {"#articleId", "#uid", "#req.requestId"},
+                durationTime = 0, strategy = IdempotentStrategy.RETURN_SAME_RESULT)
+        public Result createNoWindow(Long articleId, Long uid, TestReq req) {
             return new Result("ok");
         }
 
@@ -1165,8 +1174,8 @@ class RepeatExecuteLimitAspectTest {
             }
         });
         holder.start();
-        assertTrue(locked.await(5, TimeUnit.SECONDS));
         try {
+            assertTrue(locked.await(5, TimeUnit.SECONDS));
             assertThrows(BizException.class, () -> aspect.around(pjp, annotationOf("reply", params)));
         } finally {
             release.countDown();
@@ -1212,6 +1221,46 @@ class RepeatExecuteLimitAspectTest {
         assertTrue(flagStore.isSuccess(FLAG_CREATE));
         assertTrue(flagStore.getResult(RESULT_CREATE).isPresent());
         verify(lockSupport).unlock(anyString());
+    }
+
+    @Test
+    void success_RETURN_SAME_RESULT_writesResultBeforeFlag() throws Throwable {
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        Method m = Target.class.getMethod("create", params);
+        when(sig.getMethod()).thenReturn(m);
+        when(sig.getReturnType()).thenReturn(Result.class);
+        when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, reqWith("r1")});
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
+        when(pjp.proceed()).thenReturn(new Result("ok"));
+
+        RepeatExecuteFlagStore mockStore = mock(RepeatExecuteFlagStore.class);
+        when(mockStore.isSuccess(anyString())).thenReturn(false);
+        aspect = new RepeatExecuteLimitAspect(
+                new RepeatExecuteKeyResolver(),
+                new RepeatExecuteKeyBuilder("test"),
+                lockSupport,
+                localLockCache,
+                mockStore,
+                new ObjectMapper());
+
+        aspect.around(pjp, annotationOf("create", params));
+
+        // 钉死「先 setResult 后 setFlag」提交点顺序 + TTL 30L 透传
+        InOrder inOrder = inOrder(mockStore);
+        inOrder.verify(mockStore).setResult(eq(RESULT_CREATE), anyString(), eq(30L));
+        inOrder.verify(mockStore).setFlag(eq(FLAG_CREATE), eq(30L));
+    }
+
+    @Test
+    void durationZero_noFlagWritten() throws Throwable {
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        stubInvocation("createNoWindow", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
+
+        Object out = aspect.around(pjp, annotationOf("createNoWindow", params));
+
+        assertEquals("ok", ((Result) out).text);
+        assertFalse(flagStore.isSuccess(FLAG_CREATE));
     }
 
     @Test
@@ -1284,7 +1333,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
@@ -1368,7 +1416,11 @@ public class RepeatExecuteLimitAspect {
                             log.warn("[idempotent] 写结果标识失败（已忽略）。name={}", name, e);
                         }
                     }
-                    flagStore.setFlag(flagKey, duration);
+                    try {
+                        flagStore.setFlag(flagKey, duration);
+                    } catch (Exception e) {
+                        log.warn("[idempotent] 写幂等标识失败（已忽略）。name={}", name, e);
+                    }
                 }
                 return result;
             } finally {
@@ -1379,14 +1431,17 @@ public class RepeatExecuteLimitAspect {
         }
     }
 
-    private Object handleHit(RepeatExecuteLimit repeatLimit, String resultKey, Class<?> returnType)
-            throws IOException {
+    private Object handleHit(RepeatExecuteLimit repeatLimit, String resultKey, Class<?> returnType) {
         if (repeatLimit.strategy() == IdempotentStrategy.RETURN_SAME_RESULT) {
             Optional<String> json = flagStore.getResult(resultKey);
             if (json.isPresent()) {
-                return objectMapper.readValue(json.get(), returnType);
+                try {
+                    return objectMapper.readValue(json.get(), returnType);
+                } catch (Exception e) {
+                    log.warn("[idempotent] 结果反序列化失败，退化为拒绝。resultKey={}", resultKey, e);
+                }
             }
-            // 结果尚未落盘（首个请求仍在执行）→ 退化为拒绝
+            // 结果尚未落盘 / 反序列化失败 → 退化为拒绝
         }
         throw new BizException(RepeatExecuteLimitConstant.REJECT_CODE, repeatLimit.message());
     }
@@ -1396,7 +1451,7 @@ public class RepeatExecuteLimitAspect {
 - [ ] **Step 5: 运行确认通过**
 
 Run: `cd E:\java\OpenBlog && mvn -pl OpenBlog-framework/framework-idempotent test -Dtest=RepeatExecuteLimitAspectTest`
-Expected: PASS（11 个用例）
+Expected: PASS（13 个用例）
 
 - [ ] **Step 6: Commit**
 
