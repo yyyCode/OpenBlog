@@ -970,6 +970,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1064,7 +1067,7 @@ class RepeatExecuteLimitAspectTest {
     }
 
     private void stubInvocation(String methodName, Class<?>[] paramTypes, Object[] args,
-                                Class<?> returnType, Object result) throws Exception {
+                                Class<?> returnType, Object result) throws Throwable {
         Method m = Target.class.getMethod(methodName, paramTypes);
         when(sig.getMethod()).thenReturn(m);
         when(sig.getReturnType()).thenReturn(returnType);
@@ -1117,8 +1120,21 @@ class RepeatExecuteLimitAspectTest {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("create", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
         when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
-        flagStore.setFlag(FLAG_CREATE, 30);
-        flagStore.setResult(RESULT_CREATE, "{\"text\":\"first\"}", 30);
+
+        // 快路径 miss（第一次 isSuccess=false），双重检测 hit（第二次 isSuccess=true），
+        // 模拟"等待锁期间另一请求已完成并写入标识"的经典竞争窗口。
+        RepeatExecuteFlagStore flagStoreMock = mock(RepeatExecuteFlagStore.class);
+        when(flagStoreMock.isSuccess(anyString()))
+                .thenReturn(false)
+                .thenReturn(true);
+        when(flagStoreMock.getResult(RESULT_CREATE)).thenReturn(Optional.of("{\"text\":\"first\"}"));
+        aspect = new RepeatExecuteLimitAspect(
+                new RepeatExecuteKeyResolver(),
+                new RepeatExecuteKeyBuilder("test"),
+                lockSupport,
+                localLockCache,
+                flagStoreMock,
+                new ObjectMapper());
 
         Object out = aspect.around(pjp, annotationOf("create", params));
 
@@ -1132,12 +1148,29 @@ class RepeatExecuteLimitAspectTest {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("reply", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
 
+        // ReentrantLock 是可重入锁：同一线程重复 tryLock 必然成功，
+        // 因此必须由另一线程持锁才能真正模拟"本地锁争用"。
         ReentrantLock held = localLockCache.getLock("openblog:test:repeat:lock:comment_reply:42:7:r1");
-        held.lock();
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        Thread holder = new Thread(() -> {
+            held.lock();
+            locked.countDown();
+            try {
+                release.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                held.unlock();
+            }
+        });
+        holder.start();
+        assertTrue(locked.await(5, TimeUnit.SECONDS));
         try {
             assertThrows(BizException.class, () -> aspect.around(pjp, annotationOf("reply", params)));
         } finally {
-            held.unlock();
+            release.countDown();
+            holder.join(5000);
         }
         verify(pjp, never()).proceed();
     }
