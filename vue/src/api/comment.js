@@ -6,19 +6,19 @@ export function listComments(articleId, page = 0, size = 20) {
   })
 }
 
-export function createComment(articleId, content) {
+export function createComment(articleId, content, requestId) {
   return request(`/api/v1/articles/${articleId}/comments`, {
     method: 'POST',
     withAuth: true,
-    body: JSON.stringify({ content })
+    body: JSON.stringify({ content, requestId })
   })
 }
 
-export function replyComment(commentId, content) {
+export function replyComment(commentId, content, requestId) {
   return request(`/api/v1/comments/${commentId}/replies`, {
     method: 'POST',
     withAuth: true,
-    body: JSON.stringify({ content })
+    body: JSON.stringify({ content, requestId })
   })
 }
 
@@ -28,4 +28,3 @@ export function deleteComment(commentId) {
     withAuth: true
   })
 }
-

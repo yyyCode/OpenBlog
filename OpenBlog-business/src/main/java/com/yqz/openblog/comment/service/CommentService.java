@@ -12,7 +12,6 @@ import com.yqz.openblog.comment.dto.CommentThreadResponse;
 import com.yqz.openblog.comment.dto.CommentUserResponse;
 import com.yqz.openblog.comment.entity.Comment;
 import com.yqz.openblog.comment.entity.CommentStatus;
-import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.common.BizException;
@@ -166,6 +165,11 @@ public class CommentService {
         return cu;
     }
 
+    @com.yqz.openblog.idempotent.annotation.RepeatExecuteLimit(
+            name = "comment_create",
+            keys = {"#articleId", "#uid", "#req.requestId"},
+            durationTime = 30,
+            strategy = com.yqz.openblog.idempotent.strategy.IdempotentStrategy.RETURN_SAME_RESULT)
     public CommentThreadResponse createTopLevel(Long articleId, Long uid, CommentCreateRequest req) {
         checkSensitive(req.getContent());
 
@@ -193,6 +197,10 @@ public class CommentService {
         return node;
     }
 
+    @com.yqz.openblog.idempotent.annotation.RepeatExecuteLimit(
+            name = "comment_reply",
+            keys = {"#commentId", "#uid", "#req.requestId"},
+            durationTime = 30)
     public CommentThreadResponse reply(Long commentId, Long uid, CommentCreateRequest req) {
         ensureUserActive(uid);
         checkSensitive(req.getContent());
