@@ -11,6 +11,7 @@ public class CommentCreateRequest {
     /**
      * 客户端生成的幂等 ID（前端每次提交生成 UUID，作为幂等 Key 的一部分）。
      */
+    @Size(max = 64)
     private String requestId;
 
     public String getContent() {
