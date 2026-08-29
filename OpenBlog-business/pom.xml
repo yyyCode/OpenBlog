@@ -158,6 +158,13 @@
             <version>0.64.8</version>
         </dependency>
 
+        <!-- 服务端 HTML 净化（SEO 模板渲染 content_html 前清洗，防存储型 XSS） -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.3</version>
+        </dependency>
+
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>

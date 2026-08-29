@@ -84,6 +84,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { fetchForumTopicDetail, fetchForumComments, createForumComment, deleteForumComment } from '../api/forum'
 import { fetchMe } from '../api/admin'
@@ -132,12 +133,14 @@ function onCommentKeydownEnter(e) {
   }
 }
 
+// 论坛主题是任意注册用户可发布的内容，marked 不做 HTML 净化，必须经 DOMPurify 清洗后再 v-html
+// （与 ArticleDetailView 的正文渲染一致；否则 <script>/<img onerror> 等原始 HTML 会原样执行 —— 存储型 XSS）
 const renderedContent = computed(() => {
   if (!topic.value?.content) return ''
   try {
-    return marked.parse(topic.value.content)
+    return DOMPurify.sanitize(marked.parse(topic.value.content))
   } catch {
-    return topic.value.content
+    return DOMPurify.sanitize(topic.value.content)
   }
 })
 

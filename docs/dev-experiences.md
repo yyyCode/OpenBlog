@@ -49,3 +49,61 @@
    - 存储层**唯一索引**兜底并发竞态。
 3. **排查"重复副作用"**：先看重复对象里是否有业务标识（验证码/订单号/流水号）。标识相同 = 同一逻辑被重放；标识不同 = 被触发多次。这能快速二分定位是"重试/重放"还是"重复请求"。
 4. 阿里云等真实外部调用耗时长，Dubbo 默认 `timeout=1000ms` 过紧，需要按实际放大（本项目 5000ms）。
+
+---
+
+## 2026-08-30：两处存储型 XSS —— markdown 渲染器的"净化责任"必须落在每一处渲染边界
+
+### 现象
+
+安全审查发现两处存储型 XSS，一处高危、一处中危：
+
+1. **论坛主题帖**：任意注册用户发帖，内容里写 `<img src=x onerror=...>`，所有访客打开主题详情页即执行脚本（可读 `localStorage` 里的 JWT 冒充管理员）。
+2. **SEO 文章页**：作者在 markdown 里写 `<script>`，所有访客/爬虫打开 `/seo/article/{id}` 即执行。
+
+### 根因
+
+两处同源：**markdown 渲染产物是含原始 HTML 的，而净化只做在了前端的一部分渲染路径上**。
+
+- **`marked.js`（前端）默认不净化 HTML**：`ForumTopicView.vue` 用 `marked.parse(topic.content)` + `v-html` 直接输出，**漏掉了 DOMPurify**——同一仓库里 `ArticleDetailView` / `ProjectDetailView` / `ChangelogDetailView` / 编辑器预览全都先 `DOMPurify.sanitize()`，唯独论坛这条用户可控路径漏了。
+- **服务端 `MarkdownRenderer` 显式 `HtmlRenderer.ESCAPE_HTML=false`**：flexmark 允许 markdown 里的原始 HTML 原样进入 `content_html` 入库，这是**有意的能力**（作者可写 HTML）。
+- **SEO 模板用 `th:utext` 非转义输出** `content_html`（`templates/seo/article.html:73`）：Vue 前端有 DOMPurify 兜底，但服务端渲染的 SEO 页是**唯一没有净化的公开渲染面**。
+- 后端论坛帖内容**原样存储**（`ForumService` 仅 `checkSensitive()` 关键词过滤，无 HTML 净化）。
+
+### 排查关键
+
+逐条核对"**用户可控内容 → 在哪里渲染 → 渲染前是否净化**"：
+
+| 用户内容 | 渲染面 | 净化？ |
+|---------|--------|--------|
+| 文章正文 | Vue `v-html` | ✅ DOMPurify |
+| 文章正文 | SEO 模板 `th:utext` | ❌ 无 |
+| 论坛主题 | Vue `v-html` | ❌ 无（漏了 DOMPurify） |
+| 用户名/摘要 | Vue `{{ }}`、Thymeleaf `th:text`/`th:inline` | ✅ 框架自动转义 |
+
+漏网的两处恰好是"手写 v-html / 手写 th:utext"的边界——**框架自动转义管不到显式输出 HTML 的 API**。
+
+### 修复
+
+1. **论坛**（`ForumTopicView.vue`）：`renderedContent` 改为 `DOMPurify.sanitize(marked.parse(...))`，与全站其他 markdown 渲染对齐。改后 fallback 分支同样过 DOMPurify。
+2. **SEO 文章页**（新增 `seo/HtmlSanitizer.java` + `SeoPageController`）：用 **jsoup `Safelist.relaxed()`** 在渲染边界净化 `contentHtml` 后再进模板。
+
+   关键取舍：**净化放在 SEO 渲染边界，而不是写库时**。原因：
+   - 不改存储/API 返回 → Vue 前端行为零变化，任务列表、SVG 等 `DOMPurify` 放行的内容不受影响；
+   - **覆盖已入库的旧脏数据**（历史文章若含原始 HTML，渲染时也被清洗）；
+   - 修复点=漏洞点，一处闭合，不扩散风险。
+3. 新增 `HtmlSanitizerTest` 回归测试（script/onerror/javascript: 协议剥离，正常排版保留）。
+
+### 认知教训
+
+1. **净化责任在"渲染边界"，不在"存储层"**。只要 markdown 允许原始 HTML（`ESCAPE_HTML=false` 是有意能力），内容在库里就是"脏"的；安全的关键是**每一处把它当 HTML 输出的地方**都必须净化。
+2. **"其他地方都净化了"不是安全**。安全审查不是看"主流路径安全"，而是枚举**所有** `v-html` / `th:utext` / `innerHTML`，逐处核对。这次漏的论坛恰是"用户可控程度最高"的路径。
+3. **`marked.parse()` 不净化**，`th:utext` 不转义，`th:inline="javascript"`（Thymeleaf 3.1）会转义 `</script>`——框架默认行为各不相同，别凭印象，看文档/源码。
+4. **前端净化 ≠ 后端安全**。前端 DOMPurify 保护的是自家 Vue 应用；API 返回的原始 `content_html` 一旦被第三方/服务端模板/爬虫渲染，保护即失效。服务端渲染面（Thymeleaf/爬虫）必须有自己的净化。
+
+### 通用经验
+
+1. 新增任何渲染用户内容的页面，先过一遍"**内容来源 → 渲染 API（v-html / th:utext / innerHTML / dangerouslySetInnerHTML）→ 是否有净化**"检查表。
+2. 前后端各留一份 HTML 净化（前端 DOMPurify、后端 jsoup/Owasp sanitizer），白名单策略保持一致；**净化放在每个渲染边界**，宁可重复净化（幂等）也不漏一处。
+3. 安全审查用 `grep -rn "v-html\|th:utext\|innerHTML"` 一票枚举全部 XSS 输出面，再对每个面追数据流。
+4. 高危的判定标准是"**用户可控程度 × 渲染面公开度**"：论坛（任意注册用户可控 + 全站公开）> SEO 文章页（作者可控 + 公开）> 管理端。

@@ -5,6 +5,7 @@ import com.yqz.openblog.article.dto.ArticleListItemResponse;
 import com.yqz.openblog.article.service.ArticleService;
 import com.yqz.openblog.common.PageResult;
 import com.yqz.openblog.media.MediaProperties;
+import com.yqz.openblog.seo.HtmlSanitizer;
 import com.yqz.openblog.seo.SeoProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,6 +32,11 @@ public class SeoPageController {
     @GetMapping("/article/{id}")
     public String articleDetail(@PathVariable Long id, Model model) {
         ArticleDetailResponse article = articleService.detailPublished(id, "seo-crawler");
+        // content_html 由 markdown 渲染（ESCAPE_HTML=false）可能含原始 HTML，SEO 模板用 th:utext 非转义输出，
+        // 渲染前必须服务端净化，否则正文中的 <script>/<img onerror> 构成存储型 XSS（前端有 DOMPurify，这里没有）
+        if (article != null) {
+            article.setContentHtml(HtmlSanitizer.clean(article.getContentHtml()));
+        }
         model.addAttribute("article", article);
         model.addAttribute("siteUrl", seoProperties.getSiteUrl());
         model.addAttribute("siteName", seoProperties.getSiteName());
