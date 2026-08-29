@@ -127,8 +127,8 @@ else:  # CACHE_REJECT
 2. `CommentService.createTopLevel(articleId, uid, req)`：
    `@RepeatExecuteLimit(name="comment_create", keys={"#articleId", "#uid", "#req.requestId"}, durationTime=30, strategy=RETURN_SAME_RESULT)`
 3. `CommentService.reply(commentId, uid, req)`：
-   `@RepeatExecuteLimit(name="comment_reply", keys={"#commentId", "#uid", "#req.requestId"}, durationTime=30, strategy=RETURN_SAME_RESULT)`
-4. 前端：`vue/src` 评论组件提交时用 `crypto.randomUUID()` 生成 requestId，**每次提交（成功/失败）后重新生成**。
+   `@RepeatExecuteLimit(name="comment_reply", keys={"#commentId", "#uid", "#req.requestId"}, durationTime=30, strategy=CACHE_REJECT)`（回复双击应提示 4299，而非静默返回缓存结果）
+4. 前端：`vue/src` 评论组件提交时用 `crypto.randomUUID()` 生成 requestId，**成功后重新生成、失败保持不变**（失败重试复用同一 ID 去重；双击去重）。
 
 ## 8. 测试策略（TDD）
 

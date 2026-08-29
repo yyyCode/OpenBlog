@@ -41,7 +41,7 @@ const props = defineProps({
   me: { type: Object, default: null }
 })
 
-const emit = defineEmits(['reply', 'delete', 'submit-reply'])
+const emit = defineEmits(['delete', 'submit-reply'])
 
 const replying = ref(false)
 const replyText = ref('')

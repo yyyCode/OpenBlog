@@ -19,6 +19,9 @@ import org.mockito.InOrder;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -33,6 +36,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -346,5 +350,59 @@ class RepeatExecuteLimitAspectTest {
         assertEquals("ok", ((Result) out).text);
         verify(lockSupport, never()).tryLock(anyString());
         assertFalse(flagStore.isSuccess(FLAG_REPLY));
+    }
+
+    @Test
+    void concurrentSameKey_exactlyOneExecution_bothReturnSameResult() throws Throwable {
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        Method m = Target.class.getMethod("create", params);
+        when(sig.getMethod()).thenReturn(m);
+        when(sig.getReturnType()).thenReturn(Result.class);
+        when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, reqWith("r1")});
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
+
+        // 预置 RETURN_SAME_RESULT 的缓存结果（不预置 flag）：模拟窗口期内已有一次成功执行的缓存，
+        // 让后到请求在"本地锁争用"分支直接拿到缓存结果，而不是重新执行业务。
+        flagStore.setResult(RESULT_CREATE, "{\"text\":\"ok\"}", 30);
+
+        // A 进入 proceed() 后阻塞（此时已持本地锁），直到主线程放行；
+        // 保证 B 启动时 A 仍持有本地锁 → B 的本地锁 tryLock 必失败 → 走缓存结果分支。
+        CountDownLatch aEnteredProceed = new CountDownLatch(1);
+        CountDownLatch aReleaseProceed = new CountDownLatch(1);
+        when(pjp.proceed()).thenAnswer(invocation -> {
+            aEnteredProceed.countDown();
+            assertTrue(aReleaseProceed.await(5, TimeUnit.SECONDS));
+            return new Result("ok");
+        });
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<Result> fa = pool.submit(() -> aroundSafely(pjp, annotationOf("create", params)));
+            // A 已进入 proceed（本地锁被 A 持有，flag 尚未写入）
+            assertTrue(aEnteredProceed.await(5, TimeUnit.SECONDS));
+
+            // B 与 A 同 Key 并发：快路径未命中 → 本地锁争用失败 → 命中缓存结果返回，不再执行
+            Future<Result> fb = pool.submit(() -> aroundSafely(pjp, annotationOf("create", params)));
+            Result rb = fb.get(5, TimeUnit.SECONDS);
+
+            aReleaseProceed.countDown();
+            Result ra = fa.get(5, TimeUnit.SECONDS);
+
+            assertEquals("ok", ra.text);
+            assertEquals("ok", rb.text);
+            verify(pjp, times(1)).proceed();
+            assertTrue(flagStore.isSuccess(FLAG_CREATE));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    /** aspect.around 声明 throws Throwable，包装成 RuntimeException 便于在线程池中返回结果 */
+    private Result aroundSafely(ProceedingJoinPoint p, RepeatExecuteLimit ann) {
+        try {
+            return (Result) aspect.around(p, ann);
+        } catch (Throwable t) {
+            throw new RuntimeException(t);
+        }
     }
 }

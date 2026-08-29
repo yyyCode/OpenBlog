@@ -38,7 +38,6 @@
           :key="c.id"
           :comment="c"
           :me="me"
-          @reply="onReplyClick"
           @delete="onDelete"
           @submit-reply="onSubmitReply"
         />
@@ -51,7 +50,6 @@
               :key="r.id"
               :comment="r"
               :me="me"
-              @reply="onReplyClick"
               @delete="onDelete"
               @submit-reply="onSubmitReply"
             />
@@ -63,7 +61,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getStoredAccessToken, isConsoleSessionValid } from '../auth/session'
 import { showMessage } from '../utils/message'
@@ -205,11 +203,6 @@ async function onDelete(c) {
   } catch (e) {
     showMessage(e?.message || '删除失败')
   }
-}
-
-async function onReplyClick(c) {
-  // 让 CommentItem 自己展开回复框：当前实现通过 submit-reply 触发即可
-  await nextTick()
 }
 </script>
 

@@ -26,8 +26,8 @@ public class RepeatExecuteLockSupport {
 
     /** 非阻塞尝试获取锁。ACQUIRED=拿到锁，CONTENDED=其他请求正在执行，DEGRADED=锁获取失败（降级放行） */
     public LockResult tryLock(String lockKey) {
-        RLock lock = redissonClient.getLock(lockKey);
         try {
+            RLock lock = redissonClient.getLock(lockKey);
             return lock.tryLock(0, TimeUnit.SECONDS) ? LockResult.ACQUIRED : LockResult.CONTENDED;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -39,14 +39,14 @@ public class RepeatExecuteLockSupport {
     }
 
     public void unlock(String lockKey) {
-        RLock lock = redissonClient.getLock(lockKey);
-        if (lock.isHeldByCurrentThread()) {
-            try {
+        try {
+            RLock lock = redissonClient.getLock(lockKey);
+            if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
-            } catch (RuntimeException e) {
-                // watchdog 到期会自动释放锁，此处仅记日志，不向调用方传播
-                log.warn("[idempotent] 分布式锁释放失败，watchdog 将自动释放。lockKey={}", lockKey, e);
             }
+        } catch (RuntimeException e) {
+            // watchdog 到期会自动释放锁，此处仅记日志，不向调用方传播
+            log.warn("[idempotent] 分布式锁释放失败，watchdog 将自动释放。lockKey={}", lockKey, e);
         }
     }
 }

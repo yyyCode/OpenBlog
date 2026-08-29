@@ -12,7 +12,6 @@ import com.yqz.openblog.comment.dto.CommentThreadResponse;
 import com.yqz.openblog.comment.dto.CommentUserResponse;
 import com.yqz.openblog.comment.entity.Comment;
 import com.yqz.openblog.comment.entity.CommentStatus;
-import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.comment.repo.CommentMapper;
 import com.yqz.openblog.common.BizException;
