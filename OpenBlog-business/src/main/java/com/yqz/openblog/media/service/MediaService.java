@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -37,6 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class MediaService {
@@ -91,7 +93,10 @@ public class MediaService {
 
         Path tempDir = Files.createTempDirectory("openblog-media-");
         Path originalPath = tempDir.resolve("original");
-        Path thumbPath = tempDir.resolve("thumb");
+        // 缩略图输出必须带扩展名：Thumbnailator 靠扩展名推断输出格式。
+        // 无扩展名时它会在同目录生成 thumb.JPEG 而目标文件不落盘（ImageIO 读不回、清理时目录非空 → DirectoryNotEmptyException）。
+        // ext 要等权威格式判定后才能确定，故 thumbPath 延迟到判定后赋值。
+        Path thumbPath = null;
         try {
             Files.copy(file.getInputStream(), originalPath);
 
@@ -107,6 +112,7 @@ public class MediaService {
             }
             String ext = EXT_BY_CONTENT_TYPE.get(detectedType);
             String key = cat + "/" + UUID.randomUUID().toString() + "." + ext;
+            thumbPath = tempDir.resolve("thumb." + ext);
 
             int width = originalImage.getWidth();
             int height = originalImage.getHeight();
@@ -168,9 +174,20 @@ public class MediaService {
             resp.setFolderId(folderId);
             return resp;
         } finally {
-            Files.deleteIfExists(originalPath);
-            Files.deleteIfExists(thumbPath);
-            Files.deleteIfExists(tempDir);
+            // 递归清掉整个临时目录：任何库（如 Thumbnailator 无扩展名输出生成的 thumb.JPEG）留下的残留都不再触发 DirectoryNotEmptyException
+            deleteRecursively(tempDir);
+        }
+    }
+
+    /** 递归删除目录及其全部内容；文件不存在时静默返回。 */
+    private static void deleteRecursively(Path dir) throws IOException {
+        if (dir == null || !Files.exists(dir)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(dir)) {
+            for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(p);
+            }
         }
     }
 

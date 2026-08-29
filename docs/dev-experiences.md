@@ -107,3 +107,64 @@
 2. 前后端各留一份 HTML 净化（前端 DOMPurify、后端 jsoup/Owasp sanitizer），白名单策略保持一致；**净化放在每个渲染边界**，宁可重复净化（幂等）也不漏一处。
 3. 安全审查用 `grep -rn "v-html\|th:utext\|innerHTML"` 一票枚举全部 XSS 输出面，再对每个面追数据流。
 4. 高危的判定标准是"**用户可控程度 × 渲染面公开度**"：论坛（任意注册用户可控 + 全站公开）> SEO 文章页（作者可控 + 公开）> 管理端。
+
+---
+
+## 2026-08-30：媒体上传 5001/DirectoryNotEmptyException —— 缩略图临时文件名去扩展名的连锁故障
+
+### 现象
+
+生产上传图片接口报错，网关层 `5001`，message 是临时目录路径：
+
+```
+code: 5001, message: "/tmp/openblog-media-7453218818868257170"
+```
+
+服务端日志根因：
+
+```
+java.nio.file.DirectoryNotEmptyException: /tmp/openblog-media-...
+    at Files.deleteIfExists(...)
+    at MediaService.upload(MediaService.java:173)
+```
+
+### 根因
+
+`MediaService.upload` 的临时缩略图文件从**带扩展名**改成了**无扩展名**：
+
+- 改前：`tempDir.resolve("thumb-" + key.replace('/', '-'))` —— `key` 含 `.png`/`.jpg` 等后缀
+- 改后：`tempDir.resolve("thumb")` —— 只剩裸文件名
+
+**Thumbnailator 0.4.20 的 `toFile(File)` 靠扩展名推断输出格式**。无扩展名时它在**同目录生成 `thumb.JPEG`**（scratch 文件），而目标文件 `thumb` 从不落盘。连锁反应：
+
+1. `ImageIO.read(thumbPath)` 读不到 `thumb` → 上传失败（本地/某些平台抛 `IIOException: Can't read input file!`，另一些返回 null 后 `getWidth()` NPE）；
+2. `thumb.JPEG` 残留在临时目录 → `finally` 里 `deleteIfExists(tempDir)` 抛 `DirectoryNotEmptyException`；
+3. 若 try 块先抛异常（NPE/IIO），finally 里的 `DirectoryNotEmptyException` 会**覆盖主异常**成为最终日志，且 message 就是临时目录路径。
+
+### 排查关键
+
+不要停留在"目录为什么非空"，用**最小复现**找出谁在目录里留了文件：
+
+1. 写一个复现测试，跑 `Files.createTempDirectory → 写图 → ImageIO.read → Thumbnails.toFile → 列目录`，逐步骤打印目录内容。
+2. 证据（Windows 本地与生产 Linux 行为一致）：
+   ```
+   >>> AFTER toFile leftover: original (size=8227)
+   >>> AFTER toFile leftover: thumb.JPEG (size=1827)   ← 多出来的文件
+   >>> CLEANUP FAILED: DirectoryNotEmptyException
+   ```
+3. 结论：**无扩展名 + 靠扩展名推断格式的库**组合是直接原因。
+
+### 修复
+
+1. **缩略图临时文件带扩展名**：`ext` 由权威格式判定（`detectImageContentType`）得出后，`thumbPath = tempDir.resolve("thumb." + ext)`。`original` 无扩展名无碍——ImageIO 按文件内容识别格式，与文件名无关。
+2. **清理改为递归删除整个临时目录**（`deleteRecursively(tempDir)`）：任何库留下的残留都不再触发 `DirectoryNotEmptyException`，属纵深防御。
+3. 新增 `MediaTempDirCleanupTest` 回归：带扩展名缩略图可写可读 + 递归清理无残留 + 缺失路径静默。
+
+### 认知教训
+
+1. **给"靠文件名推断行为"的库传文件时，永远带正确扩展名**。Thumbnailator 推断输出格式、ImageIO 的部分实现、很多工具库都依赖扩展名；无扩展名时它们的行为是"写一个你能猜到的 scratch 名 + 目标不落盘"，比直接报错更隐蔽。
+2. **`finally` 清理不要只删"已知的 N 个文件"**。临时目录里的文件集合由多库共同决定（Thumbnailator、ImageIO 缓存、未来新增步骤），一次只删 2 个已知文件必然漏。**递归删除整个专属临时目录**才是稳的。
+3. **`deleteIfExists(目录)` 对非空目录抛 `DirectoryNotEmptyException`，不是静默失败**。它不会帮你"尽量删"，必须自己保证目录为空或递归删。
+4. **finally 里的异常会覆盖 try 里的主异常**。若 try 抛 NPE/IIO、finally 又抛 `DirectoryNotEmptyException`，线上日志只有后者，message 还可能是无意义的路径——排查时先想"有没有被 finally 覆盖的异常"。
+5. **安全加固改动的隐性回归**：这轮把临时文件名 `thumb-<key>` 简化成 `thumb` 属"顺手简化"，却踩了格式推断的坑。**重构/加固时保持与原实现等价的外部契约**，文件名扩展名这类细节也要留意。
+6. **复现测试的价值**：一次本地复现（Windows 上同一套 Thumbnailator 行为）就锁定了跨平台的根因，不需要在生产 Linux 上反复试。文件系统/图像库的这类行为跨平台稳定时可放心用本地最小复现替代线上排查。
