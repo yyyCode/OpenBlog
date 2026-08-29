@@ -14,6 +14,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -27,7 +28,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -76,6 +79,12 @@ class RepeatExecuteLimitAspectTest {
         @RepeatExecuteLimit(name = "comment_reply", keys = {"#commentId", "#uid", "#req.requestId"},
                 durationTime = 30)
         public Result reply(Long commentId, Long uid, TestReq req) {
+            return new Result("ok");
+        }
+
+        @RepeatExecuteLimit(name = "comment_create", keys = {"#articleId", "#uid", "#req.requestId"},
+                durationTime = 0, strategy = IdempotentStrategy.RETURN_SAME_RESULT)
+        public Result createNoWindow(Long articleId, Long uid, TestReq req) {
             return new Result("ok");
         }
     }
@@ -211,8 +220,8 @@ class RepeatExecuteLimitAspectTest {
             }
         });
         holder.start();
-        assertTrue(locked.await(5, TimeUnit.SECONDS));
         try {
+            assertTrue(locked.await(5, TimeUnit.SECONDS));
             assertThrows(BizException.class, () -> aspect.around(pjp, annotationOf("reply", params)));
         } finally {
             release.countDown();
@@ -258,6 +267,45 @@ class RepeatExecuteLimitAspectTest {
         assertTrue(flagStore.isSuccess(FLAG_CREATE));
         assertTrue(flagStore.getResult(RESULT_CREATE).isPresent());
         verify(lockSupport).unlock(anyString());
+    }
+
+    @Test
+    void success_RETURN_SAME_RESULT_writesResultBeforeFlag() throws Throwable {
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        Method m = Target.class.getMethod("create", params);
+        when(sig.getMethod()).thenReturn(m);
+        when(sig.getReturnType()).thenReturn(Result.class);
+        when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, reqWith("r1")});
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
+        when(pjp.proceed()).thenReturn(new Result("ok"));
+
+        RepeatExecuteFlagStore mockStore = mock(RepeatExecuteFlagStore.class);
+        when(mockStore.isSuccess(anyString())).thenReturn(false);
+        aspect = new RepeatExecuteLimitAspect(
+                new RepeatExecuteKeyResolver(),
+                new RepeatExecuteKeyBuilder("test"),
+                lockSupport,
+                localLockCache,
+                mockStore,
+                new ObjectMapper());
+
+        aspect.around(pjp, annotationOf("create", params));
+
+        InOrder inOrder = inOrder(mockStore);
+        inOrder.verify(mockStore).setResult(eq(RESULT_CREATE), anyString(), eq(30L));
+        inOrder.verify(mockStore).setFlag(eq(FLAG_CREATE), eq(30L));
+    }
+
+    @Test
+    void durationZero_noFlagWritten() throws Throwable {
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        stubInvocation("createNoWindow", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
+
+        Object out = aspect.around(pjp, annotationOf("createNoWindow", params));
+
+        assertEquals("ok", ((Result) out).text);
+        assertFalse(flagStore.isSuccess(FLAG_CREATE));
     }
 
     @Test

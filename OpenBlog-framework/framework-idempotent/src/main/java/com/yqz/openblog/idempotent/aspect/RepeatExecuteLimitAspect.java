@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
@@ -102,7 +101,11 @@ public class RepeatExecuteLimitAspect {
                             log.warn("[idempotent] 写结果标识失败（已忽略）。name={}", name, e);
                         }
                     }
-                    flagStore.setFlag(flagKey, duration);
+                    try {
+                        flagStore.setFlag(flagKey, duration);
+                    } catch (Exception e) {
+                        log.warn("[idempotent] 写幂等标识失败（已忽略）。name={}", name, e);
+                    }
                 }
                 return result;
             } finally {
@@ -113,14 +116,17 @@ public class RepeatExecuteLimitAspect {
         }
     }
 
-    private Object handleHit(RepeatExecuteLimit repeatLimit, String resultKey, Class<?> returnType)
-            throws IOException {
+    private Object handleHit(RepeatExecuteLimit repeatLimit, String resultKey, Class<?> returnType) {
         if (repeatLimit.strategy() == IdempotentStrategy.RETURN_SAME_RESULT) {
             Optional<String> json = flagStore.getResult(resultKey);
             if (json.isPresent()) {
-                return objectMapper.readValue(json.get(), returnType);
+                try {
+                    return objectMapper.readValue(json.get(), returnType);
+                } catch (Exception e) {
+                    log.warn("[idempotent] 结果反序列化失败，退化为拒绝。resultKey={}", resultKey, e);
+                }
             }
-            // 结果尚未落盘（首个请求仍在执行）→ 退化为拒绝
+            // 结果尚未落盘 / 反序列化失败 → 退化为拒绝
         }
         throw new BizException(RepeatExecuteLimitConstant.REJECT_CODE, repeatLimit.message());
     }
