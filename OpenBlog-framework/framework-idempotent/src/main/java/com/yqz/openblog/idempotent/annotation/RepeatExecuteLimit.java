@@ -8,6 +8,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * 幂等防重注解。@Target 预留 ElementType.TYPE（类级）位点，
+ * 当前切面仅拦截方法级注解；类级标注暂不生效，请勿在类上使用，待有真实需求再扩展。
+ */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
