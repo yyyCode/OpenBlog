@@ -142,7 +142,9 @@ public class MediaController {
     private void serveFile(String key, boolean thumb, HttpServletResponse response) throws IOException {
         Media media = mediaService.getByKey(key);
         byte[] bytes = mediaService.readFileBytes(key, thumb);
-        response.setContentType(media.getContentType());
+        // Content-Type 收口到图片白名单（历史记录可能存过客户端伪造类型），并禁止浏览器 MIME 嗅探，防 polyglot 文件内联执行
+        response.setContentType(mediaService.sanitizeContentType(media.getContentType()));
+        response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader(HttpHeaders.CACHE_CONTROL, "max-age=86400");
         response.getOutputStream().write(bytes);
     }

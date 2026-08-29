@@ -1,6 +1,7 @@
 package com.yqz.openblog.user.dto;
 
 import com.yqz.openblog.user.validation.AllowedMailbox;
+import com.yqz.openblog.user.validation.AllowedUsername;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -10,6 +11,7 @@ public class RegisterRequest {
 
     @NotBlank
     @Size(min = 3, max = 32)
+    @Pattern(regexp = AllowedUsername.REGEXP, message = AllowedUsername.MESSAGE)
     private String username;
 
     @NotBlank

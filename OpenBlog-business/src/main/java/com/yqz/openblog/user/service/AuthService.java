@@ -71,6 +71,8 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest req) {
         sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
+        // 用户名归一化：去掉首尾空白（DTO 层 @Pattern 已禁空白字符，此处为绕过校验的内部调用兜底）
+        String username = req.getUsername() == null ? null : req.getUsername().trim();
 
         // 邮箱校验
         String emailError = emailValidator.validate(req.getEmail());
@@ -82,7 +84,7 @@ public class AuthService {
         emailCodeService.verifyAndConsume(req.getEmail(), req.getCode());
 
         if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
-                .eq(User::getUsername, req.getUsername())) > 0) {
+                .eq(User::getUsername, username)) > 0) {
             throw new BizException(clientErrorCode(), "用户名已存在");
         }
         if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
@@ -91,7 +93,7 @@ public class AuthService {
         }
 
         User user = new User();
-        user.setUsername(req.getUsername());
+        user.setUsername(username);
         user.setEmail(req.getEmail());
         user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
         // 昵称已弃用：对外展示统一使用用户名

@@ -23,13 +23,17 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -38,6 +42,16 @@ import java.util.stream.Collectors;
 public class MediaService {
 
     private static final Pattern CATEGORY_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9-]{0,63}$");
+
+    /** 允许入库/回写的图片 Content-Type 白名单（与解码器可识别的栅格格式一致，不含 svg 等可内联脚本的格式）。 */
+    private static final Map<String, String> EXT_BY_CONTENT_TYPE = Map.of(
+            "image/png", "png",
+            "image/jpeg", "jpg",
+            "image/gif", "gif",
+            "image/bmp", "bmp",
+            "image/webp", "webp"
+    );
+    private static final Set<String> SAFE_CONTENT_TYPES = EXT_BY_CONTENT_TYPE.keySet();
 
     private final MediaMapper mediaMapper;
     private final MediaProperties properties;
@@ -72,19 +86,12 @@ public class MediaService {
             throw new BizException(4002, "仅支持图片上传");
         }
 
-        String originalName = file.getOriginalFilename();
-        String ext = guessExt(originalName, contentType);
-        if (!StringUtils.hasText(ext)) {
-            throw new BizException(4002, "无法识别图片后缀");
-        }
-
         String cat = resolveStorageCategory(folderId, category);
-        String key = cat + "/" + UUID.randomUUID().toString() + "." + ext;
         MediaStorage storage = activeStorage();
 
         Path tempDir = Files.createTempDirectory("openblog-media-");
-        Path originalPath = tempDir.resolve("original-" + key.replace('/', '-'));
-        Path thumbPath = tempDir.resolve("thumb-" + key.replace('/', '-'));
+        Path originalPath = tempDir.resolve("original");
+        Path thumbPath = tempDir.resolve("thumb");
         try {
             Files.copy(file.getInputStream(), originalPath);
 
@@ -92,6 +99,14 @@ public class MediaService {
             if (originalImage == null) {
                 throw new BizException(4002, "图片解析失败");
             }
+
+            // 权威判定：由解码器识别的实际格式推导 Content-Type 与后缀，不信任客户端文件名/Content-Type（防伪造 image/svg+xml 之类）
+            String detectedType = detectImageContentType(originalPath);
+            if (detectedType == null) {
+                throw new BizException(4002, "不支持的图片格式");
+            }
+            String ext = EXT_BY_CONTENT_TYPE.get(detectedType);
+            String key = cat + "/" + UUID.randomUUID().toString() + "." + ext;
 
             int width = originalImage.getWidth();
             int height = originalImage.getHeight();
@@ -130,7 +145,7 @@ public class MediaService {
             media.setUrl(url);
             media.setThumbUrl(thumbUrl);
             media.setSize(file.getSize());
-            media.setContentType(contentType);
+            media.setContentType(detectedType);
             media.setWidth(width);
             media.setHeight(height);
             media.setThumbWidth(thumbWidth);
@@ -288,31 +303,38 @@ public class MediaService {
         return localMediaStorage;
     }
 
-    private String guessExt(String originalName, String contentType) {
-        if (StringUtils.hasText(originalName) && originalName.contains(".")) {
-            String ext = originalName.substring(originalName.lastIndexOf('.') + 1).trim().toLowerCase(Locale.ROOT);
-            if (ext.length() <= 5) {
-                return ext;
+    /**
+     * 由解码器实际识别的格式推导 Content-Type（ImageIO 按文件头识别，客户端无法伪造）。
+     * 非白名单格式（svg/tiff/ico 等）返回 null，由调用方拒绝。
+     */
+    static String detectImageContentType(Path file) {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(file.toFile())) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+            if (!readers.hasNext()) {
+                return null;
             }
-        }
-        if (contentType == null) {
+            String formatName = readers.next().getFormatName().toLowerCase(Locale.ROOT);
+            return switch (formatName) {
+                case "png" -> "image/png";
+                case "jpeg", "jpg" -> "image/jpeg";
+                case "gif" -> "image/gif";
+                case "bmp", "wbmp" -> "image/bmp";
+                case "webp" -> "image/webp";
+                default -> null;
+            };
+        } catch (IOException e) {
             return null;
         }
-        if (contentType.contains("png")) {
-            return "png";
+    }
+
+    /**
+     * 输出 Content-Type 归一化：历史遗留记录可能存过客户端伪造的类型（如 image/svg+xml），
+     * 服务端回写前必须收口到白名单；非法类型一律降级 {@code application/octet-stream}（触发下载而非内联解析）。
+     */
+    public static String sanitizeContentType(String stored) {
+        if (stored != null && SAFE_CONTENT_TYPES.contains(stored.toLowerCase(Locale.ROOT))) {
+            return stored;
         }
-        if (contentType.contains("jpeg") || contentType.contains("jpg")) {
-            return "jpg";
-        }
-        if (contentType.contains("webp")) {
-            return "webp";
-        }
-        if (contentType.contains("gif")) {
-            return "gif";
-        }
-        if (contentType.contains("bmp")) {
-            return "bmp";
-        }
-        return null;
+        return "application/octet-stream";
     }
 }
