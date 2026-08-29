@@ -555,7 +555,7 @@ package com.yqz.openblog.idempotent.lock;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.concurrent.ReentrantLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -596,7 +596,7 @@ package com.yqz.openblog.idempotent.lock;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import java.util.concurrent.ReentrantLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -738,20 +738,28 @@ git commit -m "feat(idempotent): add RepeatExecuteFlagStore interface + Redis im
 **Files:**
 - Create: `OpenBlog-framework/framework-idempotent/src/main/java/com/yqz/openblog/idempotent/lock/RepeatExecuteLockSupport.java`
 
-- [ ] **Step 1: 实现**
+- [ ] **Step 1: 实现（三态 fail-open 契约 + 容错解锁）**
 
 ```java
 package com.yqz.openblog.idempotent.lock;
 
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
 /**
  * Redisson 分布式锁封装：非阻塞 tryLock（等待 0 秒），watchdog 自动续期。
+ * 故障语义（fail-open）：Redis/Redisson 故障时不抛异常，返回 DEGRADED，由切面降级放行（不阻断业务）。
  */
 public class RepeatExecuteLockSupport {
+
+    private static final Logger log = LoggerFactory.getLogger(RepeatExecuteLockSupport.class);
+
+    /** 三态锁获取结果：拿到锁 / 争用（其他请求持有）/ 降级（获取失败，本次放行） */
+    public enum LockResult { ACQUIRED, CONTENDED, DEGRADED }
 
     private final RedissonClient redissonClient;
 
@@ -759,36 +767,122 @@ public class RepeatExecuteLockSupport {
         this.redissonClient = redissonClient;
     }
 
-    /** 非阻塞尝试获取锁。true=拿到锁，false=别的请求正在执行或锁获取失败 */
-    public boolean tryLock(String lockKey) {
+    /** 非阻塞尝试获取锁。ACQUIRED=拿到锁，CONTENDED=其他请求正在执行，DEGRADED=锁获取失败（降级放行） */
+    public LockResult tryLock(String lockKey) {
         RLock lock = redissonClient.getLock(lockKey);
         try {
-            return lock.tryLock(0, TimeUnit.SECONDS);
+            return lock.tryLock(0, TimeUnit.SECONDS) ? LockResult.ACQUIRED : LockResult.CONTENDED;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return false;
+            return LockResult.DEGRADED; // 中断：无法得知锁状态 → 降级放行
+        } catch (RuntimeException e) {
+            log.warn("[idempotent] 分布式锁获取失败，降级放行。lockKey={}", lockKey, e);
+            return LockResult.DEGRADED;
         }
     }
 
     public void unlock(String lockKey) {
         RLock lock = redissonClient.getLock(lockKey);
         if (lock.isHeldByCurrentThread()) {
-            lock.unlock();
+            try {
+                lock.unlock();
+            } catch (RuntimeException e) {
+                // watchdog 到期会自动释放锁，此处仅记日志，不向调用方传播
+                log.warn("[idempotent] 分布式锁释放失败，watchdog 将自动释放。lockKey={}", lockKey, e);
+            }
         }
     }
 }
 ```
 
-- [ ] **Step 2: 编译验证**
+- [ ] **Step 2: 写失败测试（覆盖三态 + 故障降级路径）**
 
-Run: `cd E:\java\OpenBlog && mvn -q -pl OpenBlog-framework/framework-idempotent -am compile -DskipTests`
-Expected: BUILD SUCCESS（确认 Redisson 3.52.0 能解析 `RLock.tryLock(long, TimeUnit)`）
+创建 `src/test/java/com/yqz/openblog/idempotent/lock/RepeatExecuteLockSupportTest.java`：
 
-- [ ] **Step 3: Commit**
+```java
+package com.yqz.openblog.idempotent.lock;
+
+import org.junit.jupiter.api.Test;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class RepeatExecuteLockSupportTest {
+
+    private RepeatExecuteLockSupport supportWith(RLock lock) {
+        RedissonClient client = mock(RedissonClient.class);
+        when(client.getLock("k")).thenReturn(lock);
+        return new RepeatExecuteLockSupport(client);
+    }
+
+    @Test
+    void tryLock_acquired() {
+        RLock lock = mock(RLock.class);
+        when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenReturn(true);
+        assertEquals(RepeatExecuteLockSupport.LockResult.ACQUIRED, supportWith(lock).tryLock("k"));
+    }
+
+    @Test
+    void tryLock_contended() {
+        RLock lock = mock(RLock.class);
+        when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenReturn(false);
+        assertEquals(RepeatExecuteLockSupport.LockResult.CONTENDED, supportWith(lock).tryLock("k"));
+    }
+
+    @Test
+    void tryLock_redissonFailure_degrades() {
+        RLock lock = mock(RLock.class);
+        when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenThrow(new RuntimeException("connection lost"));
+        assertEquals(RepeatExecuteLockSupport.LockResult.DEGRADED, supportWith(lock).tryLock("k"));
+    }
+
+    @Test
+    void tryLock_interrupted_degradesAndRestoresInterruptFlag() {
+        RLock lock = mock(RLock.class);
+        when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
+        assertEquals(RepeatExecuteLockSupport.LockResult.DEGRADED, supportWith(lock).tryLock("k"));
+        assertTrue(Thread.interrupted());
+    }
+
+    @Test
+    void unlock_swallowsReleaseFailure() {
+        RLock lock = mock(RLock.class);
+        when(lock.isHeldByCurrentThread()).thenReturn(true);
+        doThrow(new RuntimeException("connection lost")).when(lock).unlock();
+        supportWith(lock).unlock("k"); // 不得抛出
+        verify(lock).unlock();
+    }
+
+    @Test
+    void unlock_skipsWhenNotHeld() {
+        RLock lock = mock(RLock.class);
+        when(lock.isHeldByCurrentThread()).thenReturn(false);
+        supportWith(lock).unlock("k");
+        verify(lock, never()).unlock();
+    }
+}
+```
+
+- [ ] **Step 3: 运行测试 + 编译验证**
+
+Run: `cd E:\java\OpenBlog && mvn -pl OpenBlog-framework/framework-idempotent test -Dtest=RepeatExecuteLockSupportTest`
+Expected: PASS（6/6；并确认 Redisson 3.52.0 能解析 `RLock.tryLock(long, TimeUnit)`）
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add OpenBlog-framework/framework-idempotent
-git commit -m "feat(idempotent): add RepeatExecuteLockSupport (Redisson RLock)"
+git commit -m "feat(idempotent): add RepeatExecuteLockSupport (fail-open tri-state lock)"
 ```
 
 ---
@@ -875,7 +969,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
-import java.util.concurrent.ReentrantLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1021,7 +1115,7 @@ class RepeatExecuteLimitAspectTest {
     void doubleCheck_afterLock_flagAlreadySuccess_returnsCached() throws Throwable {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("create", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
-        when(lockSupport.tryLock(anyString())).thenReturn(true);
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
         flagStore.setFlag(FLAG_CREATE, 30);
         flagStore.setResult(RESULT_CREATE, "{\"text\":\"first\"}", 30);
 
@@ -1051,7 +1145,7 @@ class RepeatExecuteLimitAspectTest {
     void distributedLockContended_rejects() throws Throwable {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("reply", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
-        when(lockSupport.tryLock(anyString())).thenReturn(false);
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.CONTENDED);
 
         assertThrows(BizException.class, () -> aspect.around(pjp, annotationOf("reply", params)));
         verify(lockSupport, never()).unlock(anyString());
@@ -1062,7 +1156,7 @@ class RepeatExecuteLimitAspectTest {
     void success_RETURN_SAME_RESULT_writesFlagAndResult() throws Throwable {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("create", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
-        when(lockSupport.tryLock(anyString())).thenReturn(true);
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
 
         Object out = aspect.around(pjp, annotationOf("create", params));
 
@@ -1076,7 +1170,7 @@ class RepeatExecuteLimitAspectTest {
     void success_CACHE_REJECT_writesFlagOnly() throws Throwable {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("reply", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
-        when(lockSupport.tryLock(anyString())).thenReturn(true);
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
 
         aspect.around(pjp, annotationOf("reply", params));
 
@@ -1091,7 +1185,7 @@ class RepeatExecuteLimitAspectTest {
         when(sig.getMethod()).thenReturn(m);
         when(sig.getReturnType()).thenReturn(Result.class);
         when(pjp.getArgs()).thenReturn(new Object[]{42L, 7L, reqWith("r1")});
-        when(lockSupport.tryLock(anyString())).thenReturn(true);
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.ACQUIRED);
         doThrow(new IllegalStateException("boom")).when(pjp).proceed();
 
         assertThrows(IllegalStateException.class, () -> aspect.around(pjp, annotationOf("reply", params)));
@@ -1145,7 +1239,7 @@ import org.springframework.core.annotation.Order;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ReentrantLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 幂等核心切面。@Order(-11) 保证在 @Transactional 之外（最外层）。
@@ -1206,7 +1300,8 @@ public class RepeatExecuteLimitAspect {
         }
         try {
             // ④ 分布式锁：跨 JVM 串行，非阻塞
-            if (!lockSupport.tryLock(lockKey)) {
+            // CONTENDED → 防重命中；ACQUIRED 与 DEGRADED 都继续执行（DEGRADED = Redis 故障降级放行）
+            if (lockSupport.tryLock(lockKey) == RepeatExecuteLockSupport.LockResult.CONTENDED) {
                 return handleHit(repeatLimit, resultKey, returnType);
             }
             try {
@@ -1738,7 +1833,7 @@ git commit -m "docs: document framework-idempotent module"
 - `RepeatExecuteFlagStore` 接口签名（`isSuccess/setFlag/getResult/setResult`）在 Task 6 定义、Task 8 的内存实现与切面调用一致 ✅
 - `RepeatExecuteKeyBuilder.lockKey/flagKey/resultKey(String, List<String>)` 在 Task 3/8 一致 ✅
 - `BizException(int, String)` 构造器在 Task 8 使用 `4299` 常量 ✅
-- `RepeatExecuteLockSupport.tryLock/unlock(String)` 在 Task 7/8 一致 ✅
+- `RepeatExecuteLockSupport.tryLock/unlock(String)` 在 Task 7/8 一致 ✅；Task 7 三态契约 `LockResult{ACQUIRED, CONTENDED, DEGRADED}` 与 Task 8 切面消费一致（CONTENDED→防重命中，ACQUIRED/DEGRADED→继续执行）✅
 
 ---
 
