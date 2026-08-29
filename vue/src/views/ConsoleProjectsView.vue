@@ -31,8 +31,9 @@
             <input v-model="form.summary" class="input" placeholder="一句话简介" maxlength="255" />
           </div>
           <div class="field">
-            <div class="label">封面图 Media Key</div>
-            <input v-model="form.coverMediaKey" class="input" placeholder="留空则不显示封面" />
+            <div class="label">封面图（媒体库 Key 或完整链接）</div>
+            <input v-model="form.coverMediaKey" class="input" placeholder="媒体库 key（如 general/xxx.png）或完整图片链接，留空不显示封面" />
+            <img v-if="form.coverMediaKey" :src="coverUrl(form.coverMediaKey)" alt="封面预览" class="cover-preview" />
           </div>
           <div class="field">
             <div class="label">技术栈</div>
@@ -110,7 +111,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { fetchAdminProjects, fetchAdminProjectDetail, createProject, updateProject, deleteProject } from '../api/project'
+import { fetchAdminProjects, fetchAdminProjectDetail, createProject, updateProject, deleteProject, coverUrl } from '../api/project'
 import { showMessage } from '../utils/message'
 
 const loading = ref(true)
@@ -305,6 +306,16 @@ function formatDate(v) {
 .console-editor-form {
   max-height: 60vh;
   overflow-y: auto;
+}
+
+.cover-preview {
+  display: block;
+  margin-top: 8px;
+  max-width: 100%;
+  max-height: 160px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--console-border);
 }
 
 .console-editor-actions {

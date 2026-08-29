@@ -77,7 +77,7 @@ public class ProjectService {
         p.setTitle(req.getTitle().trim());
         p.setSummary(req.getSummary() != null ? req.getSummary().trim() : null);
         p.setContentMarkdown(req.getContentMarkdown());
-        p.setCoverMediaKey(req.getCoverMediaKey() != null ? req.getCoverMediaKey().trim() : null);
+        p.setCoverMediaKey(normalizeCoverMediaKey(req.getCoverMediaKey()));
         p.setTechStack(req.getTechStack() != null ? req.getTechStack().trim() : null);
         p.setProjectUrl(req.getProjectUrl() != null ? req.getProjectUrl().trim() : null);
         p.setGithubUrl(req.getGithubUrl() != null ? req.getGithubUrl().trim() : null);
@@ -90,6 +90,31 @@ public class ProjectService {
         } else if (p.getId() == null && p.getStatus() == ProjectStatus.PUBLISHED) {
             p.setPublishedAt(Instant.now());
         }
+    }
+
+    /**
+     * 封面图字段兼容两种输入：裸 media key（general/xxx.png）或完整媒体链接（https://…/api/v1/media/files/general/xxx.png）。
+     * 完整链接提取其中的 key 入库（DB 列仅 VARCHAR(64)，且前端 coverUrl() 会用 key 重新拼链接，不能存 URL）。
+     * 非法输入（非本站媒体、含 scheme/空白/路径穿越、超长）直接报错，避免静默丢数据。
+     */
+    private String normalizeCoverMediaKey(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String v = raw.trim();
+        String marker = "/api/v1/media/files/";
+        int idx = v.indexOf(marker);
+        if (idx >= 0) {
+            v = v.substring(idx + marker.length());
+            int q = v.indexOf('?');
+            if (q >= 0) {
+                v = v.substring(0, q);
+            }
+        }
+        if (v.length() > 64 || v.contains(" ") || v.startsWith("http") || v.contains("..")) {
+            throw new BizException(4002, "封面图请填写媒体库 key（如 general/xxx.png）或本站媒体链接");
+        }
+        return v;
     }
 
     private ProjectListItemResponse toListItem(Project p) {
