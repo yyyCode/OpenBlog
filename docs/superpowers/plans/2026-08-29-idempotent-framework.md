@@ -810,6 +810,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -826,28 +827,28 @@ class RepeatExecuteLockSupportTest {
     }
 
     @Test
-    void tryLock_acquired() {
+    void tryLock_acquired() throws InterruptedException {
         RLock lock = mock(RLock.class);
         when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenReturn(true);
         assertEquals(RepeatExecuteLockSupport.LockResult.ACQUIRED, supportWith(lock).tryLock("k"));
     }
 
     @Test
-    void tryLock_contended() {
+    void tryLock_contended() throws InterruptedException {
         RLock lock = mock(RLock.class);
         when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenReturn(false);
         assertEquals(RepeatExecuteLockSupport.LockResult.CONTENDED, supportWith(lock).tryLock("k"));
     }
 
     @Test
-    void tryLock_redissonFailure_degrades() {
+    void tryLock_redissonFailure_degrades() throws InterruptedException {
         RLock lock = mock(RLock.class);
         when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenThrow(new RuntimeException("connection lost"));
         assertEquals(RepeatExecuteLockSupport.LockResult.DEGRADED, supportWith(lock).tryLock("k"));
     }
 
     @Test
-    void tryLock_interrupted_degradesAndRestoresInterruptFlag() {
+    void tryLock_interrupted_degradesAndRestoresInterruptFlag() throws InterruptedException {
         RLock lock = mock(RLock.class);
         when(lock.tryLock(anyLong(), any(TimeUnit.class))).thenThrow(new InterruptedException());
         assertEquals(RepeatExecuteLockSupport.LockResult.DEGRADED, supportWith(lock).tryLock("k"));
@@ -1153,6 +1154,20 @@ class RepeatExecuteLimitAspectTest {
     }
 
     @Test
+    void distributedLockDegraded_proceeds() throws Throwable {
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        stubInvocation("reply", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
+        when(lockSupport.tryLock(anyString())).thenReturn(RepeatExecuteLockSupport.LockResult.DEGRADED);
+
+        Object out = aspect.around(pjp, annotationOf("reply", params));
+
+        assertEquals("ok", ((Result) out).text);
+        verify(pjp).proceed();
+        assertTrue(flagStore.isSuccess(FLAG_REPLY));
+        verify(lockSupport).unlock(anyString());
+    }
+
+    @Test
     void success_RETURN_SAME_RESULT_writesFlagAndResult() throws Throwable {
         Class<?>[] params = {Long.class, Long.class, TestReq.class};
         stubInvocation("create", params, new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
@@ -1348,7 +1363,7 @@ public class RepeatExecuteLimitAspect {
 - [ ] **Step 5: 运行确认通过**
 
 Run: `cd E:\java\OpenBlog && mvn -pl OpenBlog-framework/framework-idempotent test -Dtest=RepeatExecuteLimitAspectTest`
-Expected: PASS（10 个用例）
+Expected: PASS（11 个用例）
 
 - [ ] **Step 6: Commit**
 
