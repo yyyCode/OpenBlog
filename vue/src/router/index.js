@@ -30,6 +30,7 @@ import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
 import JobNavView from '../views/JobNavView.vue'
 import JobSubView from '../views/JobSubView.vue'
+import BugCaseListView from '../views/BugCaseListView.vue'
 import ProjectsListView from '../views/ProjectsListView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
@@ -97,6 +98,11 @@ const routes = [
     path: '/feedback',
     name: 'feedback',
     component: FeedbackView
+  },
+  {
+    path: '/bugs',
+    name: 'bugCaseList',
+    component: BugCaseListView
   },
   {
     path: '/forum',

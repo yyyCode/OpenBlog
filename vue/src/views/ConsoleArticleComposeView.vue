@@ -194,6 +194,8 @@
 
               <option value="JOB_NAV">求职导航</option>
 
+              <option value="BUG_CASE">Bug 案例</option>
+
             </select>
 
           </div>
