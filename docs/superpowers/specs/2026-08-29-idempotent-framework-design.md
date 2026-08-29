@@ -92,15 +92,27 @@ SpEL 解析复用 `AuditLogAspect` 既有模式（`DefaultParameterNameDiscovere
      ├─ 是 → RETURN_SAME_RESULT ? 返回 resultKey 反序列化结果
      │                       : 抛 BizException(message)
      └─ 否 → 继续
-③ 本地锁 tryLock()：抢不到 → 按策略处理（拒绝/返回缓存结果）
+③ 本地锁 tryLock()：抢不到 → 按策略处理（见下"防重命中处理"）
 ④ Redisson RLock.tryLock(0)：抢不到 → 释放本地锁，按策略处理
 ⑤ 双重检测：再查 flagKey
      ├─ 是 "success" → 按策略处理（防 ③④ 排队期间首个请求已执行完）
      └─ 否 → 继续
 ⑥ obj = joinPoint.proceed()   ← 业务执行（事务在最内层，返回即已提交）
-⑦ 成功后才写：flagKey=success（+ RETURN_SAME_RESULT 时 resultKey=序列化 obj），TTL=durationTime
-    写失败仅记日志，不阻断业务（降级为"本次不强防重"）
+⑦ 成功后才写（TTL=durationTime）：
+     ┌─ RETURN_SAME_RESULT 时先写 resultKey=序列化(obj)
+     ├─ 再写 flagKey=success（flag 是"提交点"，看到 success 即保证结果已存在）
+     └─ 写失败仅记日志，不阻断业务（降级为"本次不强防重"）
 ⑧ finally：释放 Redisson 锁 → 释放本地锁
+```
+
+**防重命中处理**（②③④⑤ 任一分支命中时统一逻辑）：
+```
+if strategy == RETURN_SAME_RESULT:
+    result = 读 resultKey
+    有 → 反序列化返回（返回上次结果）
+    无 → 抛 BizException(message)（首个请求仍在执行中，结果未落盘）
+else:  # CACHE_REJECT
+    抛 BizException(message)
 ```
 
 **关键机制**：
@@ -122,10 +134,11 @@ SpEL 解析复用 `AuditLogAspect` 既有模式（`DefaultParameterNameDiscovere
 
 - **可测性**：`RepeatExecuteFlagStore` 接口化，单测注入内存假实现；锁用 mock（`RLock`、`ReentrantLock`）。
 - 单测覆盖：
-  - 快路径命中 → `CACHE_REJECT` 抛 `BizException`；`RETURN_SAME_RESULT` 返回缓存结果
+  - 快路径命中 → `CACHE_REJECT` 抛 `BizException`；`RETURN_SAME_RESULT` 有结果则返回缓存结果
+  - `RETURN_SAME_RESULT` 命中但结果未落盘（首个请求仍在执行）→ 抛 `BizException`
   - 本地锁 / 分布式锁抢不到 → 拒绝
   - 双重检测：获锁后 flag 已是 success → 拒绝
-  - 成功路径：执行后写 flag（+ 结果），TTL 正确
+  - 成功路径：执行后**先写结果、后写 flag**（结果先于 flag 可见），TTL 正确
   - `proceed()` 抛异常 → 不写 flag，异常上抛
 - `RepeatExecuteKeyBuilder` Key 生成单测。
 - 集成测试：`CommentService` 双击提交 → 第二次返回同一评论对象，DB 仅一条。
