@@ -1,39 +1,53 @@
 <template>
-  <div class="blog-container">
-    <div v-if="loading" class="card">
-      <div class="card-body" style="padding: 22px; color: var(--muted)">加载中...</div>
+  <div class="blog-container projects-page">
+    <div class="page-header">
+      <h1 class="page-title">项目推荐</h1>
+      <p class="page-subtitle">一些我参与或独立完成的项目</p>
     </div>
 
-    <div v-else>
-      <div class="projects-page-head">
-        <h1 class="projects-page-title">项目推荐</h1>
-        <p class="projects-page-sub">一些我参与或独立完成的项目</p>
-      </div>
+    <div v-if="loading" class="article-detail-loading">加载中...</div>
 
-      <div v-if="items.length === 0" class="card">
-        <div class="card-body" style="padding: 22px; color: var(--muted)">暂无项目</div>
-      </div>
+    <div v-else-if="items.length === 0" class="card">
+      <div class="card-body" style="padding: 22px; color: var(--muted)">暂无项目</div>
+    </div>
 
-      <div v-else class="projects-grid">
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="project-card"
-          @click="go(item.id)"
-        >
-          <div class="project-card-cover">
-            <img v-if="item.coverMediaKey" :src="coverUrl(item.coverMediaKey)" alt="cover" />
+    <div v-else class="article-grid">
+      <div
+        v-for="item in items"
+        :key="item.id"
+        class="card article-card project-card"
+        @click="go(item.id)"
+      >
+        <div class="article-cover">
+          <img v-if="item.coverMediaKey" :src="coverUrl(item.coverMediaKey)" alt="cover" />
+          <div v-else style="width: 100%; height: 100%" />
+        </div>
+        <div class="project-card-body">
+          <div class="article-title project-card-title">
+            {{ item.title }}
           </div>
-          <div class="project-card-body">
-            <h2 class="project-card-title">{{ item.title }}</h2>
-            <p class="project-card-summary">{{ item.summary || '' }}</p>
-            <div v-if="item.techStack" class="project-card-tags">
-              <span
-                v-for="tag in splitTags(item.techStack)"
-                :key="tag"
-                class="project-tag"
-              >{{ tag }}</span>
-            </div>
+          <div class="article-meta">
+            {{ formatDate(item.publishedAt) }} · {{ item.status === 'PUBLISHED' ? '已上线' : '开发中' }}
+          </div>
+          <div v-if="item.techStack" class="project-card-tags">
+            <span v-for="tag in splitTags(item.techStack)" :key="tag" class="project-tag">{{ tag }}</span>
+          </div>
+          <div class="project-card-summary">{{ item.summary || '' }}</div>
+          <div class="project-card-links">
+            <a
+              v-if="item.projectUrl"
+              :href="item.projectUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click.stop
+            >🔗 项目链接</a>
+            <a
+              v-if="item.githubUrl"
+              :href="item.githubUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click.stop
+            >GitHub</a>
           </div>
         </div>
       </div>
@@ -68,93 +82,63 @@ function splitTags(v) {
   if (!v) return []
   return v.split(',').map(s => s.trim()).filter(Boolean)
 }
+
+function formatDate(v) {
+  if (!v) return ''
+  try {
+    return new Date(v).toISOString().slice(0, 10)
+  } catch {
+    return ''
+  }
+}
 </script>
 
 <style scoped>
-.projects-page-head {
+.projects-page {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+}
+
+.page-header {
   margin-bottom: 32px;
 }
-
-.projects-page-title {
-  margin: 0;
-  font-size: 32px;
+.page-title {
+  font-size: 40px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
 }
-
-.projects-page-sub {
-  margin: 8px 0 0;
-  font-size: 15px;
+.page-subtitle {
   color: var(--muted);
+  font-size: 18px;
+  font-weight: 450;
+  margin-top: 10px;
 }
 
-.projects-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+.article-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-@media (max-width: 1024px) {
-  .projects-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 680px) {
-  .projects-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
+/* 对齐 Bug 案例页的大卡片风格：横向 grid（200px 封面 + 内容）由全局 .article-card 提供 */
 .project-card {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--card);
+  padding: 20px;
+  border-radius: 14px;
   cursor: pointer;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
-
 .project-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(51, 112, 255, 0.1);
-}
-
-.project-card-cover {
-  aspect-ratio: 16 / 9;
-  background: var(--placeholder-tint);
-}
-
-.project-card-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.project-card-body {
-  padding: 14px 14px 16px;
+  box-shadow: 0 6px 20px rgba(51, 112, 255, 0.12);
 }
 
 .project-card-title {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text);
-  line-height: 1.3;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
-
-.project-card-summary {
-  margin-top: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.project-card-title:hover {
+  color: var(--accent);
 }
 
 .project-card-tags {
@@ -163,7 +147,6 @@ function splitTags(v) {
   gap: 6px;
   margin-top: 10px;
 }
-
 .project-tag {
   display: inline-block;
   padding: 3px 8px;
@@ -173,8 +156,28 @@ function splitTags(v) {
   color: var(--accent);
   background: rgba(51, 112, 255, 0.08);
 }
-
 [data-theme='dark'] .project-tag {
   background: rgba(74, 127, 255, 0.15);
+}
+
+.project-card-summary {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.project-card-links {
+  margin-top: 14px;
+  display: flex;
+  gap: 16px;
+}
+.project-card-links a {
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+.project-card-links a:hover {
+  text-decoration: underline;
 }
 </style>
