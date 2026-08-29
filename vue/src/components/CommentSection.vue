@@ -160,11 +160,16 @@ async function postTopLevel() {
     topLevelRequestId = newRequestId()
     text.value = ''
     showMessage('评论已发布')
-    await Promise.all([loadMeIfNeeded(), reload()])
   } catch (e) {
     showMessage(e?.message || '评论失败')
   } finally {
     posting.value = false
+  }
+  // 刷新列表为尽力而为：刷新失败不掩盖"评论已成功"，避免误触发重发
+  try {
+    await Promise.all([loadMeIfNeeded(), reload()])
+  } catch {
+    /* 忽略刷新失败 */
   }
 }
 
@@ -177,9 +182,14 @@ async function onSubmitReply({ parent, content, requestId, done }) {
     await replyComment(parent.id, content, requestId)
     done?.()
     showMessage('回复已发布')
-    await Promise.all([loadMeIfNeeded(), reload()])
   } catch (e) {
     showMessage(e?.message || '回复失败')
+  }
+  // 刷新列表为尽力而为：刷新失败不掩盖"回复已成功"，避免误触发重发
+  try {
+    await Promise.all([loadMeIfNeeded(), reload()])
+  } catch {
+    /* 忽略刷新失败 */
   }
 }
 
