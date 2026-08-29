@@ -638,6 +638,89 @@ html.homepage-scroll-snap {
   }
 }
 
+/* ===== 第 4 屏：Bug 案例入口（整屏，展示最新一篇 Bug 复盘） ===== */
+.home-screen-bugs {
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  padding: 48px 24px;
+}
+
+.home-bugs {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.home-bugs-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.home-bugs-title {
+  margin: 0;
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.home-bugs-sub {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* 最新 Bug 卡片：复用精选卡布局，左图右文，右栏承载更多描述文字 */
+.home-bugs-card {
+  cursor: pointer;
+}
+
+.home-bugs-card .home-featured-grid {
+  grid-template-columns: 5fr 6fr;
+}
+
+@media (max-width: 900px) {
+  .home-bugs-card .home-featured-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-bugs-card .home-featured-cover {
+  aspect-ratio: 16 / 10;
+}
+
+.home-bugs-card .home-featured-title {
+  font-size: 24px;
+}
+
+/* 摘要作为主要描述文字，用正文色并放宽行距，弥补单篇内容的留白 */
+.home-bugs-card .home-featured-excerpt {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.home-bugs-more {
+  display: inline-flex;
+  margin-top: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.home-bugs-more:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 680px) {
+  .home-screen-bugs {
+    padding: 40px 20px;
+  }
+}
+
 
 .home-featured {
   padding: 18px;

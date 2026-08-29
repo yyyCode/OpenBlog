@@ -90,6 +90,47 @@
         </div>
       </div>
     </section>
+
+    <!-- 第 4 屏：Bug 案例入口 -->
+    <section class="home-screen home-screen-bugs">
+      <div class="home-bugs">
+        <div class="home-bugs-head">
+          <h2 class="home-bugs-title">Bug 案例</h2>
+          <p class="home-bugs-sub">开发路上踩过的坑 —— 问题现象、根因定位、解法与复盘</p>
+        </div>
+
+        <div v-if="latestBug" class="card home-bugs-card" @click="go(latestBug.id)">
+          <div class="home-featured">
+            <div class="home-featured-grid">
+              <div class="home-featured-cover">
+                <img
+                  v-if="latestBug.coverMediaKey"
+                  :src="coverUrl(latestBug.coverMediaKey)"
+                  alt="cover"
+                />
+              </div>
+              <div class="home-featured-body">
+                <div class="home-featured-badge">最新 Bug 复盘</div>
+                <div class="home-featured-title">{{ latestBug.title }}</div>
+                <div class="home-featured-excerpt home-bugs-excerpt">{{ latestBug.summary || '' }}</div>
+                <div class="home-featured-meta">
+                  <span>{{ formatDate(latestBug.publishedAt) }}</span>
+                  <span>·</span>
+                  <span>{{ latestBug.authorNickname || '作者' }}</span>
+                </div>
+                <div class="home-featured-link">阅读完整复盘 →</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="card">
+          <div class="card-body" style="padding: 22px; color: var(--muted)">暂无 Bug 案例，敬请期待</div>
+        </div>
+
+        <router-link class="home-bugs-more" to="/bugs">查看全部 Bug 案例 →</router-link>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -97,7 +138,7 @@
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
+import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from '../api/article'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -142,6 +183,19 @@ const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
 
+// ---- 第 4 屏：Bug 案例（只取最新一篇） ----
+const latestBug = ref(null)
+
+async function loadLatestBug() {
+  try {
+    const resp = await fetchArticlesByType('BUG_CASE', { page: 0, size: 1 })
+    const items = resp?.items || []
+    latestBug.value = items[0] || null
+  } catch {
+    latestBug.value = null
+  }
+}
+
 onMounted(async () => {
   enableHomepageSnap()
   loading.value = true
@@ -160,6 +214,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  loadLatestBug()
 })
 
 onUnmounted(() => {
