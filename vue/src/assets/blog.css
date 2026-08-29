@@ -3459,7 +3459,14 @@ html.homepage-scroll-snap {
   color: #c9cdd4;
 }
 
-.site-footer-feedback {
+.site-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 16px;
+}
+
+.site-footer-action {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -3468,7 +3475,7 @@ html.homepage-scroll-snap {
   font-weight: 650;
 }
 
-.site-footer-feedback:hover {
+.site-footer-action:hover {
   color: #5a8dff;
 }
 
