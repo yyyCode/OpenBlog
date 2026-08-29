@@ -75,6 +75,8 @@ public class SecurityConfig {
                         // Public articles/comments
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()
+                        // Public projects（/admin 仍由 @PreAuthorize(ADMIN) 保护，草稿详情在控制器内对非管理员 404）
+                        .requestMatchers(HttpMethod.GET, "/api/v1/projects/**").permitAll()
                         // Public forum
                         .requestMatchers(HttpMethod.GET, "/api/v1/forum/**").permitAll()
                         // Other write operations require auth
