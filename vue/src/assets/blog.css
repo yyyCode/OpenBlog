@@ -400,7 +400,7 @@ body {
   grid-template-columns: 1fr;
 }
 
-/* ===== 首页：两屏全屏滚动（口号区 + 文章区） ===== */
+/* ===== 首页：多屏全屏滚动（口号区 + 文章区 + 项目推荐…） ===== */
 /* 进入首页时 HomeView 给 <html> 加此 class，开启滚动吸附；离开移除 */
 html.homepage-scroll-snap {
   scroll-snap-type: y proximity;
@@ -492,7 +492,284 @@ html.homepage-scroll-snap {
   }
 }
 
-/* ===== 第 3 屏：网站时间线（横向交替，随全屏滚动吸附） ===== */
+/* ===== 第 3 屏：项目推荐（整屏，bento 网格 + 渐变点缀，区别于纯白卡片模块） ===== */
+.home-screen-projects {
+  background:
+    radial-gradient(1100px 460px at 50% -140px, rgba(51, 112, 255, 0.10), transparent 62%),
+    var(--bg);
+  display: flex;
+  align-items: center;
+  padding: 48px 24px;
+}
+
+.home-projects {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.home-projects-head {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.home-projects-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  background: rgba(51, 112, 255, 0.10);
+  border: 1px solid rgba(51, 112, 255, 0.25);
+}
+[data-theme='dark'] .home-projects-badge {
+  color: #7da2ff;
+  background: rgba(74, 127, 255, 0.14);
+  border-color: rgba(74, 127, 255, 0.35);
+}
+
+.home-projects-title {
+  margin: 12px 0 0;
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.home-projects-sub {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* bento 网格：首个项目横跨整行（大卡），其余三列排开 */
+.home-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.home-project-card {
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.home-project-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(51, 112, 255, 0.45);
+  box-shadow: 0 12px 28px rgba(51, 112, 255, 0.14);
+}
+
+.home-project-card--featured {
+  grid-column: 1 / -1;
+  flex-direction: row;
+}
+.home-project-card--featured .home-project-cover {
+  width: 42%;
+  flex: 0 0 42%;
+  aspect-ratio: auto;
+  align-self: stretch;
+}
+
+.home-project-cover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface-soft);
+}
+.home-project-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* 封面底部渐变压暗，让角标与"精选"标签更清晰 */
+.home-project-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 52%, rgba(15, 20, 30, 0.55));
+}
+.home-project-index {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  min-width: 30px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: rgba(15, 20, 30, 0.55);
+  backdrop-filter: blur(4px);
+}
+.home-project-pick {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: linear-gradient(135deg, #3370ff, #7a5cff);
+  box-shadow: 0 2px 8px rgba(51, 112, 255, 0.4);
+}
+
+.home-project-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+.home-project-card--featured .home-project-body {
+  padding: 22px 26px;
+  justify-content: center;
+}
+
+.home-project-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.home-project-card--featured .home-project-title {
+  font-size: 26px;
+}
+
+.home-project-summary {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.home-project-card--featured .home-project-summary {
+  font-size: 15px;
+}
+
+/* 技术栈标签：四色轮转，与全站统一的蓝色小标签区分开 */
+.home-project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.home-project-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3370ff;
+  background: rgba(51, 112, 255, 0.10);
+}
+.home-project-tag:nth-child(4n + 2) {
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+}
+.home-project-tag:nth-child(4n + 3) {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.12);
+}
+.home-project-tag:nth-child(4n + 4) {
+  color: #9333ea;
+  background: rgba(147, 51, 234, 0.12);
+}
+[data-theme='dark'] .home-project-tag {
+  color: #7da2ff;
+  background: rgba(74, 127, 255, 0.16);
+}
+[data-theme='dark'] .home-project-tag:nth-child(4n + 2) {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.14);
+}
+[data-theme='dark'] .home-project-tag:nth-child(4n + 3) {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.14);
+}
+[data-theme='dark'] .home-project-tag:nth-child(4n + 4) {
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.14);
+}
+
+.home-project-links {
+  margin-top: auto;
+  padding-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.home-project-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid rgba(51, 112, 255, 0.35);
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.home-project-links a:hover {
+  background: rgba(51, 112, 255, 0.10);
+  text-decoration: none;
+}
+
+.home-projects-more {
+  display: block;
+  margin-top: 26px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.home-projects-more:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .home-project-card--featured {
+    flex-direction: column;
+  }
+  .home-project-card--featured .home-project-cover {
+    width: 100%;
+    flex: none;
+    aspect-ratio: 16 / 9;
+    align-self: auto;
+  }
+  .home-projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .home-screen-projects {
+    padding: 40px 20px;
+  }
+  .home-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 第 4 屏：网站时间线（横向交替，随全屏滚动吸附） ===== */
 .home-screen-timeline {
   background: var(--bg);
   display: flex;
@@ -638,7 +915,7 @@ html.homepage-scroll-snap {
   }
 }
 
-/* ===== 第 4 屏：Bug 案例入口（整屏，展示最新一篇 Bug 复盘） ===== */
+/* ===== 第 5 屏：Bug 案例入口（整屏，展示最新一篇 Bug 复盘） ===== */
 .home-screen-bugs {
   background: var(--bg);
   display: flex;

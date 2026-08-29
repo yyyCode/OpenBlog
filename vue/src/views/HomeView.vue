@@ -70,7 +70,63 @@
       </div>
     </section>
 
-    <!-- 第 3 屏：网站时间线 -->
+    <!-- 第 3 屏：项目推荐 -->
+    <section class="home-screen home-screen-projects">
+      <div class="home-projects">
+        <div class="home-projects-head">
+          <span class="home-projects-badge">🚀 RECOMMENDED</span>
+          <h2 class="home-projects-title">项目推荐</h2>
+          <p class="home-projects-sub">把喜欢的东西做出来 —— 亲手写过的项目，欢迎进来看看</p>
+        </div>
+
+        <div v-if="latestProjects.length" class="home-projects-grid">
+          <div
+            v-for="(item, i) in latestProjects"
+            :key="item.id"
+            class="home-project-card"
+            :class="{ 'home-project-card--featured': i === 0 }"
+            @click="goProject(item.id)"
+          >
+            <div class="home-project-cover">
+              <img v-if="item.coverMediaKey" :src="coverUrl(item.coverMediaKey)" alt="cover" />
+              <span class="home-project-index">{{ String(i + 1).padStart(2, '0') }}</span>
+              <span v-if="i === 0" class="home-project-pick">★ 精选</span>
+            </div>
+            <div class="home-project-body">
+              <div class="home-project-title">{{ item.title }}</div>
+              <div class="home-project-summary">{{ item.summary || '暂无简介' }}</div>
+              <div v-if="item.techStack" class="home-project-tags">
+                <span v-for="tag in splitTags(item.techStack)" :key="tag" class="home-project-tag">{{ tag }}</span>
+              </div>
+              <div class="home-project-links">
+                <a
+                  v-if="item.projectUrl"
+                  :href="item.projectUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  @click.stop
+                >🔗 项目链接</a>
+                <a
+                  v-if="item.githubUrl"
+                  :href="item.githubUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  @click.stop
+                >GitHub</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="card">
+          <div class="card-body" style="padding: 22px; color: var(--muted)">暂无项目推荐，敬请期待</div>
+        </div>
+
+        <router-link class="home-projects-more" to="/projects">查看全部项目 →</router-link>
+      </div>
+    </section>
+
+    <!-- 第 4 屏：网站时间线 -->
     <section class="home-screen home-screen-timeline">
       <div class="home-timeline">
         <h2 class="home-timeline-title">网站历程</h2>
@@ -139,6 +195,7 @@ import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from '../api/article'
+import { fetchProjects } from '../api/project'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -183,7 +240,19 @@ const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
 
-// ---- 第 4 屏：Bug 案例（只取最新一篇） ----
+// ---- 第 3 屏：项目推荐（只取前 4 个已发布项目，首个做精选大卡） ----
+const latestProjects = ref([])
+
+async function loadProjects() {
+  try {
+    const resp = await fetchProjects(0, 4)
+    latestProjects.value = resp?.items || []
+  } catch {
+    latestProjects.value = []
+  }
+}
+
+// ---- 第 5 屏：Bug 案例（只取最新一篇） ----
 const latestBug = ref(null)
 
 async function loadLatestBug() {
@@ -215,6 +284,7 @@ onMounted(async () => {
     loading.value = false
   }
   loadLatestBug()
+  loadProjects()
 })
 
 onUnmounted(() => {
@@ -242,6 +312,15 @@ function onViewportResize() {
 
 function go(id) {
   router.push(`/article/${id}`)
+}
+
+function goProject(id) {
+  router.push(`/project/${id}`)
+}
+
+function splitTags(v) {
+  if (!v) return []
+  return v.split(',').map(s => s.trim()).filter(Boolean)
 }
 
 function formatDate(v) {
