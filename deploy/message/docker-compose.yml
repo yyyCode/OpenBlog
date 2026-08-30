@@ -23,6 +23,9 @@ services:
       ALIYUN_AK: ${ALIYUN_AK}
       ALIYUN_SK: ${ALIYUN_SK}
       ALIYUN_FROM: ${ALIYUN_FROM}
+    volumes:
+      # 日志文件持久化（共享 logback 落盘 /app/logs）
+      - ./logs:/app/logs
     networks:
       - openblog-message-net
 

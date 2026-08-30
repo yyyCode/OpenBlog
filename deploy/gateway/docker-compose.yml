@@ -20,6 +20,9 @@ services:
       TZ: Asia/Shanghai
       JAVA_OPTS: "-Xmx512M -Xms128M"
       OPENBLOG_JWT_SECRET: ${OPENBLOG_JWT_SECRET}
+    volumes:
+      # 日志文件持久化（共享 logback 落盘 /app/logs）
+      - ./logs:/app/logs
     networks:
       - openblog-gateway-net
 

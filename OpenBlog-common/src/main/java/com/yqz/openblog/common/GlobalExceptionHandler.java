@@ -23,6 +23,11 @@ public class GlobalExceptionHandler {
         int code = ex.getCode();
         // MVP：约定 code 的前 3 位近似映射为 HTTP status（如 4041 -> 404）。
         int httpStatus = Math.max(400, Math.min(500, code / 10));
+        // 5xxx 业务码 = 服务端故障，必须留痕（否则前端看到错误页但后端零日志）；
+        // 4xxx 属预期业务拒绝，不打日志防刷屏。
+        if (code >= 5000) {
+            log.error("biz server error: code={}", code, ex);
+        }
         return ResponseEntity.status(httpStatus).body(ApiResponse.fail(code, ex.getMessage()));
     }
 

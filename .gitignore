@@ -36,3 +36,7 @@ build/
 
 ### Superpowers brainstorming scratch ###
 .superpowers/
+
+### Runtime logs ###
+logs/
+**/logs/
