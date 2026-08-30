@@ -51,7 +51,7 @@
           <div class="field">
             <div class="label">Logo（媒体库 Key 或完整链接，留空用首字占位）</div>
             <input v-model="form.logoMediaKey" class="input" placeholder="媒体库 key（如 general/xxx.png）或完整图片链接" />
-            <img v-if="logoUrl(form.logoMediaKey)" :src="logoUrl(form.logoMediaKey)" alt="logo 预览" class="cover-preview" />
+            <img v-if="previewLogo" :src="previewLogo" alt="logo 预览" class="cover-preview" />
           </div>
           <div class="field-grid">
             <div class="field">
@@ -146,9 +146,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
   fetchAdminSmallCompanies,
+  fetchAdminSmallCompanyDetail,
   createSmallCompany,
   updateSmallCompany,
   deleteSmallCompany,
@@ -196,8 +197,11 @@ async function load() {
 
 onMounted(() => load())
 
-function editItem(item) {
+async function editItem(item) {
   editing.value = item
+  showEditor.value = true
+  // 列表接口只返回 ListItem（无 address/business/description/website），
+  // 必须用带鉴权的详情接口补拉，否则保存会把这些字段清空
   form.value = {
     name: item.name || '',
     type: item.type || '',
@@ -207,14 +211,24 @@ function editItem(item) {
     logoMediaKey: item.logoMediaKey || '',
     city: item.city || '',
     founded: item.founded ?? null,
-    address: item.address || '',
-    business: item.business || '',
-    description: item.description || '',
-    website: item.website || '',
+    address: '',
+    business: '',
+    description: '',
+    website: '',
     sortOrder: item.sortOrder ?? 0,
     status: item.status || 'DRAFT'
   }
-  showEditor.value = true
+  try {
+    const d = await fetchAdminSmallCompanyDetail(item.id)
+    if (d) {
+      form.value.address = d.address || ''
+      form.value.business = d.business || ''
+      form.value.description = d.description || ''
+      form.value.website = d.website || ''
+    }
+  } catch {
+    // 详情拉取失败不阻塞编辑，保存时以上述默认值提交
+  }
 }
 
 function closeEditor() {
@@ -232,13 +246,18 @@ async function save() {
     showMessage('规模上限不能小于下限')
     return
   }
+  const payload = { ...form.value }
+  // v-model.number 清空时回退为 ''，后端 Integer 反序列化空串会 500；统一归一为 null
+  for (const k of ['scaleMin', 'scaleMax', 'founded', 'sortOrder']) {
+    if (payload[k] === '' || payload[k] === null) payload[k] = null
+  }
   saving.value = true
   try {
     if (editing.value) {
-      await updateSmallCompany(editing.value.id, form.value)
+      await updateSmallCompany(editing.value.id, payload)
       showMessage('更新成功')
     } else {
-      await createSmallCompany(form.value)
+      await createSmallCompany(payload)
       showMessage('创建成功')
     }
     closeEditor()
@@ -268,6 +287,16 @@ function statusClass(s) {
 function scaleText(c) {
   return formatScale(c)
 }
+
+// logo 预览兼容两种输入：裸 key 或完整媒体链接（完整链接先提取 key 再拼 URL，避免破链）
+const previewLogo = computed(() => {
+  const raw = (form.value.logoMediaKey || '').trim()
+  if (!raw) return ''
+  const marker = '/api/v1/media/files/'
+  const idx = raw.indexOf(marker)
+  const key = idx >= 0 ? raw.substring(idx + marker.length) : raw
+  return logoUrl(key)
+})
 
 function formatDate(v) {
   if (!v) return ''
