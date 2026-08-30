@@ -139,6 +139,15 @@
             <version>0.4.20</version>
         </dependency>
 
+        <!-- WebP 解码/编码插件：注册 ImageIO 的 ImageReaderSpi + ImageWriterSpi（libwebp JNI）。
+             Java 内置 ImageIO 不认 WebP，而上传流程既要用 ImageIO 解析原图、也要写同格式缩略图 thumb.webp，
+             因此必须选 Reader+Writer 双支持；纯 Java 的 twelvemonkeys imageio-webp 只有 Reader，不满足缩略图写入。 -->
+        <dependency>
+            <groupId>org.sejda.imageio</groupId>
+            <artifactId>webp-imageio</artifactId>
+            <version>0.1.6</version>
+        </dependency>
+
         <!-- 敏感词过滤（DFA 算法） -->
         <dependency>
             <groupId>com.github.houbb</groupId>
