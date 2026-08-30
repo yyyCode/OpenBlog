@@ -3,7 +3,7 @@
     <div class="page-header">
       <h1 class="page-title">小而美公司</h1>
       <p class="page-subtitle">大厂竞争激烈，不如看看这些优质小厂 —— 小而美，也能做出好产品</p>
-      <p class="page-note">数据主要来源于 BOSS 直聘，仅供参考</p>
+      <p class="page-note"><span class="page-note-dash">——</span> 数据主要来源于 BOSS 直聘，仅供参考</p>
     </div>
 
     <div v-if="loading" class="companies-empty">加载中…</div>
@@ -68,15 +68,14 @@ function onSelect(c) {
   margin-top: 10px;
 }
 .page-note {
-  display: inline-block;
-  margin: 12px 0 0;
-  padding: 4px 12px;
-  font-size: 13px;
-  font-weight: 600;
+  margin: 10px 0 0;
+  font-size: 14px;
   color: var(--accent);
-  background: rgba(51, 112, 255, 0.08);
-  border: 1px solid rgba(51, 112, 255, 0.25);
-  border-radius: 999px;
+}
+.page-note-dash {
+  color: var(--text);
+  font-weight: 400;
+  opacity: 0.85;
 }
 
 .companies-empty {
