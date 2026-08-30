@@ -80,6 +80,8 @@
         };
         for (String fp : invalidFps) {
             MockServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", fp);
+            // 关键：每轮先清 mock 调用记录，否则 verify(tryAcquire) 默认"总共恰好1次"会在第 2 轮起报 Wanted 1 but was 2
+            clearInvocations(limiter);
             filter.filter(ex, c -> Mono.empty()).block();
             ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
             verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
@@ -87,6 +89,8 @@
         }
     }
 ```
+
+> 需在测试类 import 区补 `import static org.mockito.Mockito.clearInvocations;`
 
 - [ ] **Step 2: 跑测试确认编译失败**
 
