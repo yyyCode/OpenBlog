@@ -68,8 +68,8 @@ export async function request(path, options = {}) {
   }
 
   const res = await fetch(buildUrl(path), {
-    headers,
-    ...options
+    ...options,
+    headers
   })
 
   const text = await res.text()
