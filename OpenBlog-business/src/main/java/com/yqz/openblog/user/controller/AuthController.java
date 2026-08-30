@@ -52,7 +52,7 @@ public class AuthController {
     @PostMapping("/auth/email-code")
     public ApiResponse<EmailCodeResponse> emailCode(@RequestBody @Valid EmailCodeRequest req) {
         EmailCodeResponse resp = new EmailCodeResponse();
-        resp.setCooldownSeconds(emailCodeService.sendCode(req.getEmail()));
+        resp.setCooldownSeconds(emailCodeService.sendCode(req.getEmail(), req.getPurpose()));
         return ApiResponse.ok(resp);
     }
 

@@ -43,9 +43,9 @@ public class UserAdminController {
         this.currentUser = currentUser;
     }
 
-    /** 用户列表（增强：搜索关键词 + 状态筛选 + 角色筛选） */
+    /** 用户列表（增强：搜索关键词 + 状态筛选 + 角色筛选）。含邮箱等敏感字段，仅 ADMIN 可见。 */
     @GetMapping("/admin/users")
-    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<PageResult<AdminUserListItemResponse>> listUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "24") int size,
@@ -91,9 +91,9 @@ public class UserAdminController {
         return ApiResponse.ok();
     }
 
-    /** 待审核读者列表（保留已有功能） */
+    /** 待审核读者列表（保留已有功能）。含邮箱等敏感字段，仅 ADMIN 可见。 */
     @GetMapping("/admin/users/pending")
-    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<PendingUserResponse>> listPendingReaders() {
         List<User> users = userMapper.selectList(
                 com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(User.class)
@@ -104,9 +104,9 @@ public class UserAdminController {
         return ApiResponse.ok(list);
     }
 
-    /** 审核通过读者 */
+    /** 审核通过读者。与用户审核列表同属管理功能，仅 ADMIN。 */
     @PostMapping("/admin/users/{userId}/approve")
-    @PreAuthorize("hasAnyRole('ADMIN','AUTHOR')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> approveReader(@PathVariable("userId") Long userId) {
         User u = userMapper.selectById(userId);
         if (u == null) {

@@ -14,6 +14,11 @@ public class ChangePasswordRequest {
     @Pattern(regexp = AllowedMailbox.REGEXP, message = AllowedMailbox.MESSAGE)
     private String email;
 
+    /** 发到该邮箱的找回密码验证码（6 位数字，必须持有邮箱才能改密）。 */
+    @NotBlank
+    @Pattern(regexp = "^\\d{6}$", message = "验证码格式不正确")
+    private String code;
+
     @NotBlank
     @Size(min = 6, max = 72)
     private String newPassword;
@@ -24,6 +29,14 @@ public class ChangePasswordRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public String getNewPassword() {

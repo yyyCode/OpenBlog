@@ -258,10 +258,9 @@ const roleLabel = computed(() => {
   return '用户'
 })
 
-/** 作者与管理员均可处理前台读者注册审核 */
+/** 用户列表/审核含用户邮箱等敏感数据，仅超级管理员可见（后端接口同步仅 ADMIN） */
 const showUserReviewNav = computed(() => {
-  const r = me.value?.role
-  return r === 'ADMIN' || r === 'AUTHOR'
+  return me.value?.role === 'ADMIN'
 })
 
 async function loadMe() {

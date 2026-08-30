@@ -147,6 +147,29 @@
             />
           </div>
           <div class="auth-field">
+            <div class="auth-label">邮箱验证码</div>
+            <div class="auth-code-row">
+              <input
+                ref="resetCodeInputRef"
+                v-model="changeCode"
+                class="auth-input"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="one-time-code"
+                placeholder="6 位数字验证码"
+                :disabled="!changeCodeSent"
+                @keyup.enter="doChangePassword"
+              />
+              <button
+                class="auth-submit auth-code-btn"
+                type="button"
+                :disabled="sendingCode || codeCooldown > 0"
+                @click="sendChangePasswordCode"
+              >{{ codeCooldown > 0 ? codeCooldown + 's 后重发' : (sendingCode ? '发送中…' : '获取验证码') }}</button>
+            </div>
+          </div>
+          <div class="auth-field">
             <div class="auth-label">新密码</div>
             <input
               v-model="newPassword"
@@ -221,6 +244,9 @@ const newPassword = ref('')
 const confirmPassword = ref('')
 const changePasswordError = ref('')
 const changePasswordOk = ref(false)
+const changeCode = ref('')
+const changeCodeSent = ref(false)
+const resetCodeInputRef = ref(null)
 
 const busy = ref(false)
 
@@ -274,6 +300,13 @@ watch(email, () => {
   stopCountdown()
 })
 
+// 找回密码：邮箱变更后，旧的重置验证码即失效
+watch(changeEmail, () => {
+  changeCode.value = ''
+  changeCodeSent.value = false
+  stopCountdown()
+})
+
 function startCountdown(seconds) {
   stopCountdown()
   codeCooldown.value = Math.max(0, seconds)
@@ -305,12 +338,37 @@ async function sendCode() {
   }
   sendingCode.value = true
   try {
-    const resp = await sendEmailCode(em)
+    const resp = await sendEmailCode(em, 'register')
     codeSent.value = true
     startCountdown(resp?.cooldownSeconds || 60)
     nextTick(() => codeInputRef.value?.focus())
   } catch (e) {
     registerError.value = e?.message || '验证码发送失败'
+  } finally {
+    sendingCode.value = false
+  }
+}
+
+async function sendChangePasswordCode() {
+  changePasswordError.value = ''
+  changePasswordOk.value = false
+  const em = (changeEmail.value || '').trim()
+  if (!em) {
+    changePasswordError.value = '请先填写注册邮箱'
+    return
+  }
+  if (!isAllowedMailboxEmail(em)) {
+    changePasswordError.value = ALLOWED_EMAIL_MESSAGE
+    return
+  }
+  sendingCode.value = true
+  try {
+    const resp = await sendEmailCode(em, 'reset')
+    changeCodeSent.value = true
+    startCountdown(resp?.cooldownSeconds || 60)
+    nextTick(() => resetCodeInputRef.value?.focus())
+  } catch (e) {
+    changePasswordError.value = e?.message || '验证码发送失败'
   } finally {
     sendingCode.value = false
   }
@@ -399,12 +457,21 @@ async function doChangePassword() {
   const em = (changeEmail.value || '').trim()
   const pw = newPassword.value || ''
   const confirm = confirmPassword.value || ''
+  const code = (changeCode.value || '').trim()
   if (!em) {
     changePasswordError.value = '请填写注册邮箱'
     return
   }
   if (!isAllowedMailboxEmail(em)) {
     changePasswordError.value = ALLOWED_EMAIL_MESSAGE
+    return
+  }
+  if (!changeCodeSent.value || !code) {
+    changePasswordError.value = '请先获取并输入邮箱验证码'
+    return
+  }
+  if (!/^\d{6}$/.test(code)) {
+    changePasswordError.value = '验证码为 6 位数字'
     return
   }
   if (pw.length < 6) {
@@ -417,11 +484,14 @@ async function doChangePassword() {
   }
   busy.value = true
   try {
-    await changePassword(em, pw)
+    await changePassword(em, code, pw)
     changePasswordOk.value = true
     changePasswordError.value = '密码修改成功，请使用新密码登录'
     newPassword.value = ''
     confirmPassword.value = ''
+    changeCode.value = ''
+    changeCodeSent.value = false
+    stopCountdown()
     setTimeout(() => setTab('login'), 1500)
   } catch (e) {
     changePasswordOk.value = false
