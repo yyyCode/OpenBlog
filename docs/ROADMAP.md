@@ -58,7 +58,7 @@
 
 - 注册验证码链路已闭环:business `EmailCodeService`(验证码生成 / Redis 存储 / 冷却 / 校验)→ 统一通知抽象层 → email 模块 Dubbo 直发(幂等:retries=0 + 幂等键 + `email_records.idempotency_key` 唯一索引)。
 - **通知抽象层**(`com.yqz.openblog.notification`):`NotificationChannel` 策略 + `AbstractNotificationChannel` 模板方法 + `NotificationTemplateService` 占位符渲染 + `ChannelRegistry` 路由 + `NotificationService` 门面。当前只实现 EMAIL 渠道(经 Dubbo),SMS / 飞书 / MQ 为预留扩展位,接入时主链路零改动。
-- 重放问题与幂等设计详见 `docs/dev-experiences.md`(2026-08-27)。
+- 重放问题与幂等设计详见 `docs/evolution/dev-experiences.md`(2026-08-27)。
 
 ---
 

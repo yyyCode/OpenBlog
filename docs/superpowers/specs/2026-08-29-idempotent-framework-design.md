@@ -2,7 +2,7 @@
 
 > **一句话亮点**：通过 `@RepeatExecuteLimit` 注解 + AOP 切面，在业务方法外层组合「本地锁（Caffeine）+ 分布式锁（Redisson）+ Redis 幂等标识」三层防护，配合**双重检测**（double-check），防止用户重复点击 / RPC 超时重试导致的重复执行。支持两种失败策略：**缓存拒绝（CACHE_REJECT）** 与 **返回相同结果（RETURN_SAME_RESULT）**。
 >
-> 参考来源：`docs/幂等组件设计-防重复执行详解.md`（来自 damai 项目），按 OpenBlog 技术栈适配：Redisson 代替原 Redisson + 自研锁框架，`BizException` 代替 `DaMaiFrameException`，Redis Key 沿用 `RedisKeys` 规范。
+> 参考来源：`docs/designs/幂等组件设计-防重复执行详解.md`（来自 damai 项目），按 OpenBlog 技术栈适配：Redisson 代替原 Redisson + 自研锁框架，`BizException` 代替 `DaMaiFrameException`，Redis Key 沿用 `RedisKeys` 规范。
 
 ---
 
@@ -156,6 +156,6 @@ else:  # CACHE_REJECT
 
 ## 10. 参考
 
-- `docs/幂等组件设计-防重复执行详解.md`（原始设计，damai 项目）
+- `docs/designs/幂等组件设计-防重复执行详解.md`（原始设计，damai 项目）
 - `OpenBlog-framework/framework-audit/.../aop/AuditLogAspect.java`（SpEL 参数名解析模式）
 - `OpenBlog-framework/framework-redis/.../limiter/SlidingWindowLimiter.java`（Lua 原子性先例）
