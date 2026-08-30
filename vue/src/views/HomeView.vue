@@ -74,7 +74,7 @@
     <section class="home-screen home-screen-projects">
       <div class="home-projects">
         <div class="home-projects-head">
-          <span class="home-projects-badge">🚀 RECOMMENDED</span>
+          <span class="home-projects-kicker">HANDMADE · PROJECTS</span>
           <h2 class="home-projects-title">项目推荐</h2>
           <p class="home-projects-sub">把喜欢的东西做出来 —— 亲手写过的项目，欢迎进来看看</p>
         </div>
@@ -90,7 +90,7 @@
             <div class="home-project-cover">
               <img v-if="item.coverMediaKey" :src="coverUrl(item.coverMediaKey)" alt="cover" />
               <span class="home-project-index">{{ String(i + 1).padStart(2, '0') }}</span>
-              <span v-if="i === 0" class="home-project-pick">★ 精选</span>
+              <span v-if="i === 0" class="home-project-pick">精选</span>
             </div>
             <div class="home-project-body">
               <div class="home-project-title">{{ item.title }}</div>
@@ -105,7 +105,7 @@
                   target="_blank"
                   rel="noopener noreferrer"
                   @click.stop
-                >🔗 项目链接</a>
+                >项目链接</a>
                 <a
                   v-if="item.githubUrl"
                   :href="item.githubUrl"
@@ -126,7 +126,41 @@
       </div>
     </section>
 
-    <!-- 第 4 屏：网站时间线 -->
+    <!-- 第 4 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐居中 bento） -->
+    <section class="home-screen home-screen-companies">
+      <div class="home-companies">
+        <div class="home-companies-copy">
+          <span class="home-companies-kicker">CURATED · 小而美</span>
+          <h2 class="home-companies-title">
+            大厂太卷，<br />不如看看<span class="hl">小而美</span>
+          </h2>
+          <p class="home-companies-sub">优质小厂同样值得关注 —— 小团队，也能做出好产品</p>
+          <button class="home-companies-btn" @click="goCompanies">查看全部小而美公司 →</button>
+        </div>
+
+        <ol class="home-companies-list">
+          <li
+            v-for="(c, i) in previewCompanies"
+            :key="c.id"
+            class="home-companies-item"
+            @click="goCompanyDetail(c)"
+          >
+            <span class="home-companies-rank">{{ String(i + 1).padStart(2, '0') }}</span>
+            <span class="home-companies-avatar" :style="{ backgroundColor: c.color }">
+              <img v-if="logoOf(c)" :src="logoOf(c)" :alt="c.name" class="home-companies-avatar-img" />
+              <span v-else>{{ initialOf(c) }}</span>
+            </span>
+            <span class="home-companies-item-body">
+              <span class="home-companies-item-name">{{ c.name }}</span>
+              <span class="home-companies-item-meta">{{ scaleOf(c) }}<template v-if="scaleOf(c) && c.type"> · </template>{{ c.type }}</span>
+            </span>
+            <span class="home-companies-arrow">→</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 第 5 屏：网站时间线 -->
     <section class="home-screen home-screen-timeline">
       <div class="home-timeline">
         <h2 class="home-timeline-title">网站历程</h2>
@@ -147,44 +181,46 @@
       </div>
     </section>
 
-    <!-- 第 4 屏：Bug 案例入口 -->
+    <!-- 第 6 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
     <section class="home-screen home-screen-bugs">
       <div class="home-bugs">
         <div class="home-bugs-head">
-          <h2 class="home-bugs-title">Bug 案例</h2>
+          <p class="home-bugs-command"><span class="t-prompt">$</span> <span class="t-cmd">cat bug-cases/README.md</span></p>
+          <h2 class="home-bugs-title">Bug 案例<span class="home-bugs-caret" aria-hidden="true">█</span></h2>
           <p class="home-bugs-sub">开发路上踩过的坑 —— 问题现象、根因定位、解法与复盘</p>
         </div>
 
-        <div v-if="latestBug" class="card home-bugs-card" @click="go(latestBug.id)">
-          <div class="home-featured">
-            <div class="home-featured-grid">
-              <div class="home-featured-cover">
-                <img
-                  v-if="latestBug.coverMediaKey"
-                  :src="coverUrl(latestBug.coverMediaKey)"
-                  alt="cover"
-                />
-              </div>
-              <div class="home-featured-body">
-                <div class="home-featured-badge">最新 Bug 复盘</div>
-                <div class="home-featured-title">{{ latestBug.title }}</div>
-                <div class="home-featured-excerpt home-bugs-excerpt">{{ latestBug.summary || '' }}</div>
-                <div class="home-featured-meta">
-                  <span>{{ formatDate(latestBug.publishedAt) }}</span>
-                  <span>·</span>
-                  <span>{{ latestBug.authorNickname || '作者' }}</span>
-                </div>
-                <div class="home-featured-link">阅读完整复盘 →</div>
-              </div>
-            </div>
+        <div
+          class="home-bugs-terminal"
+          :class="{ 'home-bugs-terminal--ready': latestBug }"
+          @click="latestBug && go(latestBug.id)"
+        >
+          <div class="terminal-bar">
+            <span class="terminal-dot terminal-dot--r" aria-hidden="true"></span>
+            <span class="terminal-dot terminal-dot--y" aria-hidden="true"></span>
+            <span class="terminal-dot terminal-dot--g" aria-hidden="true"></span>
+            <span class="terminal-title">debug.log</span>
+          </div>
+
+          <div v-if="latestBug" class="terminal-body">
+            <p class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">tail -f logs/bug-cases.log</span></p>
+            <p class="t-line t-comment"># 问题现象 / 根因定位 / 解法与复盘</p>
+            <p class="t-line t-error">[ERROR] {{ formatDate(latestBug.publishedAt) }}</p>
+            <p class="t-line t-title">{{ latestBug.title }}</p>
+            <p class="t-line t-out">{{ latestBug.summary || '暂无摘要' }}</p>
+            <p class="t-line t-link">阅读完整复盘 →<span class="t-caret" aria-hidden="true">▍</span></p>
+          </div>
+
+          <div v-else class="terminal-body">
+            <p class="t-line"><span class="t-prompt">$</span> <span class="t-cmd">tail -f logs/bug-cases.log</span></p>
+            <p class="t-line t-comment"># 等待第一条踩坑记录入库…</p>
+            <p class="t-line t-out">未找到踩坑记录，暂无 Bug 案例</p>
+            <p class="t-line t-out">如果你有线上问题复盘，欢迎投稿</p>
+            <p class="t-line t-link">敬请期待 →</p>
           </div>
         </div>
 
-        <div v-else class="card">
-          <div class="card-body" style="padding: 22px; color: var(--muted)">暂无 Bug 案例，敬请期待</div>
-        </div>
-
-        <router-link class="home-bugs-more" to="/bugs">查看全部 Bug 案例 →</router-link>
+        <router-link class="home-bugs-more" to="/bugs">查看全部 Bug 案例</router-link>
       </div>
     </section>
   </div>
@@ -196,6 +232,7 @@ import { useRouter } from 'vue-router'
 
 import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from '../api/article'
 import { fetchProjects } from '../api/project'
+import { fetchSmallCompanies, formatScale, logoUrl } from '../api/smallCompany'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -243,6 +280,39 @@ const latestArticles = ref([])
 // ---- 第 3 屏：项目推荐（只取前 4 个已发布项目，首个做精选大卡） ----
 const latestProjects = ref([])
 
+// ---- 第 4 屏：小而美公司（预览前 6 家，跳转 /jobs/companies 看全部） ----
+const previewCompanies = ref([])
+
+async function loadCompanies() {
+  try {
+    const resp = await fetchSmallCompanies(0, 6)
+    previewCompanies.value = (resp?.items || []).slice(0, 6)
+  } catch {
+    previewCompanies.value = []
+  }
+}
+
+function goCompanies() {
+  router.push('/jobs/companies')
+}
+
+function goCompanyDetail(c) {
+  router.push(`/jobs/companies/${c.id}`)
+}
+
+function initialOf(c) {
+  const name = (c && c.name) || '?'
+  return name.trim().charAt(0).toUpperCase()
+}
+
+function scaleOf(c) {
+  return formatScale(c)
+}
+
+function logoOf(c) {
+  return logoUrl(c && c.logoMediaKey)
+}
+
 async function loadProjects() {
   try {
     const resp = await fetchProjects(0, 4)
@@ -285,6 +355,7 @@ onMounted(async () => {
   }
   loadLatestBug()
   loadProjects()
+  loadCompanies()
 })
 
 onUnmounted(() => {
@@ -332,3 +403,191 @@ function formatDate(v) {
   }
 }
 </script>
+
+<style scoped>
+/* 第 4 屏：小而美公司 —— 编辑式榜单（左衬线宣言 + 右序号榜单），
+   暖色点缀背景区别于项目推荐的蓝色 bento 网格 */
+.home-screen-companies {
+  background:
+    radial-gradient(900px 500px at 92% 108%, rgba(255, 138, 61, 0.09), transparent 60%),
+    var(--bg);
+  display: flex;
+  align-items: center;
+  padding: 48px 24px;
+}
+
+.home-companies {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 48px;
+  align-items: center;
+}
+
+/* 左：宣言区（左对齐，衬线大字，呼应口号屏气质） */
+.home-companies-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.home-companies-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.home-companies-title {
+  margin: 16px 0 0;
+  font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', serif;
+  font-size: clamp(32px, 4.5vw, 52px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.home-companies-title .hl {
+  color: var(--accent);
+}
+
+.home-companies-sub {
+  margin: 16px 0 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+  max-width: 340px;
+}
+
+.home-companies-btn {
+  margin-top: 28px;
+  padding: 11px 26px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.home-companies-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* 右：序号榜单（细线分隔，悬停整行高亮） */
+.home-companies-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-companies-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+.home-companies-item:first-child {
+  padding-top: 4px;
+}
+.home-companies-item:hover {
+  background: var(--surface-soft);
+  padding-left: 14px;
+}
+
+.home-companies-rank {
+  flex: none;
+  width: 28px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.home-companies-avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  overflow: hidden;
+}
+.home-companies-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+  background: #fff;
+}
+
+.home-companies-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.home-companies-item-name {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-companies-item-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.home-companies-arrow {
+  flex: none;
+  font-size: 14px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.home-companies-item:hover .home-companies-arrow {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* 窄屏：左右堆叠，宣言区居中 */
+@media (max-width: 900px) {
+  .home-companies {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .home-companies-copy {
+    align-items: center;
+    text-align: center;
+  }
+  .home-companies-sub {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .home-companies-btn {
+    margin-top: 22px;
+  }
+}
+@media (max-width: 480px) {
+  .home-screen-companies {
+    padding: 40px 18px;
+  }
+}
+</style>
