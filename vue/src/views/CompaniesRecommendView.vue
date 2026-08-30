@@ -68,10 +68,15 @@ function onSelect(c) {
   margin-top: 10px;
 }
 .page-note {
-  margin: 10px 0 0;
+  display: inline-block;
+  margin: 12px 0 0;
+  padding: 4px 12px;
   font-size: 13px;
-  color: var(--muted);
-  opacity: 0.75;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(51, 112, 255, 0.08);
+  border: 1px solid rgba(51, 112, 255, 0.25);
+  border-radius: 999px;
 }
 
 .companies-empty {
