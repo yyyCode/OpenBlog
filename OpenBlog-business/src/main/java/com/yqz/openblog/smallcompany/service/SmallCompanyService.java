@@ -92,11 +92,17 @@ public class SmallCompanyService {
         c.setWebsite(req.getWebsite() != null ? req.getWebsite().trim() : null);
         c.setSortOrder(req.getSortOrder() != null ? req.getSortOrder() : 0);
         if (req.getStatus() != null) {
-            c.setStatus(SmallCompanyStatus.valueOf(req.getStatus().toUpperCase()));
+            try {
+                c.setStatus(SmallCompanyStatus.valueOf(req.getStatus().toUpperCase()));
+            } catch (IllegalArgumentException ex) {
+                throw new BizException(4001, "status 仅支持 DRAFT / PUBLISHED");
+            }
         }
         if (req.getPublishedAt() != null && !req.getPublishedAt().isBlank()) {
             c.setPublishedAt(Instant.parse(req.getPublishedAt()));
-        } else if (c.getId() == null && c.getStatus() == SmallCompanyStatus.PUBLISHED) {
+        } else if (c.getStatus() == SmallCompanyStatus.PUBLISHED && c.getPublishedAt() == null) {
+            // 新建或「草稿转发布」统一补写发布时间；否则 published_at 为 NULL 会在
+            // findByStatusOrderBySortOrderAscPublishedAtDesc 的 DESC 排序中沉底，新发布公司看不见
             c.setPublishedAt(Instant.now());
         }
     }
