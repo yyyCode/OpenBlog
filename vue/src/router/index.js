@@ -31,9 +31,12 @@ import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
 import JobNavView from '../views/JobNavView.vue'
 import JobSubView from '../views/JobSubView.vue'
 import BugCaseListView from '../views/BugCaseListView.vue'
+import CompaniesRecommendView from '../views/CompaniesRecommendView.vue'
+import CompanyDetailView from '../views/CompanyDetailView.vue'
 import ProjectsListView from '../views/ProjectsListView.vue'
 import ProjectDetailView from '../views/ProjectDetailView.vue'
 import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
+import ConsoleCompaniesView from '../views/ConsoleCompaniesView.vue'
 import ForumListView from '../views/ForumListView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import ForumTopicView from '../views/ForumTopicView.vue'
@@ -80,8 +83,13 @@ const routes = [
   {
     path: '/jobs/companies',
     name: 'jobSmallCompanies',
-    component: JobSubView,
-    props: { title: '小而美公司' }
+    component: CompaniesRecommendView
+  },
+  {
+    path: '/jobs/companies/:id',
+    name: 'jobSmallCompanyDetail',
+    component: CompanyDetailView,
+    props: true
   },
   {
     path: '/projects',
@@ -155,6 +163,7 @@ const routes = [
       { path: 'categories', name: 'consoleCategories', component: ConsoleCategoriesView },
       { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
       { path: 'projects', name: 'consoleProjects', component: ConsoleProjectsView },
+      { path: 'companies', name: 'consoleCompanies', component: ConsoleCompaniesView },
       { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
       { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
       { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
