@@ -23,6 +23,17 @@ class MediaServiceTest {
         assertThat(MediaService.sanitizeContentType("image/jpeg")).isEqualTo("image/jpeg");
         assertThat(MediaService.sanitizeContentType("image/gif")).isEqualTo("image/gif");
         assertThat(MediaService.sanitizeContentType("image/bmp")).isEqualTo("image/bmp");
+        assertThat(MediaService.sanitizeContentType("image/webp")).isEqualTo("image/webp");
+    }
+
+    @Test
+    void detectImageContentType_detectsRealWebp(@TempDir Path tempDir) throws IOException {
+        // 真实 WebP：依赖 twelvemonkeys imageio-webp 注册的解码器按文件头识别为 image/webp。
+        // 若无该插件，ImageIO 无 WebP reader → 返回 null → 上传层会拒绝（回归保护）。
+        Path webp = tempDir.resolve("real.webp");
+        BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB);
+        ImageIO.write(img, "webp", webp.toFile());
+        assertThat(MediaService.detectImageContentType(webp)).isEqualTo("image/webp");
     }
 
     @Test

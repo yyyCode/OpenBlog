@@ -17,19 +17,19 @@ export function register(payload) {
   })
 }
 
-/** 发送邮箱注册验证码 */
-export function sendEmailCode(email) {
+/** 发送邮箱验证码。purpose: 'register'（默认，邮箱需未注册）| 'reset'（邮箱需已注册） */
+export function sendEmailCode(email, purpose = 'register') {
   return request('/api/v1/auth/email-code', {
     method: 'POST',
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, purpose })
   })
 }
 
-/** 通过注册邮箱验证后修改密码（无需登录） */
-export function changePassword(email, newPassword) {
+/** 通过注册邮箱的验证码重置密码（无需登录） */
+export function changePassword(email, code, newPassword) {
   return request('/api/v1/auth/change-password', {
     method: 'POST',
-    body: JSON.stringify({ email, newPassword })
+    body: JSON.stringify({ email, code, newPassword })
   })
 }
 

@@ -225,6 +225,9 @@ public class AuthService {
             throw new BizException(4011, "账号已被封禁");
         }
 
+        // 必须持有发到该邮箱的验证码才能改密（一次性消费 + 错误次数超限自动作废，防未授权重置）
+        emailCodeService.verifyAndConsume(email, req.getCode());
+
         user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
         userMapper.updateById(user);
         revokeAllRefreshTokens(user.getId());

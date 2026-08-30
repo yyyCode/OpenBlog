@@ -23,17 +23,24 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * 邮箱注册验证码：生成 / 发送（经 Dubbo 调 email 服务）/ 校验。
- * <p>
- * 采用「验证码前置」模型：先发码再建号，验证码以邮箱为键存 Redis
- * （注册前用户尚未创建，邮箱即注册身份；建号后 users.email ↔ id 关联自然建立）。
+ * 邮箱验证码：生成 / 发送（经 Dubbo 调 email 服务）/ 校验。服务注册验证码与找回密码验证码两种用途：
+ * <ul>
+ *   <li>register：验证码前置，先发码再建号，验证码以邮箱为键存 Redis（注册前用户尚未创建，邮箱即注册身份）</li>
+ *   <li>reset：找回/修改密码，邮箱需已注册，改密时一次性消费</li>
+ * </ul>
  */
 @Service
 public class EmailCodeService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailCodeService.class);
 
+    /** 发码用途：注册（邮箱需未注册）。 */
+    public static final String PURPOSE_REGISTER = "register";
+    /** 发码用途：找回/修改密码（邮箱需已注册）。 */
+    public static final String PURPOSE_RESET = "reset";
+
     private static final String SUBJECT = "OpenBlog 注册验证码";
+    private static final String RESET_SUBJECT = "OpenBlog 找回密码验证码";
 
     private final RedisOps redisOps;
     private final AuthSecurityProperties authSecurityProperties;
@@ -55,11 +62,13 @@ public class EmailCodeService {
     }
 
     /**
-     * 发送注册验证码到指定邮箱，返回冷却秒数（供前端倒计时）。
-     * 前置流程：邮箱格式白名单 → 邮箱未注册 → 冷却检查 → 生成 6 位码入 Redis → 通知层发信（Email 渠道 → Dubbo）。
+     * 发送验证码到指定邮箱，返回冷却秒数（供前端倒计时）。
+     * purpose=register：邮箱需未注册（注册流程）；purpose=reset：邮箱需已注册（找回/修改密码流程），
+     * 主题与邮件模板随用途区分。前置流程：邮箱格式白名单 → 注册态校验 → 冷却检查 →
+     * 生成 6 位码入 Redis → 通知层发信（Email 渠道 → Dubbo）。
      * 发信失败时删除已落库的验证码与冷却键，让用户可立即重试。
      */
-    public int sendCode(String rawEmail) {
+    public int sendCode(String rawEmail, String purpose) {
         String email = normalizeEmail(rawEmail);
 
         String emailError = emailValidator.validate(email);
@@ -67,8 +76,13 @@ public class EmailCodeService {
             throw new BizException(4000, emailError);
         }
 
-        if (userMapper.selectCount(Wrappers.lambdaQuery(User.class)
-                .eq(User::getEmail, email)) > 0) {
+        boolean reset = PURPOSE_RESET.equalsIgnoreCase(purpose);
+        boolean registered = userMapper.selectCount(Wrappers.lambdaQuery(User.class)
+                .eq(User::getEmail, email)) > 0;
+        if (reset && !registered) {
+            throw new BizException(4090, "该邮箱未注册，请先注册");
+        }
+        if (!reset && registered) {
             throw new BizException(4090, "该邮箱已注册，请直接登录");
         }
 
@@ -97,8 +111,10 @@ public class EmailCodeService {
             NotificationSendResult result = notificationRpcService.submit(NotificationMessage.builder()
                     .channel(NotificationChannelType.EMAIL)
                     .recipient(email)
-                    .subject(SUBJECT)
-                    .templateCode(NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE)
+                    .subject(reset ? RESET_SUBJECT : SUBJECT)
+                    .templateCode(reset
+                            ? NotificationRpcService.TEMPLATE_RESET_VERIFICATION_CODE
+                            : NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE)
                     .params(Map.of("code", code))
                     .build());
             if (!result.isSuccess()) {

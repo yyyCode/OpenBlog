@@ -13,6 +13,9 @@ public interface NotificationRpcService {
     /** 注册验证码模板 code（共享常量：business 构造消息与 message 渲染共用同一来源）。 */
     String TEMPLATE_REGISTER_VERIFICATION_CODE = "register-verification-code";
 
+    /** 找回密码验证码模板 code（改密/重置场景，需邮箱已注册）。 */
+    String TEMPLATE_RESET_VERIFICATION_CODE = "reset-verification-code";
+
     /** 邮件渠道不可用（同步链路降级码，随 result.errorCode 跨服务回传，business 映射回 BizException(5002)）。 */
     int ERROR_CODE_EMAIL_UNAVAILABLE = 5002;
 

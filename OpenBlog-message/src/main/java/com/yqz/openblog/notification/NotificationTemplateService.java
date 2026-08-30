@@ -18,6 +18,9 @@ public class NotificationTemplateService {
     /** 注册验证码模板 code（与共享契约同源，见 NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE）。 */
     public static final String REGISTER_VERIFICATION_CODE = NotificationRpcService.TEMPLATE_REGISTER_VERIFICATION_CODE;
 
+    /** 找回密码验证码模板 code（与共享契约同源，见 NotificationRpcService.TEMPLATE_RESET_VERIFICATION_CODE）。 */
+    public static final String RESET_VERIFICATION_CODE = NotificationRpcService.TEMPLATE_RESET_VERIFICATION_CODE;
+
     private static final Map<String, String> TEMPLATES = Map.of(
             REGISTER_VERIFICATION_CODE,
             "<div style=\"max-width:480px;margin:0 auto;font-family:'Microsoft YaHei',Arial,sans-serif;"
@@ -27,6 +30,15 @@ public class NotificationTemplateService {
             + "<p style=\"margin:0 0 16px;font-size:32px;letter-spacing:6px;font-weight:700;color:#1a73e8;\">{{code}}</p>"
             + "<p style=\"margin:0;font-size:13px;color:#999;\">验证码 5 分钟内有效，请勿泄露给他人。"
             + "若非本人操作请忽略本邮件。</p>"
+            + "</div>",
+            RESET_VERIFICATION_CODE,
+            "<div style=\"max-width:480px;margin:0 auto;font-family:'Microsoft YaHei',Arial,sans-serif;"
+            + "padding:24px;border:1px solid #e5e5e5;border-radius:8px;color:#333;\">"
+            + "<h2 style=\"margin:0 0 16px;font-size:20px;\">OpenBlog 找回密码验证码</h2>"
+            + "<p style=\"margin:0 0 8px;font-size:14px;color:#666;\">你正在重置 OpenBlog 账号密码，以下是你的验证码：</p>"
+            + "<p style=\"margin:0 0 16px;font-size:32px;letter-spacing:6px;font-weight:700;color:#1a73e8;\">{{code}}</p>"
+            + "<p style=\"margin:0;font-size:13px;color:#999;\">验证码 5 分钟内有效，请勿泄露给他人。"
+            + "若非本人操作请忽略本邮件，密码不会因此改变。</p>"
             + "</div>"
     );
 

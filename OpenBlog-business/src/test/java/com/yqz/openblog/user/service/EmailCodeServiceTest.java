@@ -20,6 +20,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.lang.reflect.Field;
 import java.util.Optional;
 
+import org.mockito.ArgumentCaptor;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -61,7 +63,8 @@ class EmailCodeServiceTest {
         when(notificationRpcService.submit(any(NotificationMessage.class)))
                 .thenReturn(NotificationSendResult.fail(5002, "邮件服务暂不可用，请稍后再试"));
 
-        BizException ex = assertThrows(BizException.class, () -> emailCodeService.sendCode("a@example.com"));
+        BizException ex = assertThrows(BizException.class,
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER));
 
         assertEquals(5002, ex.getCode());
         verify(redisOps).delete(RedisKeys.emailCode("a@example.com"));
@@ -74,7 +77,8 @@ class EmailCodeServiceTest {
         when(notificationRpcService.submit(any(NotificationMessage.class)))
                 .thenThrow(new RpcException("No provider"));
 
-        BizException ex = assertThrows(BizException.class, () -> emailCodeService.sendCode("a@example.com"));
+        BizException ex = assertThrows(BizException.class,
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER));
 
         assertEquals(NotificationRpcService.ERROR_CODE_EMAIL_UNAVAILABLE, ex.getCode());
         verify(redisOps).delete(RedisKeys.emailCode("a@example.com"));
@@ -86,9 +90,37 @@ class EmailCodeServiceTest {
         stubPreconditions();
         when(notificationRpcService.submit(any(NotificationMessage.class))).thenReturn(NotificationSendResult.ok());
 
-        int seconds = emailCodeService.sendCode("a@example.com");
+        int seconds = emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER);
 
         assertEquals(authSecurityProperties.getEmailCode().getResendCooldownSeconds(), seconds);
         verify(redisOps, never()).delete(anyString());
+    }
+
+    @Test
+    void sendCode_resetPurpose_requiresRegisteredEmail() {
+        // 找回密码用途：邮箱未注册（selectCount=0）→ 拒绝，防匿名枚举撞号。
+        // 该方法在 redis 冷却检查前抛错，只 stub 走到的那两步，避免 UnnecessaryStubbing。
+        when(emailValidator.validate(anyString())).thenReturn(null);
+        when(userMapper.selectCount(any())).thenReturn(0L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_RESET));
+
+        assertEquals(4090, ex.getCode());
+    }
+
+    @Test
+    void sendCode_resetPurpose_registeredEmail_usesResetTemplate() {
+        // 找回密码用途：邮箱已注册 → 用 reset 模板与主题发信
+        stubPreconditions();
+        when(userMapper.selectCount(any())).thenReturn(1L);
+        when(notificationRpcService.submit(any(NotificationMessage.class))).thenReturn(NotificationSendResult.ok());
+
+        emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_RESET);
+
+        ArgumentCaptor<NotificationMessage> captor = ArgumentCaptor.forClass(NotificationMessage.class);
+        verify(notificationRpcService).submit(captor.capture());
+        assertEquals(NotificationRpcService.TEMPLATE_RESET_VERIFICATION_CODE, captor.getValue().getTemplateCode());
+        assertEquals("OpenBlog 找回密码验证码", captor.getValue().getSubject());
     }
 }
