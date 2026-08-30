@@ -60,6 +60,10 @@ openblog:
           window-ms: 60000
           limit: 10
           scope: FP_IP
+        - path: /api/v1/auth/register
+          window-ms: 60000
+          limit: 5
+          scope: FP_IP
         - path: /api/v1/auth/email-code
           window-ms: 60000
           limit: 5

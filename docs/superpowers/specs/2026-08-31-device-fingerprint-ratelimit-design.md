@@ -158,6 +158,7 @@ private String deviceFingerprint(ServerWebExchange exchange) {
 | path | scope（原 → 新） | limit/window |
 |------|------------------|--------------|
 | `/api/v1/auth/login` | IP → **FP_IP** | 10/分 不变 |
+| `/api/v1/auth/register` | **新增 FP_IP**（匿名注册，原无规则） | 5/分 |
 | `/api/v1/auth/email-code` | IP → **FP_IP** | 5/分 不变 |
 | `/api/v1/auth/refresh` | IP → **FP_IP** | 20/分 不变 |
 | `/api/v1/feedback/**` | IP → **FP_IP** | 20/分 不变 |

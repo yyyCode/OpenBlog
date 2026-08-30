@@ -33,5 +33,7 @@ class GatewayApplicationTest {
                 .anyMatch(r -> "/api/v1/auth/email-code".equals(r.getPath()));
         assertThat(gatewayProperties.getRateLimit().getRules())
                 .anyMatch(r -> r.getScope() == GatewayProperties.Scope.IP_UID);
+        assertThat(gatewayProperties.getRateLimit().getRules())
+                .anyMatch(r -> r.getScope() == GatewayProperties.Scope.FP_IP);
     }
 }
