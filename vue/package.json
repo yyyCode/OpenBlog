@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^5.2.0",
     "dompurify": "^3.3.3",
     "marked": "^17.0.5",
     "oh-my-live2d": "^0.19.3",

@@ -5,6 +5,7 @@
  * 注意：不要用 `||`，否则空字符串会被当成假值而误用默认 IP。
  */
 import { clearAuth, getStoredAccessToken } from '../auth/session'
+import { getDeviceFingerprint } from '../utils/deviceFingerprint'
 
 function resolveApiBase() {
   const v = import.meta.env.VITE_API_BASE
@@ -24,12 +25,37 @@ function buildUrl(path) {
   return `${baseUrl}${path}`
 }
 
+const FINGERPRINT_TIMEOUT_MS = 300
+
+/** 尽力附带设备指纹头：300ms 内取不到（超时/失败/无指纹）则不带，网关降级 IP 兜底。 */
+async function attachFingerprint(headers) {
+  try {
+    const fp = await withTimeout(getDeviceFingerprint(), FINGERPRINT_TIMEOUT_MS)
+    if (fp) headers['X-Device-Fingerprint'] = fp
+  } catch {
+    // 超时或异常：不阻塞请求，交由网关 IP 兜底
+  }
+  return headers
+}
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('fingerprint timeout')), ms)
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v) },
+      (e) => { clearTimeout(timer); reject(e) }
+    )
+  })
+}
+
 export async function request(path, options = {}) {
   const isFormData = options.body instanceof FormData
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {})
   }
+
+  await attachFingerprint(headers)
 
   if (options.withAuth) {
     const token = getStoredAccessToken()
@@ -96,9 +122,12 @@ export async function downloadWithAuth(path) {
     throw err
   }
 
+  const headers = { Authorization: `Bearer ${token}` }
+  await attachFingerprint(headers)
+
   const res = await fetch(buildUrl(path), {
     method: 'GET',
-    headers: { Authorization: `Bearer ${token}` }
+    headers
   })
 
   if (res.status === 401) {
