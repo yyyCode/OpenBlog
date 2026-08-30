@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -44,6 +45,17 @@ class RateLimitFilterTest {
         jwtProps.setSecret(SECRET);
         limiter = mock(SlidingWindowLimiter.class);
         filter = new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper());
+    }
+
+    /** 合法设备指纹：32 位 hex（FingerprintJS visitorId 形态）。 */
+    private static final String FP_VALID = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6";
+
+    private MockServerWebExchange exchangeWithFp(String path, String fp) {
+        return MockServerWebExchange.from(
+                MockServerHttpRequest.get(path)
+                        .header("X-Forwarded-For", "1.2.3.4")
+                        .header("X-Device-Fingerprint", fp)
+                        .build());
     }
 
     private void addRule(String path, int limit, GatewayProperties.Scope scope) {
@@ -159,6 +171,59 @@ class RateLimitFilterTest {
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
         assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
+    void fpIpScope_usesFingerprintAndIp() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        ServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", FP_VALID);
+        filter.filter(ex, c -> Mono.empty()).block();
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue())
+                .isEqualTo("gateway:rl:" + FP_VALID + "_1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
+    void fpIpScope_degradesToIpWithoutFingerprint() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        ServerWebExchange ex = exchange("/api/v1/auth/login"); // 无指纹头
+        filter.filter(ex, c -> Mono.empty()).block();
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
+    void fpIpScope_degradesToIpOnInvalidFingerprint() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        String[] invalidFps = {
+                "",      // 空
+                "   ",   // 空白
+                "short", // 过短（<16）
+                // 超长（72 字符 >64）
+                "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6",
+                // 含非法字符（正则仅允许字母数字-，`;` 拒绝）
+                "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6;",
+                // 含点号（避免指纹长得像 IP 的语义歧义）
+                "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4.123"
+        };
+        for (String fp : invalidFps) {
+            clearInvocations(limiter); // 每轮独立验证，避免累计调用次数干扰
+            MockServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", fp);
+            filter.filter(ex, c -> Mono.empty()).block();
+            ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+            verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+            assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
+        }
     }
 
     @Test

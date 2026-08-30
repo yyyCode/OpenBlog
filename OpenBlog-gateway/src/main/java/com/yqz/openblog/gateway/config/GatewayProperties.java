@@ -101,6 +101,6 @@ public class GatewayProperties {
     }
 
     public enum Scope {
-        IP, IP_UID
+        IP, IP_UID, FP_IP
     }
 }

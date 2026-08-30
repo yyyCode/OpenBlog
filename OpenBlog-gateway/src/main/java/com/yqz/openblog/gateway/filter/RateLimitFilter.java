@@ -21,7 +21,8 @@ import java.util.UUID;
 /**
  * 限流防刷（order=-1）：复用 framework-redis SlidingWindowLimiter（Redis ZSET+Lua 原子滑动窗口）。
  * 阻塞 Redis 调用在 boundedElastic 执行，chain.filter 回到事件循环，不阻塞 Netty。
- * key = gateway:rl:{IP}[_{uid}]_{path}；scope=IP_UID 时从已校验 token 解析 uid（无 token 退化为纯 IP）。
+ * key = gateway:rl:{IP}[_{uid}]_{path}；scope=FP_IP 时 = gateway:rl:{指纹}_{IP}_{path}，
+ * 指纹缺失/非法降级纯 IP；scope=IP_UID 时从已校验 token 解析 uid（无 token 退化为纯 IP）。
  */
 @Component
 public class RateLimitFilter implements GlobalFilter, Ordered {
@@ -58,12 +59,7 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     private Mono<Void> applyRule(ServerWebExchange exchange, GatewayFilterChain chain,
                                  GatewayProperties.Rule rule) {
         return Mono.fromCallable(() -> {
-            String ip = clientIp(exchange);
-            String uid = null;
-            if (rule.getScope() == GatewayProperties.Scope.IP_UID) {
-                uid = resolveUid(exchange);
-            }
-            String key = "gateway:rl:" + ip + (uid != null ? "_" + uid : "") + "_" + rule.getPath();
+            String key = buildKey(exchange, rule);
             try {
                 return limiter.tryAcquire(key, rule.getWindowMs(), rule.getLimit(),
                         System.currentTimeMillis(), UUID.randomUUID().toString());
@@ -80,6 +76,31 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
             return GatewayResponses.writeJson(exchange, objectMapper,
                     HttpStatus.TOO_MANY_REQUESTS, 4290, "请求过于频繁，请稍后再试");
         });
+    }
+
+    /** 按 scope 构建限流 key：IP / IP_UID / FP_IP（指纹缺失或非法时降级纯 IP）。 */
+    private String buildKey(ServerWebExchange exchange, GatewayProperties.Rule rule) {
+        String ip = clientIp(exchange);
+        if (rule.getScope() == GatewayProperties.Scope.IP_UID) {
+            String uid = resolveUid(exchange);
+            return "gateway:rl:" + ip + (uid != null ? "_" + uid : "") + "_" + rule.getPath();
+        }
+        if (rule.getScope() == GatewayProperties.Scope.FP_IP) {
+            String fp = deviceFingerprint(exchange);
+            return "gateway:rl:" + (fp != null ? fp + "_" : "") + ip + "_" + rule.getPath();
+        }
+        return "gateway:rl:" + ip + "_" + rule.getPath();
+    }
+
+    /** 提取并校验设备指纹头；缺失或非法（空/超长/含非法字符）一律视为无指纹。 */
+    private String deviceFingerprint(ServerWebExchange exchange) {
+        String raw = exchange.getRequest().getHeaders().getFirst("X-Device-Fingerprint");
+        if (raw == null) {
+            return null;
+        }
+        String fp = raw.trim();
+        // 32 位 hex 是常态；限 16~64 位字母数字-，防 header 注入与超长 Redis key
+        return fp.matches("^[A-Za-z0-9-]{16,64}$") ? fp : null;
     }
 
     private String resolveUid(ServerWebExchange exchange) {
