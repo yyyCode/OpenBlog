@@ -59,15 +59,15 @@ openblog:
         - path: /api/v1/auth/login
           window-ms: 60000
           limit: 10
-          scope: IP
+          scope: FP_IP
         - path: /api/v1/auth/email-code
           window-ms: 60000
           limit: 5
-          scope: IP
+          scope: FP_IP
         - path: /api/v1/auth/refresh
           window-ms: 60000
           limit: 20
-          scope: IP
+          scope: FP_IP
         - path: /api/v1/comments/**
           window-ms: 60000
           limit: 30
@@ -79,4 +79,4 @@ openblog:
         - path: /api/v1/feedback/**
           window-ms: 60000
           limit: 20
-          scope: IP
+          scope: FP_IP
