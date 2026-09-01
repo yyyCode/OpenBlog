@@ -3564,9 +3564,15 @@ html.homepage-scroll-snap {
 }
 
 .console-stat-ico {
-  color: inherit;
-  margin-bottom: 10px;
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--console-accent-soft);
+  color: var(--console-accent);
+  margin-bottom: 12px;
 }
 
 .console-stat-label {

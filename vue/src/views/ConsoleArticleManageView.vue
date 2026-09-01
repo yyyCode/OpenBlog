@@ -25,7 +25,10 @@
         <div v-for="a in listItems" :key="a.id" class="manage-item" @click="goEdit(a.id)">
           <div class="manage-item-main">
             <div class="manage-item-title">{{ a.title || '未命名' }}</div>
-            <div class="manage-item-meta">{{ statusLabel(a.status) }} · {{ formatDate(a.publishedAt) }}</div>
+            <div class="manage-item-meta">
+              <span class="manage-status" :class="statusClass(a.status)">{{ statusLabel(a.status) }}</span>
+              <span>{{ formatDate(a.publishedAt) }}</span>
+            </div>
           </div>
           <div class="manage-item-actions" @click.stop>
             <button class="btn" style="padding: 6px 10px" @click="goEdit(a.id)">编辑</button>
@@ -68,6 +71,10 @@ function formatDate(v) {
 function statusLabel(s) {
   const map = { DRAFT: '草稿', SCHEDULED: '已预约', PUBLISHED: '已发布', HIDDEN: '已隐藏' }
   return map[s] || s
+}
+
+function statusClass(s) {
+  return `st-${(s || '').toLowerCase()}`
 }
 
 async function loadArticles() {
@@ -176,15 +183,16 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border: 1px solid var(--console-border, var(--border));
+  background: var(--console-bg, var(--surface-soft));
+  border-radius: 10px;
   cursor: pointer;
   transition: background 120ms ease, border-color 120ms ease;
 }
 
 .manage-item:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--console-accent-soft);
+  border-color: rgba(51, 112, 255, 0.4);
 }
 
 .manage-item-main {
@@ -201,9 +209,42 @@ onMounted(() => {
 }
 
 .manage-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--console-muted, var(--muted));
   font-size: 12px;
   margin-top: 6px;
+}
+
+.manage-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.st-published {
+  color: #067a3b;
+  background: rgba(6, 122, 59, 0.1);
+}
+
+.st-draft {
+  color: var(--console-muted, var(--muted));
+  background: var(--console-bg, var(--surface-soft));
+  border: 1px solid var(--console-border, var(--border));
+}
+
+.st-scheduled {
+  color: #3370ff;
+  background: rgba(51, 112, 255, 0.1);
+}
+
+.st-hidden {
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.1);
 }
 
 .manage-item-actions {
