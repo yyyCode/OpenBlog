@@ -31,9 +31,8 @@
             <input v-model="form.summary" class="input" placeholder="一句话简介" maxlength="255" />
           </div>
           <div class="field">
-            <div class="label">封面图（媒体库 Key 或完整链接）</div>
-            <input v-model="form.coverMediaKey" class="input" placeholder="媒体库 key（如 general/xxx.png）或完整图片链接，留空不显示封面" />
-            <img v-if="form.coverMediaKey" :src="coverUrl(form.coverMediaKey)" alt="封面预览" class="cover-preview" />
+            <div class="label">封面图（留空不显示封面）</div>
+            <ImageUploadField v-model="form.coverMediaKey" category="project-cover" hint="上传后自动填充" />
           </div>
           <div class="field">
             <div class="label">技术栈</div>
@@ -59,8 +58,25 @@
             </select>
           </div>
           <div class="field">
-            <div class="label">正文 (Markdown) *</div>
-            <textarea v-model="form.contentMarkdown" class="textarea" rows="12" placeholder="支持 Markdown 语法"></textarea>
+            <div class="label label-row">
+              <span>正文 (Markdown) *</span>
+              <span class="label-actions">
+                <button type="button" class="btn btn-sm" :disabled="uploadingImage" @click="triggerInsertImage">
+                  {{ uploadingImage ? '上传中...' : '插入图片' }}
+                </button>
+              </span>
+            </div>
+            <textarea
+              ref="editorTextarea"
+              v-model="form.contentMarkdown"
+              class="textarea"
+              rows="12"
+              placeholder="支持 Markdown 语法；也可 Ctrl+V 粘贴图片、或把图片拖到这里自动上传插入"
+              @paste="onEditorPaste"
+              @drop.prevent="onEditorDrop"
+              @dragover.prevent
+            ></textarea>
+            <input ref="imageInput" type="file" accept="image/*" style="display: none" @change="onPickInsertImage" />
           </div>
         </div>
 
@@ -111,8 +127,10 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { fetchAdminProjects, fetchAdminProjectDetail, createProject, updateProject, deleteProject, coverUrl } from '../api/project'
+import { fetchAdminProjects, fetchAdminProjectDetail, createProject, updateProject, deleteProject } from '../api/project'
+import { uploadMedia } from '../api/media'
 import { showMessage } from '../utils/message'
+import ImageUploadField from '../components/ImageUploadField.vue'
 
 const loading = ref(true)
 const items = ref([])
@@ -120,6 +138,9 @@ const showEditor = ref(false)
 const editing = ref(null)
 const saving = ref(false)
 const form = ref(emptyForm())
+const editorTextarea = ref(null)
+const imageInput = ref(null)
+const uploadingImage = ref(false)
 
 function emptyForm() {
   return {
@@ -147,6 +168,85 @@ async function load() {
 }
 
 onMounted(() => load())
+
+function insertTextAtCursor(text) {
+  const el = editorTextarea.value
+  if (!el) {
+    form.value.contentMarkdown += text
+    return
+  }
+  const start = el.selectionStart
+  const end = el.selectionEnd
+  const before = form.value.contentMarkdown.slice(0, start)
+  const after = form.value.contentMarkdown.slice(end)
+  form.value.contentMarkdown = before + text + after
+  requestAnimationFrame(() => {
+    const pos = start + text.length
+    el.setSelectionRange(pos, pos)
+    el.focus()
+  })
+}
+
+async function uploadAndInsertImage(file) {
+  const placeholder = '![上传中...]()'
+  insertTextAtCursor(placeholder)
+  uploadingImage.value = true
+  const at = form.value.contentMarkdown.indexOf(placeholder)
+  const removePlaceholder = () => {
+    if (at >= 0) {
+      form.value.contentMarkdown =
+        form.value.contentMarkdown.slice(0, at) + form.value.contentMarkdown.slice(at + placeholder.length)
+    }
+  }
+  try {
+    const resp = await uploadMedia(file, { category: 'project-body' })
+    const md = `![${file.name || 'image'}](${resp.url})`
+    if (at >= 0) {
+      form.value.contentMarkdown =
+        form.value.contentMarkdown.slice(0, at) + md + form.value.contentMarkdown.slice(at + placeholder.length)
+    }
+  } catch (err) {
+    removePlaceholder()
+    showMessage(err?.message || '图片上传失败')
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+function triggerInsertImage() {
+  imageInput.value?.click()
+}
+
+async function onPickInsertImage(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  await uploadAndInsertImage(file)
+}
+
+async function onEditorPaste(e) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault()
+      const file = item.getAsFile()
+      if (file) await uploadAndInsertImage(file)
+      return
+    }
+  }
+}
+
+async function onEditorDrop(e) {
+  const files = e.dataTransfer?.files
+  if (!files || files.length === 0) return
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      await uploadAndInsertImage(file)
+      return
+    }
+  }
+}
 
 function editItem(item) {
   editing.value = item
@@ -308,14 +408,17 @@ function formatDate(v) {
   overflow-y: auto;
 }
 
-.cover-preview {
-  display: block;
-  margin-top: 8px;
-  max-width: 100%;
-  max-height: 160px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid var(--console-border);
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.label-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .console-editor-actions {

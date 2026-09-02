@@ -49,9 +49,8 @@
             </div>
           </div>
           <div class="field">
-            <div class="label">Logo（媒体库 Key 或完整链接，留空用首字占位）</div>
-            <input v-model="form.logoMediaKey" class="input" placeholder="媒体库 key（如 general/xxx.png）或完整图片链接" />
-            <img v-if="previewLogo" :src="previewLogo" alt="logo 预览" class="cover-preview" />
+            <div class="label">Logo（留空用首字占位）</div>
+            <ImageUploadField v-model="form.logoMediaKey" category="company-logo" hint="上传后自动填充；建议上传方形 Logo，留空时展示公司首字占位" />
           </div>
           <div class="field-grid">
             <div class="field">
@@ -146,7 +145,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import {
   fetchAdminSmallCompanies,
   fetchAdminSmallCompanyDetail,
@@ -157,6 +156,7 @@ import {
   formatScale
 } from '../api/smallCompany'
 import { showMessage } from '../utils/message'
+import ImageUploadField from '../components/ImageUploadField.vue'
 
 const loading = ref(true)
 const items = ref([])
@@ -288,16 +288,6 @@ function scaleText(c) {
   return formatScale(c)
 }
 
-// logo 预览兼容两种输入：裸 key 或完整媒体链接（完整链接先提取 key 再拼 URL，避免破链）
-const previewLogo = computed(() => {
-  const raw = (form.value.logoMediaKey || '').trim()
-  if (!raw) return ''
-  const marker = '/api/v1/media/files/'
-  const idx = raw.indexOf(marker)
-  const key = idx >= 0 ? raw.substring(idx + marker.length) : raw
-  return logoUrl(key)
-})
-
 function formatDate(v) {
   if (!v) return ''
   try {
@@ -426,17 +416,6 @@ function formatDate(v) {
   border-radius: 6px;
   background: none;
   cursor: pointer;
-}
-
-.cover-preview {
-  display: block;
-  margin-top: 8px;
-  max-width: 120px;
-  max-height: 120px;
-  border-radius: 12px;
-  object-fit: contain;
-  border: 1px solid var(--console-border);
-  background: #fff;
 }
 
 .console-editor-actions {
