@@ -228,6 +228,24 @@
 
           <div class="label">正文 Markdown</div>
 
+          <div class="compose-editor-toolbar">
+
+            <span class="compose-editor-toolbar-hint">支持 Ctrl+V 粘贴 / 拖拽图片，自动上传并插入光标处</span>
+
+            <button type="button" class="btn btn-sm" :disabled="saving" @click="triggerInsertImage">
+
+              上传图片
+
+            </button>
+
+            <button type="button" class="btn btn-sm" :disabled="saving" @click="openMediaBrowser">
+
+              从媒体库选择
+
+            </button>
+
+          </div>
+
           <textarea
 
             ref="editorTextarea"
@@ -1384,6 +1402,32 @@ onMounted(async () => {
 .compose-editor-field .label {
 
   flex-shrink: 0;
+
+}
+
+.compose-editor-toolbar {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  margin-bottom: 6px;
+
+  flex-shrink: 0;
+
+}
+
+.compose-editor-toolbar-hint {
+
+  margin-right: auto;
+
+  color: var(--console-muted, var(--muted));
+
+  font-size: 12px;
 
 }
 
