@@ -258,6 +258,11 @@ public class CommentService {
         }
     }
 
+    /**
+     * 删除评论（软删除：本人或管理员可删）。
+     * 会连同其整棵回复子树一起置 DELETED，避免父评论删除后其下回复因找不到 APPROVED 的
+     * 顶层祖先而成为不可见的孤儿数据；并按本次实际软删的 APPROVED 条数递减文章评论计数。
+     */
     public void deleteComment(Long commentId, Long uid, boolean isAdmin) {
         Comment c = commentMapper.selectById(commentId);
         if (c == null) {
@@ -269,14 +274,50 @@ public class CommentService {
         if (!isAdmin && !c.getUserId().equals(uid)) {
             throw new BizException(4031, "无权限");
         }
-        c.setStatus(CommentStatus.DELETED);
-        commentMapper.updateById(c);
+
+        Set<Long> ids = collectSelfAndDescendantIds(c.getId());
+        if (ids.isEmpty()) {
+            return;
+        }
+        int removed = commentMapper.update(null, Wrappers.<Comment>lambdaUpdate()
+                .in(Comment::getId, ids)
+                .eq(Comment::getStatus, CommentStatus.APPROVED)
+                .set(Comment::getStatus, CommentStatus.DELETED));
+        if (removed <= 0) {
+            return;
+        }
 
         Article article = articleMapper.selectById(c.getArticleId());
-        if (article != null && article.getCommentCount() > 0) {
-            article.setCommentCount(article.getCommentCount() - 1);
+        if (article != null && article.getCommentCount() != null) {
+            long count = Math.max(0L, article.getCommentCount() - removed);
+            article.setCommentCount(count);
             articleMapper.updateById(article);
         }
+    }
+
+    /**
+     * 收集某评论自身及其全部后代回复 id（沿 parentId 逐层递归）。
+     * 评论最大 5 层、由 parentId 链接无环，步数上限 32 仅作兜底。
+     */
+    private Set<Long> collectSelfAndDescendantIds(Long rootId) {
+        Set<Long> all = new LinkedHashSet<>();
+        Set<Long> frontier = new LinkedHashSet<>();
+        all.add(rootId);
+        frontier.add(rootId);
+        for (int guard = 0; guard < 32 && !frontier.isEmpty(); guard++) {
+            List<Comment> children = commentMapper.selectList(
+                    Wrappers.lambdaQuery(Comment.class).in(Comment::getParentId, frontier));
+            if (children.isEmpty()) {
+                break;
+            }
+            frontier = new LinkedHashSet<>();
+            for (Comment ch : children) {
+                if (all.add(ch.getId())) {
+                    frontier.add(ch.getId());
+                }
+            }
+        }
+        return all;
     }
 
     /**
