@@ -13,6 +13,14 @@ import com.yqz.openblog.media.storage.MediaStorage;
 import com.yqz.openblog.media.storage.MinioMediaStorage;
 import com.yqz.openblog.media.storage.LocalMediaStorage;
 import com.yqz.openblog.security.CurrentUser;
+import com.yqz.openblog.article.entity.Article;
+import com.yqz.openblog.article.entity.ArticleBody;
+import com.yqz.openblog.article.repo.ArticleBodyMapper;
+import com.yqz.openblog.article.repo.ArticleMapper;
+import com.yqz.openblog.project.entity.Project;
+import com.yqz.openblog.project.repo.ProjectRepository;
+import com.yqz.openblog.smallcompany.entity.SmallCompany;
+import com.yqz.openblog.smallcompany.repo.SmallCompanyRepository;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -29,6 +37,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -61,19 +70,31 @@ public class MediaService {
     private final MediaFileAccess mediaFileAccess;
     private final LocalMediaStorage localMediaStorage;
     private final ObjectProvider<MinioMediaStorage> minioMediaStorage;
+    private final ArticleMapper articleMapper;
+    private final ArticleBodyMapper articleBodyMapper;
+    private final ProjectRepository projectRepository;
+    private final SmallCompanyRepository smallCompanyRepository;
 
     public MediaService(MediaMapper mediaMapper,
                         MediaProperties properties,
                         CurrentUser currentUser,
                         MediaFileAccess mediaFileAccess,
                         LocalMediaStorage localMediaStorage,
-                        ObjectProvider<MinioMediaStorage> minioMediaStorage) {
+                        ObjectProvider<MinioMediaStorage> minioMediaStorage,
+                        ArticleMapper articleMapper,
+                        ArticleBodyMapper articleBodyMapper,
+                        ProjectRepository projectRepository,
+                        SmallCompanyRepository smallCompanyRepository) {
         this.mediaMapper = mediaMapper;
         this.properties = properties;
         this.currentUser = currentUser;
         this.mediaFileAccess = mediaFileAccess;
         this.localMediaStorage = localMediaStorage;
         this.minioMediaStorage = minioMediaStorage;
+        this.articleMapper = articleMapper;
+        this.articleBodyMapper = articleBodyMapper;
+        this.projectRepository = projectRepository;
+        this.smallCompanyRepository = smallCompanyRepository;
     }
 
     public MediaUploadResponse upload(MultipartFile file, Long folderId, String category) throws IOException {
@@ -284,12 +305,77 @@ public class MediaService {
         if (media == null) {
             throw new BizException(4042, "媒体不存在或无权删除");
         }
+        assertNotReferenced(media);
         try {
             mediaFileAccess.delete(media);
         } catch (IOException e) {
             throw new BizException(5002, "删除媒体文件失败: " + e.getMessage());
         }
         mediaMapper.deleteById(media.getId());
+    }
+
+    /**
+     * 删除媒体前的引用校验：若图片仍被文章/项目封面、公司 Logo（DB 列存 key，精确匹配）
+     * 或文章/项目正文 Markdown（存完整媒体链接，按 {@code /api/v1/media/files/{key}} 匹配）
+     * 引用，则拒绝删除并提示引用位置，避免删除后页面破链。
+     */
+    private void assertNotReferenced(Media media) {
+        String key = media.getStorageKey();
+        if (key == null || key.isEmpty()) {
+            return;
+        }
+        String marker = "/api/v1/media/files/" + key;
+        List<String> refs = new ArrayList<>();
+
+        // 文章封面列精确引用
+        for (Article a : articleMapper.selectList(
+                Wrappers.lambdaQuery(Article.class).eq(Article::getCoverMediaKey, key))) {
+            refs.add("文章《" + titleOf(a.getTitle()) + "》封面");
+        }
+
+        // 项目封面列 / 项目正文
+        for (Project p : projectRepository.findAll()) {
+            if (key.equals(p.getCoverMediaKey())) {
+                refs.add("项目《" + titleOf(p.getTitle()) + "》封面");
+            }
+            if (p.getContentMarkdown() != null && p.getContentMarkdown().contains(marker)) {
+                refs.add("项目《" + titleOf(p.getTitle()) + "》正文");
+            }
+        }
+
+        // 公司 Logo 列
+        for (SmallCompany sc : smallCompanyRepository.findAll()) {
+            if (key.equals(sc.getLogoMediaKey())) {
+                refs.add("公司「" + titleOf(sc.getName()) + "」Logo");
+            }
+        }
+
+        // 文章正文内嵌
+        List<ArticleBody> bodies = articleBodyMapper.selectList(
+                Wrappers.lambdaQuery(ArticleBody.class).like(ArticleBody::getContentMarkdown, marker));
+        if (!bodies.isEmpty()) {
+            Set<Long> articleIds = bodies.stream().map(ArticleBody::getArticleId).collect(Collectors.toSet());
+            Map<Long, Article> byId = articleMapper.selectBatchIds(articleIds).stream()
+                    .collect(Collectors.toMap(Article::getId, a -> a, (a, b) -> a));
+            for (ArticleBody b : bodies) {
+                Article a = byId.get(b.getArticleId());
+                refs.add("文章《" + titleOf(a != null ? a.getTitle() : "#" + b.getArticleId()) + "》正文");
+            }
+        }
+
+        if (refs.isEmpty()) {
+            return;
+        }
+        int extra = refs.size() - 5;
+        String detail = String.join("、", refs.size() > 5 ? refs.subList(0, 5) : refs);
+        if (extra > 0) {
+            detail += " 等 " + refs.size() + " 处";
+        }
+        throw new BizException(4091, "该图片仍被引用（" + detail + "），请先解除引用后再删除");
+    }
+
+    private static String titleOf(String v) {
+        return v == null || v.isBlank() ? "(未命名)" : v;
     }
 
     private MediaListItemResponse toListItem(Media m) {
