@@ -907,7 +907,249 @@ html.homepage-scroll-snap {
   }
 }
 
-/* ===== 第 5 屏：Bug 案例入口（整屏，展示最新一篇 Bug 复盘） ===== */
+/* ===== 第 6 屏：论坛入口（极光渐变 + 毛玻璃，苹果画风；区别于终端/榜单/bento 三种旧入口） ===== */
+.home-screen-forum {
+  --forum-blue: #3370ff;
+  --forum-sky: #38bdf8;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  overflow: hidden;
+}
+[data-theme='dark'] .home-screen-forum {
+  --forum-blue: #5b8cff;
+  --forum-sky: #4fc3f7;
+}
+
+/* 漂浮的极光光斑（毛玻璃后景，供卡片取样，缓慢漂移制造"光斑流动"） */
+.home-forum-orb {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+.home-forum-orb--a {
+  width: 600px;
+  height: 600px;
+  left: -160px;
+  bottom: -200px;
+  background: radial-gradient(circle at 30% 30%, rgba(51, 112, 255, 0.5), rgba(51, 112, 255, 0) 66%);
+  animation: forum-drift-a 26s ease-in-out infinite alternate;
+}
+.home-forum-orb--b {
+  width: 560px;
+  height: 560px;
+  right: -160px;
+  top: -200px;
+  background: radial-gradient(circle at 60% 40%, rgba(56, 189, 248, 0.42), rgba(56, 189, 248, 0) 66%);
+  animation: forum-drift-b 32s ease-in-out infinite alternate;
+}
+[data-theme='dark'] .home-forum-orb--a {
+  background: radial-gradient(circle at 30% 30%, rgba(91, 140, 255, 0.42), rgba(91, 140, 255, 0) 66%);
+}
+[data-theme='dark'] .home-forum-orb--b {
+  background: radial-gradient(circle at 60% 40%, rgba(79, 195, 247, 0.36), rgba(79, 195, 247, 0) 66%);
+}
+
+@keyframes forum-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(46px, -30px, 0) scale(1.08); }
+}
+@keyframes forum-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(-40px, 30px, 0) scale(1.1); }
+}
+
+/* 毛玻璃卡片：半透明 + backdrop-blur，颜色与质感都区别于项目/公司/终端三种卡片 */
+.home-forum-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 720px;
+  box-sizing: border-box;
+  padding: clamp(34px, 5vw, 56px) clamp(26px, 5vw, 58px);
+  border-radius: 30px;
+  text-align: center;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.34));
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 24px 64px rgba(64, 52, 138, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+}
+[data-theme='dark'] .home-forum-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.05));
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.36);
+}
+/* 浏览器不支持 backdrop-filter 时退回高不透明实底，保证文字可读 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .home-forum-card {
+    background: rgba(255, 255, 255, 0.94);
+  }
+  [data-theme='dark'] .home-forum-card {
+    background: rgba(24, 26, 34, 0.94);
+  }
+}
+
+.home-forum-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--forum-blue);
+}
+
+.home-forum-title {
+  margin: 16px 0 0;
+  font-size: clamp(36px, 6vw, 62px);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+/* 后半句做蓝→青渐变字，作为整屏视觉亮点 */
+.home-forum-grad {
+  background: linear-gradient(92deg, var(--forum-blue), var(--forum-sky));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.home-forum-sub {
+  margin: 16px auto 0;
+  max-width: 470px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+/* "正在聊"：最新话题实时预览（拉取失败/为空时整块隐藏） */
+.home-forum-topics {
+  margin: 24px auto 0;
+  max-width: 470px;
+  text-align: left;
+}
+.home-forum-topics-cap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.home-forum-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34c759;
+  animation: forum-live 1.6s ease-in-out infinite;
+}
+@keyframes forum-live {
+  50% { opacity: 0.25; transform: scale(0.8); }
+}
+.home-forum-topic {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 11px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(120, 116, 158, 0.16);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+[data-theme='dark'] .home-forum-topic {
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+.home-forum-topic:last-of-type {
+  border-bottom: none;
+}
+.home-forum-topic:hover {
+  background: rgba(51, 112, 255, 0.10);
+}
+.home-forum-topic-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-forum-topic-meta {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* CTA 胶囊：蓝→青渐变（同全站主色系，玻璃质感与其它入口区分） */
+.home-forum-cta {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 26px;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--forum-blue), var(--forum-sky));
+  box-shadow: 0 10px 26px rgba(51, 112, 255, 0.32);
+  text-decoration: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+.home-forum-cta::after {
+  content: '→';
+  margin-left: 6px;
+  transition: transform 0.18s ease;
+}
+.home-forum-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(51, 112, 255, 0.42);
+  opacity: 0.96;
+}
+.home-forum-cta:hover::after {
+  transform: translateX(3px);
+}
+
+@media (max-width: 680px) {
+  .home-screen-forum {
+    padding: 40px 18px;
+  }
+  .home-forum-orb--a {
+    width: 360px;
+    height: 360px;
+    left: -160px;
+    bottom: -140px;
+  }
+  .home-forum-orb--b {
+    width: 340px;
+    height: 340px;
+    right: -160px;
+    top: -140px;
+  }
+  .home-forum-card {
+    padding: 30px 22px;
+    border-radius: 24px;
+  }
+}
+
+/* ===== 第 7 屏：Bug 案例入口（整屏，展示最新一篇 Bug 复盘） ===== */
 .home-screen-bugs {
   background: var(--bg);
   display: flex;
