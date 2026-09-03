@@ -279,8 +279,10 @@ const sloganBgStyle = computed(() => {
 const heroTitle = computed(() =>
   (siteConfig && siteConfig.value && siteConfig.value.hero_title) || '热爱技术 持续生长'
 )
+// 小字定位：分享计算机与 AI 知识；后台 hero_subtitle 有配置时优先展示后台文案
 const heroSubtitle = computed(() =>
-  (siteConfig && siteConfig.value && siteConfig.value.hero_subtitle) || ''
+  (siteConfig && siteConfig.value && siteConfig.value.hero_subtitle) ||
+  '一个专注计算机与 AI 的角落 —— 前沿知识、真实踩坑与独立思考，都在这里。'
 )
 
 // 把「热爱」「生长」包上蓝色高亮 span（v-html 渲染；文案变了则不高亮，不报错）
