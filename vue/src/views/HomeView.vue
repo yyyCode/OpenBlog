@@ -181,7 +181,35 @@
       </div>
     </section>
 
-    <!-- 第 6 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
+    <!-- 第 6 屏：论坛入口（极光渐变 + 毛玻璃，区别于终端/榜单/bento 三种旧入口） -->
+    <section class="home-screen home-screen-forum">
+      <div class="home-forum-orb home-forum-orb--a" aria-hidden="true"></div>
+      <div class="home-forum-orb home-forum-orb--b" aria-hidden="true"></div>
+
+      <div class="home-forum-card">
+        <p class="home-forum-kicker">Open Forum · 自由交流</p>
+        <h2 class="home-forum-title">有想法，<br /><span class="home-forum-grad">说出来。</span></h2>
+        <p class="home-forum-sub">这里欢迎每一种声音 —— 提问、分享、吐槽，都有人回应。</p>
+
+        <div v-if="latestTopics.length" class="home-forum-topics">
+          <p class="home-forum-topics-cap"><span class="home-forum-live" aria-hidden="true"></span>正在聊</p>
+          <button
+            v-for="t in latestTopics"
+            :key="t.id"
+            type="button"
+            class="home-forum-topic"
+            @click="goTopic(t.id)"
+          >
+            <span class="home-forum-topic-title">{{ t.title }}</span>
+            <span class="home-forum-topic-meta">{{ t.commentCount || 0 }} 条回复</span>
+          </button>
+        </div>
+
+        <router-link to="/forum" class="home-forum-cta">去论坛聊聊</router-link>
+      </div>
+    </section>
+
+    <!-- 第 7 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
     <section class="home-screen home-screen-bugs">
       <div class="home-bugs">
         <div class="home-bugs-head">
@@ -233,6 +261,7 @@ import { useRouter } from 'vue-router'
 import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from '../api/article'
 import { fetchProjects } from '../api/project'
 import { fetchSmallCompanies, formatScale, logoUrl } from '../api/smallCompany'
+import { fetchForumTopics } from '../api/forum'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -335,6 +364,22 @@ async function loadLatestBug() {
   }
 }
 
+// ---- 第 6 屏：论坛入口（实时取最新 3 条讨论做预览，为空/失败时自动隐藏该块） ----
+const latestTopics = ref([])
+
+async function loadLatestForumTopics() {
+  try {
+    const resp = await fetchForumTopics({ page: 0, size: 3 })
+    latestTopics.value = (resp?.items || []).slice(0, 3)
+  } catch {
+    latestTopics.value = []
+  }
+}
+
+function goTopic(id) {
+  router.push(`/forum/topic/${id}`)
+}
+
 onMounted(async () => {
   enableHomepageSnap()
   loading.value = true
@@ -356,6 +401,7 @@ onMounted(async () => {
   loadLatestBug()
   loadProjects()
   loadCompanies()
+  loadLatestForumTopics()
 })
 
 onUnmounted(() => {
