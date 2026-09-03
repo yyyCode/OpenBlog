@@ -70,9 +70,32 @@ cd vue && npm run build    # 构建验证（dist/ 生成即通过）
 
 ## 代码与提交约定
 
-- 提交信息用**中文 conventional 格式**：`feat|fix|refactor|docs|harden|build(...): 一句话说明`，末尾加 `Co-Authored-By: Claude Code <noreply@anthropic.com>`
 - 每个任务独立提交（小型）；大型功能按可验证的原子步骤提交
-- 不改动与任务无关的文件；不顺手重构
+- 提交前自评：命名、注释密度、边界与失败路径；构建验证不过关不允许提交（见「任何改动强制」）
+- 不改动与任务无关的文件；不顺手重构；未跟踪的设计文档不入提交
+
+### 分支规范
+
+- 功能/修复分支从 `master` 切出，命名 `<type>/<短横线slug>`（如 `feat/home-forum-entry`）
+- 合并后删除远端分支
+
+### 提交信息格式（中文 conventional）
+
+- 首行：`<type>(<scope>): 一句话说明`，正文按需列几行要点；**末尾固定加**
+  `Co-Authored-By: Claude Code <noreply@anthropic.com>`
+- type 取仓库实际使用过的集合：`feat | fix | harden | style | docs | refactor | build`
+  （harden = 加固/防御性改动，如删除前的破链防护）
+- scope 取模块/端：前端 `frontend`；后端业务实体 `project / small-company / comment / media / security / …`；
+  横切模块 `gateway / logging / message / …`；纯文档可不带 scope
+- 一次提交一个可验证动作，别把不相干改动混在一起
+
+## PR 规范
+
+- 一律走 PR：功能分支 → `master`；标题沿用提交信息首行（去掉 Co-Authored 行）
+- 正文分节：`## 变更内容`、`## 涉及文件`、`## 验证`（写清已跑的构建/测试命令与结果）
+- 正文尾部固定加：`🤖 Generated with [Claude Code](https://claude.com/claude-code)`
+- 合并用 **merge commit**（`gh pr merge <n> --merge --delete-branch`，保留分支上原子提交历史），不用 squash
+- 涉及 business↔message（Dubbo）/ business↔gateway（JWT）耦合的改动，PR 描述注明需三服务同步部署（对齐「部署与运维约束」）
 
 ## 部署与运维约束
 

@@ -33,7 +33,6 @@ public final class RedisKeys {
     private static final String SECURITY_LOGIN_LOCK = "openblog:security:login:lock";
     private static final String SECURITY_SLIDER_PENDING = "openblog:security:slider:pending";
     private static final String SECURITY_SLIDER_OK = "openblog:security:slider:ok";
-    public static final String SECURITY_SLIDER_HEALTHCHECK = "openblog:security:slider:healthcheck";
     private static final String SECURITY_EMAIL_CODE = "openblog:security:email:code";
     private static final String SECURITY_EMAIL_COOLDOWN = "openblog:security:email:cooldown";
     private static final String SECURITY_EMAIL_ATTEMPT = "openblog:security:email:attempt";

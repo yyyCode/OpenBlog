@@ -71,17 +71,18 @@ public class SliderVerificationService {
 
     /**
      * 登录/注册前校验：必须已调用 complete，且仅能使用一次。
+     * <p>
+     * 策略（有意 fail-closed）：是否通过依赖 Redis 中一次性 ok 标记判定，Redis 不可用时
+     * 一律视为「未验证」直接拒绝。与网关限流 / 幂等框架的 fail-open 不同——那是为避免
+     * 整个站点不可用而放行；滑块是鉴权门禁，放行等于绕过验证，故取保守侧。
+     * （曾试图用 Redis 健康检查做故障放行，但 {@link RedisOps} 是 fail-safe 封装、异常不外抛，
+     * 无法区分「Redis 故障」与「无该键」，该分支永不生效，已移除。）
      */
     public void verifyAndConsume(String sliderChallengeId) {
         if (!authSecurityProperties.getSlider().isEnabled()) {
             return;
         }
         if (sliderChallengeId == null || sliderChallengeId.isBlank()) {
-            try {
-                redisOps.hasKey(RedisKeys.SECURITY_SLIDER_HEALTHCHECK);
-            } catch (Exception e) {
-                return;
-            }
             throw new BizException(4001, "请先完成滑动验证");
         }
         String ok = redisOps.getAndDelete(RedisKeys.sliderOk(sliderChallengeId.trim())).orElse(null);
