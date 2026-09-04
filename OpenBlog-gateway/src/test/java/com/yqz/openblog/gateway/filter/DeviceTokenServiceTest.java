@@ -53,8 +53,13 @@ class DeviceTokenServiceTest {
     void deviceIdOf_tamperedToken_returnsNull() {
         DeviceTokenService service = newService();
         String token = service.mint().getToken();
-        String tampered = token.substring(0, token.length() - 1) + (token.endsWith("a") ? "b" : "a");
-        assertThat(service.deviceIdOf(tampered)).isNull();
+        // 篡改 payload 段（第二个 '.' 之后）任一位：签名段内容被改 → HMAC 比对必然失败。
+        // 注意不能只改签名段末尾：末尾 base64url 字符含 0 填充位，翻转低 bit 解码后可能不变。
+        int secondDot = token.indexOf('.', token.indexOf('.') + 1);
+        StringBuilder sb = new StringBuilder(token);
+        char orig = sb.charAt(secondDot + 1);
+        sb.setCharAt(secondDot + 1, orig == 'a' ? 'b' : 'a');
+        assertThat(service.deviceIdOf(sb.toString())).isNull();
     }
 
     @Test
