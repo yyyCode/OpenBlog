@@ -1,29 +1,9 @@
-/**
- * 后端根地址（不带末尾 /）。
- * - 显式 `VITE_API_BASE=` 空字符串：请求走当前站点同域 `/api/...`（生产需 Nginx 反代；开发需 Vite proxy）。
- * - 未设置：开发环境默认连仓库里的远程后端；生产环境默认同域（与上面空字符串一致）。
- * 注意：不要用 `||`，否则空字符串会被当成假值而误用默认 IP。
- */
+import { buildUrl } from './base'
+// API_BASE 仍从 http.js 再导出：既有模块（api/*.js、ImageUploadField 等）都从 './http' 引入，保持不破坏
+export { API_BASE } from './base'
 import { clearAuth, getStoredAccessToken } from '../auth/session'
 import { getDeviceFingerprint } from '../utils/deviceFingerprint'
-
-function resolveApiBase() {
-  const v = import.meta.env.VITE_API_BASE
-  if (v === '') return ''
-  if (v != null && v !== '') return v
-  // 开发环境默认走同域 /api（由 Vite proxy 转到本机后端），避免误连远端导致 token/权限不一致
-  return ''
-}
-
-export const API_BASE = resolveApiBase()
-
-const baseUrl = API_BASE
-
-function buildUrl(path) {
-  // 后端统一是 /api/v1 前缀
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${baseUrl}${path}`
-}
+import { getDeviceToken } from '../utils/deviceToken'
 
 const FINGERPRINT_TIMEOUT_MS = 300
 
@@ -34,6 +14,20 @@ async function attachFingerprint(headers) {
     if (fp) headers['X-Device-Fingerprint'] = fp
   } catch {
     // 超时或异常：不阻塞请求，交由网关 IP 兜底
+  }
+  return headers
+}
+
+const TOKEN_TIMEOUT_MS = 800
+
+/** 尽力附带设备令牌头（X-Device-Token）：800ms 内取不到（未部署签发端点/超时/异常）则不带，
+ * 网关对无令牌请求回退纯 IP 限流——仍优于"客户端自报指纹即可换桶"的旧语义。 */
+async function attachToken(headers) {
+  try {
+    const token = await withTimeout(getDeviceToken(), TOKEN_TIMEOUT_MS)
+    if (token) headers['X-Device-Token'] = token
+  } catch {
+    // 超时或异常：不阻塞请求，网关降级纯 IP
   }
   return headers
 }
@@ -56,6 +50,7 @@ export async function request(path, options = {}) {
   }
 
   await attachFingerprint(headers)
+  await attachToken(headers)
 
   if (options.withAuth) {
     const token = getStoredAccessToken()
@@ -124,6 +119,7 @@ export async function downloadWithAuth(path) {
 
   const headers = { Authorization: `Bearer ${token}` }
   await attachFingerprint(headers)
+  await attachToken(headers)
 
   const res = await fetch(buildUrl(path), {
     method: 'GET',
