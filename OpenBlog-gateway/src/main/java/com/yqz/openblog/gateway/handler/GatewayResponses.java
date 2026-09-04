@@ -22,9 +22,19 @@ public final class GatewayResponses {
 
     public static Mono<Void> writeJson(ServerWebExchange exchange, ObjectMapper objectMapper,
                                        HttpStatus status, int code, String message) {
+        return write(exchange, objectMapper, status, ApiResponse.fail(code, message));
+    }
+
+    /** 本地应答端点的成功写回（如设备令牌签发）：ApiResponse.ok(data) + traceId，供前端 http.js 零改动解析。 */
+    public static Mono<Void> writeDataJson(ServerWebExchange exchange, ObjectMapper objectMapper,
+                                           HttpStatus status, Object data) {
+        return write(exchange, objectMapper, status, ApiResponse.ok(data));
+    }
+
+    private static Mono<Void> write(ServerWebExchange exchange, ObjectMapper objectMapper,
+                                    HttpStatus status, ApiResponse<Object> resp) {
         exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        ApiResponse<Object> resp = ApiResponse.fail(code, message);
         resp.setTraceId(resolveTraceId(exchange));
         String body;
         try {

@@ -9,7 +9,10 @@ import org.springframework.cloud.gateway.route.RouteLocator;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "openblog.jwt.secret=openblog-gateway-test-secret-key-0123456789abcdef")
+        properties = {
+                "openblog.jwt.secret=openblog-gateway-test-secret-key-0123456789abcdef",
+                "openblog.device-token.secret=openblog-device-token-test-secret-key-0123456789"
+        })
 class GatewayApplicationTest {
 
     @Autowired
@@ -35,5 +38,11 @@ class GatewayApplicationTest {
                 .anyMatch(r -> r.getScope() == GatewayProperties.Scope.IP_UID);
         assertThat(gatewayProperties.getRateLimit().getRules())
                 .anyMatch(r -> r.getScope() == GatewayProperties.Scope.FP_IP);
+        // 设备令牌签发端点：JwtCheck 白名单 + IP scope 限流（绑定漏配会让新身份可被随意刷取）
+        assertThat(gatewayProperties.getAuth().getSkipPaths())
+                .contains("/api/v1/devices/token");
+        assertThat(gatewayProperties.getRateLimit().getRules())
+                .anyMatch(r -> "/api/v1/devices/token".equals(r.getPath())
+                        && r.getScope() == GatewayProperties.Scope.IP);
     }
 }

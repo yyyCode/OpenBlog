@@ -250,9 +250,10 @@ jobs:
         with:
           name: gateway-jar
           path: gateway
-      - name: Deploy via Docker（构建镜像 + 重启容器 + 注入 JWT secret）
+      - name: Deploy via Docker（构建镜像 + 重启容器 + 注入 JWT / 设备令牌 secret）
         env:
           OPENBLOG_JWT_SECRET: ${{ secrets.OPENBLOG_JWT_SECRET }}
+          OPENBLOG_DEVICE_TOKEN_SECRET: ${{ secrets.OPENBLOG_DEVICE_TOKEN_SECRET }}
         run: |
           set -euo pipefail
           TARGET_DIR="/www/wwwroot/java/openblog-gateway"
@@ -273,8 +274,9 @@ jobs:
           cp "$JAR_FILE" "$TARGET_JAR"
           cp deploy/gateway/Dockerfile deploy/gateway/docker-compose.yml deploy/gateway/.dockerignore "$TARGET_DIR/"
 
-          # 4. JWT secret 写入服务器 .env（compose 自动加载）
-          printf 'OPENBLOG_JWT_SECRET=%s\n' "$OPENBLOG_JWT_SECRET" > "$TARGET_DIR/.env"
+          # 4. JWT / 设备令牌 secret 写入服务器 .env（compose 自动加载）
+          printf 'OPENBLOG_JWT_SECRET=%s\nOPENBLOG_DEVICE_TOKEN_SECRET=%s\n' \
+            "$OPENBLOG_JWT_SECRET" "$OPENBLOG_DEVICE_TOKEN_SECRET" > "$TARGET_DIR/.env"
 
           # 5. Docker 构建并启动容器
           cd "$TARGET_DIR"

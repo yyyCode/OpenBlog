@@ -44,6 +44,11 @@ openblog:
     # 生产漏配 OPENBLOG_JWT_SECRET 时网关立即拒绝启动，绝不回退到公开默认密钥（防伪造 token）。
     # 本地测试由 GatewayApplicationTest 的 @SpringBootTest(properties=...) 显式注入测试密钥。
     secret: ${OPENBLOG_JWT_SECRET:}
+  device-token:
+    # 设备令牌签发密钥（第 2 层防构造）。默认留空 → DeviceTokenService 构造器 fail-fast：
+    # 生产漏配 OPENBLOG_DEVICE_TOKEN_SECRET 时网关拒绝启动，绝不回退公开默认密钥（否则攻击者可自签令牌换"新身份"）。
+    secret: ${OPENBLOG_DEVICE_TOKEN_SECRET:}
+    ttl-seconds: 604800
   gateway:
     auth:
       skip-paths:
@@ -53,6 +58,7 @@ openblog:
         - /api/v1/auth/slider-challenge
         - /api/v1/auth/slider-complete
         - /api/v1/auth/refresh
+        - /api/v1/devices/token
     rate-limit:
       enabled: true
       # 指纹防构造：单 IP 窗口内最多接受的"不同指纹"数（≤0 关闭），防脚本伪造新指纹绕过 FP_IP 桶
@@ -88,3 +94,8 @@ openblog:
           window-ms: 60000
           limit: 20
           scope: FP_IP
+        # 设备令牌签发按 IP 限流：换"新身份"必须逐个找网关签发，杜绝客户端自行轮换身份
+        - path: /api/v1/devices/token
+          window-ms: 60000
+          limit: 10
+          scope: IP
