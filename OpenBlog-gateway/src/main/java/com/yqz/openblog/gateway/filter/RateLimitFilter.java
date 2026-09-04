@@ -23,6 +23,8 @@ import java.util.UUID;
  * 阻塞 Redis 调用在 boundedElastic 执行，chain.filter 回到事件循环，不阻塞 Netty。
  * key = gateway:rl:{IP}[_{uid}]_{path}；scope=FP_IP 时 = gateway:rl:{指纹}_{IP}_{path}，
  * 指纹缺失/非法降级纯 IP；scope=IP_UID 时从已校验 token 解析 uid（无 token 退化为纯 IP）。
+ * FP_IP 额外经 FingerprintRotationGuard 预检：同一 IP 在窗口内换新指纹超过预算 → 疑似轮换，
+ * 直接 4290 不计数（指纹是自报 header，防脚本每请求伪造新指纹绕开复合桶）。
  */
 @Component
 public class RateLimitFilter implements GlobalFilter, Ordered {
@@ -34,13 +36,16 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     private final SlidingWindowLimiter limiter;
     private final JwtVerifier jwtVerifier;
     private final ObjectMapper objectMapper;
+    private final FingerprintRotationGuard rotationGuard;
 
     public RateLimitFilter(GatewayProperties props, SlidingWindowLimiter limiter,
-                           JwtVerifier jwtVerifier, ObjectMapper objectMapper) {
+                           JwtVerifier jwtVerifier, ObjectMapper objectMapper,
+                           FingerprintRotationGuard rotationGuard) {
         this.props = props;
         this.limiter = limiter;
         this.jwtVerifier = jwtVerifier;
         this.objectMapper = objectMapper;
+        this.rotationGuard = rotationGuard;
     }
 
     @Override
@@ -59,7 +64,18 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     private Mono<Void> applyRule(ServerWebExchange exchange, GatewayFilterChain chain,
                                  GatewayProperties.Rule rule) {
         return Mono.fromCallable(() -> {
-            String key = buildKey(exchange, rule);
+            String ip = clientIp(exchange);
+            // FP_IP 防构造预检：指纹是自报 header，脚本可每请求伪造新指纹换新桶。
+            // 同一 IP 在窗口内新指纹超预算 → 判定轮换，直接拒绝（不计数、guard 内不落库）。
+            String fp = rule.getScope() == GatewayProperties.Scope.FP_IP
+                    ? deviceFingerprint(exchange) : null;
+            if (fp != null && rotationGuard.isOverBudget(ip, fp,
+                    props.getRateLimit().getFpWindowMs(),
+                    props.getRateLimit().getFpMaxDistinctPerIp())) {
+                log.warn("gateway fingerprint rotation suspected, rate limited: ip={}", ip);
+                return false;
+            }
+            String key = buildKey(exchange, rule, ip, fp);
             try {
                 return limiter.tryAcquire(key, rule.getWindowMs(), rule.getLimit(),
                         System.currentTimeMillis(), UUID.randomUUID().toString());
@@ -78,15 +94,14 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
         });
     }
 
-    /** 按 scope 构建限流 key：IP / IP_UID / FP_IP（指纹缺失或非法时降级纯 IP）。 */
-    private String buildKey(ServerWebExchange exchange, GatewayProperties.Rule rule) {
-        String ip = clientIp(exchange);
+    /** 按 scope 构建限流 key：IP / IP_UID / FP_IP（指纹缺失或非法时降级纯 IP）。ip/fp 由调用方一次解析传入。 */
+    private String buildKey(ServerWebExchange exchange, GatewayProperties.Rule rule,
+                            String ip, String fp) {
         if (rule.getScope() == GatewayProperties.Scope.IP_UID) {
             String uid = resolveUid(exchange);
             return "gateway:rl:" + ip + (uid != null ? "_" + uid : "") + "_" + rule.getPath();
         }
         if (rule.getScope() == GatewayProperties.Scope.FP_IP) {
-            String fp = deviceFingerprint(exchange);
             return "gateway:rl:" + (fp != null ? fp + "_" : "") + ip + "_" + rule.getPath();
         }
         return "gateway:rl:" + ip + "_" + rule.getPath();

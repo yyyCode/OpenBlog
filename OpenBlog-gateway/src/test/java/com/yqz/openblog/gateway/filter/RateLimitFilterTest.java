@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.ServerWebExchange;
@@ -44,7 +45,23 @@ class RateLimitFilterTest {
         JwtProperties jwtProps = new JwtProperties();
         jwtProps.setSecret(SECRET);
         limiter = mock(SlidingWindowLimiter.class);
-        filter = new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper());
+        filter = new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper(),
+                new FakeGuard(false));
+    }
+
+    /** 测试替身：直接指定守卫判定，避免 mock StringRedisTemplate.execute 的 varargs 重载歧义。 */
+    private static final class FakeGuard extends FingerprintRotationGuard {
+        private final boolean over;
+
+        FakeGuard(boolean over) {
+            super(mock(StringRedisTemplate.class));
+            this.over = over;
+        }
+
+        @Override
+        public boolean isOverBudget(String ip, String fp, long windowMs, int budget) {
+            return over;
+        }
     }
 
     /** 合法设备指纹：32 位 hex（FingerprintJS visitorId 形态）。 */
@@ -243,5 +260,62 @@ class RateLimitFilterTest {
         filter.filter(ex, c -> Mono.empty()).block();
         verify(limiter, never()).tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString());
         assertThat(ex.getResponse().getStatusCode()).isNull();
+    }
+
+    private RateLimitFilter newFilterWithGuard(FingerprintRotationGuard guard) {
+        JwtProperties jwtProps = new JwtProperties();
+        jwtProps.setSecret(SECRET);
+        return new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper(), guard);
+    }
+
+    @Test
+    void fingerprintRotation_overBudget_returns429WithoutCounting() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        RateLimitFilter blocking = newFilterWithGuard(new FakeGuard(true));
+        MockServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", FP_VALID);
+        blocking.filter(ex, c -> Mono.empty()).block();
+        assertThat(ex.getResponse().getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(ex.getResponse().getBodyAsString().block()).contains("\"code\":4290");
+        // 疑似轮换：直接拒绝，不进 FP_IP 桶计数
+        verify(limiter, never()).tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString());
+    }
+
+    @Test
+    void fingerprintRotation_withinBudget_proceedsToFpBucket() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        MockServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", FP_VALID);
+        filter.filter(ex, c -> Mono.empty()).block();
+        assertThat(ex.getResponse().getStatusCode()).isNull();
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue())
+                .isEqualTo("gateway:rl:" + FP_VALID + "_1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
+    void fingerprintRotation_ignoredForNonFpScope() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.IP);
+        RateLimitFilter blocking = newFilterWithGuard(new FakeGuard(true));
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        MockServerWebExchange ex = exchange("/api/v1/auth/login");
+        blocking.filter(ex, c -> Mono.empty()).block();
+        assertThat(ex.getResponse().getStatusCode()).isNull();
+    }
+
+    @Test
+    void fingerprintRotation_redisUnavailable_failsOpen() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        // mock 模板 execute 默认返回 null → 守卫判放行（fail-open），回落 FP_IP 桶
+        RateLimitFilter realGuard = newFilterWithGuard(
+                new FingerprintRotationGuard(mock(StringRedisTemplate.class)));
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        MockServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", FP_VALID);
+        realGuard.filter(ex, c -> Mono.empty()).block();
+        assertThat(ex.getResponse().getStatusCode()).isNull();
+        verify(limiter).tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString());
     }
 }

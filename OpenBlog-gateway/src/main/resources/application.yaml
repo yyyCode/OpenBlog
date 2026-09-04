@@ -55,6 +55,10 @@ openblog:
         - /api/v1/auth/refresh
     rate-limit:
       enabled: true
+      # 指纹防构造：单 IP 窗口内最多接受的"不同指纹"数（≤0 关闭），防脚本伪造新指纹绕过 FP_IP 桶
+      fp-max-distinct-per-ip: 20
+      # 指纹去重统计窗口（毫秒），与限流窗口对齐
+      fp-window-ms: 60000
       rules:
         - path: /api/v1/auth/login
           window-ms: 60000
