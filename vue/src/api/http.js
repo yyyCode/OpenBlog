@@ -34,7 +34,7 @@ async function attachToken(headers) {
 
 function withTimeout(promise, ms) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('fingerprint timeout')), ms)
+    const timer = setTimeout(() => reject(new Error('header attach timeout')), ms)
     promise.then(
       (v) => { clearTimeout(timer); resolve(v) },
       (e) => { clearTimeout(timer); reject(e) }
