@@ -1,6 +1,7 @@
 package com.yqz.openblog.gateway.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yqz.openblog.gateway.config.DeviceTokenProperties;
 import com.yqz.openblog.gateway.config.GatewayProperties;
 import com.yqz.openblog.gateway.config.JwtProperties;
 import com.yqz.openblog.redis.limiter.SlidingWindowLimiter;
@@ -20,6 +21,8 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -38,15 +41,19 @@ class RateLimitFilterTest {
     private GatewayProperties props;
     private SlidingWindowLimiter limiter;
     private RateLimitFilter filter;
+    private DeviceTokenService tokenService;
 
     @BeforeEach
     void setUp() {
         props = new GatewayProperties();
         JwtProperties jwtProps = new JwtProperties();
         jwtProps.setSecret(SECRET);
+        DeviceTokenProperties devProps = new DeviceTokenProperties();
+        devProps.setSecret(SECRET);
+        tokenService = new DeviceTokenService(devProps);
         limiter = mock(SlidingWindowLimiter.class);
         filter = new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper(),
-                new FakeGuard(false));
+                new FakeGuard(false), tokenService);
     }
 
     /** 测试替身：直接指定守卫判定，避免 mock StringRedisTemplate.execute 的 varargs 重载歧义。 */
@@ -191,17 +198,68 @@ class RateLimitFilterTest {
     }
 
     @Test
-    void fpIpScope_usesFingerprintAndIp() {
+    void fpIpScope_withoutDeviceToken_ignoresFingerprint_usesPureIp() {
         addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
         when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
                 .thenReturn(true);
+        // 第 2 层语义：裸指纹（格式合法但无网关签发令牌）不再换取独立桶 → 纯 IP，防"每请求换 fp"绕过
         ServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", FP_VALID);
         filter.filter(ex, c -> Mono.empty()).block();
 
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
+    void fpIpScope_withValidDeviceToken_usesDeviceIdNotFingerprint() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        String[] issued = mintDeviceToken();
+        ServerWebExchange ex = exchangeWithDeviceToken("/api/v1/auth/login", issued[0], FP_VALID);
+        filter.filter(ex, c -> Mono.empty()).block();
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        // 桶身份 = 令牌内随机 deviceId，不含客户端自报指纹
         assertThat(keyCaptor.getValue())
-                .isEqualTo("gateway:rl:" + FP_VALID + "_1.2.3.4_/api/v1/auth/login");
+                .isEqualTo("gateway:rl:" + issued[1] + "_1.2.3.4_/api/v1/auth/login")
+                .doesNotContain(FP_VALID);
+    }
+
+    @Test
+    void fpIpScope_withInvalidDeviceToken_degradesToIp() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        // 伪造/乱写的令牌验签不过 → deviceIdOf 返回 null → 纯 IP
+        ServerWebExchange ex = exchangeWithDeviceToken("/api/v1/auth/login", "not-a-valid-device-token", FP_VALID);
+        filter.filter(ex, c -> Mono.empty()).block();
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
+    void fpIpScope_withExpiredDeviceToken_degradesToIp() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        // 已过期但签名的令牌（构造于 60s 前）→ 视为无令牌，纯 IP
+        SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        String expired = Jwts.builder()
+                .claim("dev", "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+                .expiration(Date.from(Instant.now().minusSeconds(60)))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+        ServerWebExchange ex = exchangeWithDeviceToken("/api/v1/auth/login", expired, FP_VALID);
+        filter.filter(ex, c -> Mono.empty()).block();
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
     }
 
     @Test
@@ -265,7 +323,27 @@ class RateLimitFilterTest {
     private RateLimitFilter newFilterWithGuard(FingerprintRotationGuard guard) {
         JwtProperties jwtProps = new JwtProperties();
         jwtProps.setSecret(SECRET);
-        return new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper(), guard);
+        return new RateLimitFilter(props, limiter, new JwtVerifier(jwtProps), new ObjectMapper(),
+                guard, tokenService);
+    }
+
+    /** 附 X-Device-Token（设备令牌）+ X-Device-Fingerprint 的请求。 */
+    private MockServerWebExchange exchangeWithDeviceToken(String path, String deviceToken, String fp) {
+        MockServerHttpRequest.BaseBuilder<?> builder =
+                MockServerHttpRequest.get(path).header("X-Forwarded-For", "1.2.3.4");
+        if (deviceToken != null) {
+            builder.header("X-Device-Token", deviceToken);
+        }
+        if (fp != null) {
+            builder.header("X-Device-Fingerprint", fp);
+        }
+        return MockServerWebExchange.from(builder.build());
+    }
+
+    /** 用与过滤器同源的密钥签发一个合法设备令牌，返回 [token, deviceId]。 */
+    private String[] mintDeviceToken() {
+        DeviceTokenService.IssuedToken issued = tokenService.mint();
+        return new String[]{issued.getToken(), tokenService.deviceIdOf(issued.getToken())};
     }
 
     @Test
@@ -281,17 +359,17 @@ class RateLimitFilterTest {
     }
 
     @Test
-    void fingerprintRotation_withinBudget_proceedsToFpBucket() {
+    void fingerprintRotation_withinBudget_proceedsToBucket() {
         addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
         when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
                 .thenReturn(true);
+        // 守卫放行 → 回落限流桶；无令牌时按第 2 层语义为纯 IP 桶
         MockServerWebExchange ex = exchangeWithFp("/api/v1/auth/login", FP_VALID);
         filter.filter(ex, c -> Mono.empty()).block();
         assertThat(ex.getResponse().getStatusCode()).isNull();
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
-        assertThat(keyCaptor.getValue())
-                .isEqualTo("gateway:rl:" + FP_VALID + "_1.2.3.4_/api/v1/auth/login");
+        assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
     }
 
     @Test
