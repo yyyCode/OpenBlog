@@ -243,6 +243,20 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void fpIpScope_withOverlongDeviceToken_degradesToIp() {
+        addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
+        when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))
+                .thenReturn(true);
+        // 超长（>512）令牌头 → 长度前置校验截断，视为无令牌，纯 IP（不进入 JWT 解析）
+        ServerWebExchange ex = exchangeWithDeviceToken("/api/v1/auth/login", "x".repeat(600), FP_VALID);
+        filter.filter(ex, c -> Mono.empty()).block();
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).tryAcquire(keyCaptor.capture(), anyLong(), anyInt(), anyLong(), anyString());
+        assertThat(keyCaptor.getValue()).isEqualTo("gateway:rl:1.2.3.4_/api/v1/auth/login");
+    }
+
+    @Test
     void fpIpScope_withExpiredDeviceToken_degradesToIp() {
         addRule("/api/v1/auth/login", 10, GatewayProperties.Scope.FP_IP);
         when(limiter.tryAcquire(anyString(), anyLong(), anyInt(), anyLong(), anyString()))

@@ -32,6 +32,8 @@ public class DeviceTokenService {
     private final SecretKey key;
     private final JwtParser parser;
     private final long ttlSeconds;
+    /** 签名内 dev claim 必须是标准 UUID（36 位、字符集 [0-9a-fA-F-]），保证限流 key 段安全。 */
+    private static final String DEVICE_ID_PATTERN = "^[0-9a-fA-F-]{36}$";
 
     public DeviceTokenService(DeviceTokenProperties props) {
         String secret = props.getSecret();
@@ -56,7 +58,7 @@ public class DeviceTokenService {
     }
 
     /**
-     * @return 令牌有效时返回其中随机 deviceId；缺失/无效/过期/坏签名一律返回 null
+     * @return 令牌有效且 dev claim 为标准 UUID 形态时返回之；缺失/无效/过期/坏签名/形状异常一律返回 null
      */
     public String deviceIdOf(String token) {
         if (token == null || token.isBlank()) {
@@ -65,7 +67,8 @@ public class DeviceTokenService {
         try {
             Claims claims = parser.parseSignedClaims(token).getPayload();
             Object dev = claims.get("dev");
-            return dev instanceof String s ? s : null;
+            // 只认 UUID 形态：它将被拼进限流 key 段，形状校验让 key 段字符集自包含（[0-9a-fA-F-]，无分隔符碰撞）
+            return dev instanceof String s && s.matches(DEVICE_ID_PATTERN) ? s : null;
         } catch (JwtException | IllegalArgumentException e) {
             return null;
         }

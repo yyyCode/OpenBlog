@@ -75,6 +75,19 @@ class DeviceTokenServiceTest {
     }
 
     @Test
+    void deviceIdOf_nonUuidDevClaim_returnsNull() {
+        DeviceTokenService service = newService();
+        SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+        // 签名有效、未过期但 dev claim 非 UUID 形态 → 拒绝，防非 UUID 字符串被拼进限流 key 段
+        String weird = Jwts.builder()
+                .claim("dev", "not-a-uuid;:{}_/")
+                .expiration(Date.from(Instant.now().plusSeconds(60)))
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+        assertThat(service.deviceIdOf(weird)).isNull();
+    }
+
+    @Test
     void deviceIdOf_blankOrNull_returnsNull() {
         DeviceTokenService service = newService();
         assertThat(service.deviceIdOf(null)).isNull();
