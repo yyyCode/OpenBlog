@@ -105,6 +105,14 @@ openblog:
       max-failures-per-ip: 5
       failure-window-seconds: 300
       lockout-seconds: 900
+    # 设备级失败封禁：按设备指纹计（与 IP 锁互补，挡「换 IP 但设备固定」爆破）。
+    # 默认开：只锁定单一指纹、误伤面远小于 IP 锁（IP 锁因 NAT 误伤在此关闭）。
+    # 指纹是弱信号，对「每请求换指纹」脚本无效——由网关层指纹轮换守卫 + 签名设备令牌负责。
+    device-lockout:
+      enabled: true
+      max-failures-per-fp: 5
+      failure-window-seconds: 300
+      lockout-seconds: 900
     email-code:
       code-ttl-seconds: 300
       resend-cooldown-seconds: 60

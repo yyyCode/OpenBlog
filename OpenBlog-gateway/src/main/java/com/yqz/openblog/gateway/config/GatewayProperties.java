@@ -42,6 +42,10 @@ public class GatewayProperties {
 
     public static class RateLimit {
         private boolean enabled = true;
+        /** 指纹防构造：单 IP 窗口内最多接受的"不同指纹"数，≤0 关闭（防脚本换新指纹绕过 FP_IP 桶）。 */
+        private int fpMaxDistinctPerIp = 20;
+        /** 指纹去重统计窗口（毫秒），与限流窗口对齐。 */
+        private long fpWindowMs = 60_000;
         private List<Rule> rules = new ArrayList<>();
 
         public boolean isEnabled() {
@@ -50,6 +54,22 @@ public class GatewayProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public int getFpMaxDistinctPerIp() {
+            return fpMaxDistinctPerIp;
+        }
+
+        public void setFpMaxDistinctPerIp(int fpMaxDistinctPerIp) {
+            this.fpMaxDistinctPerIp = fpMaxDistinctPerIp;
+        }
+
+        public long getFpWindowMs() {
+            return fpWindowMs;
+        }
+
+        public void setFpWindowMs(long fpWindowMs) {
+            this.fpWindowMs = fpWindowMs;
         }
 
         public List<Rule> getRules() {
