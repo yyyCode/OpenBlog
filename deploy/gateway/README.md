@@ -13,3 +13,4 @@ compose 将 8090 发布在宿主 0.0.0.0（供 vue 容器经 host.docker.interna
 
 ## 环境变量
 - `OPENBLOG_JWT_SECRET`：与 business 同值（GitHub Actions Secrets + 服务器 `.env`），注入容器；空值会 fail-fast 拒绝启动。
+- `OPENBLOG_DEVICE_TOKEN_SECRET`：网关**独有**，≥32 字符（GitHub Actions Secrets + 服务器 `.env`，CI 部署时写入 `.env`）；空值/过短会 fail-fast 拒绝启动。用于 HS256 签发/校验设备令牌（设备指纹防构造第 2 层）。
