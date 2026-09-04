@@ -41,6 +41,7 @@ public class AuthService {
     private final CurrentUser currentUser;
     private final SliderVerificationService sliderVerificationService;
     private final LoginLockoutService loginLockoutService;
+    private final AccountDeviceService accountDeviceService;
     private final MediaService mediaService;
     private final EmailValidator emailValidator;
     private final EmailCodeService emailCodeService;
@@ -53,6 +54,7 @@ public class AuthService {
                         CurrentUser currentUser,
                         SliderVerificationService sliderVerificationService,
                         LoginLockoutService loginLockoutService,
+                        AccountDeviceService accountDeviceService,
                         MediaService mediaService,
                         EmailValidator emailValidator,
                         EmailCodeService emailCodeService) {
@@ -64,6 +66,7 @@ public class AuthService {
         this.currentUser = currentUser;
         this.sliderVerificationService = sliderVerificationService;
         this.loginLockoutService = loginLockoutService;
+        this.accountDeviceService = accountDeviceService;
         this.mediaService = mediaService;
         this.emailValidator = emailValidator;
         this.emailCodeService = emailCodeService;
@@ -119,7 +122,10 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest req) {
         String ipSeg = currentIpKeySegment();
+        // 设备维度（指纹经网关格式校验透传；缺失/非法 → null 不参与设备锁，仅 IP 兜底）
+        String fp = currentDeviceFingerprint();
         loginLockoutService.assertNotLocked(ipSeg);
+        loginLockoutService.assertNotDeviceLocked(fp);
         sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
 
         User user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getUsername, req.getAccount()));
@@ -128,6 +134,7 @@ public class AuthService {
         }
         if (user == null) {
             loginLockoutService.recordPasswordFailure(ipSeg);
+            loginLockoutService.recordDevicePasswordFailure(fp);
             throw new BizException(clientErrorCode(), "账号或密码错误");
         }
 
@@ -136,14 +143,19 @@ public class AuthService {
         }
         if ("BANNED".equals(user.getStatus())) {
             loginLockoutService.recordPasswordFailure(ipSeg);
+            loginLockoutService.recordDevicePasswordFailure(fp);
             throw new BizException(4011, "账号已被封禁");
         }
         if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
             loginLockoutService.recordPasswordFailure(ipSeg);
+            loginLockoutService.recordDevicePasswordFailure(fp);
             throw new BizException(clientErrorCode(), "账号或密码错误");
         }
 
         loginLockoutService.clearFailures(ipSeg);
+        loginLockoutService.clearDeviceFailures(fp);
+        // 第 3 层：指纹记为该账号的已知设备（fail-open，Redis 故障不阻断登录）
+        accountDeviceService.recordLogin(user.getId(), fp);
 
         String accessToken = jwtService.generateAccessToken(user.getId(), user.getRole().name());
         String refreshToken = jwtService.generateRefreshToken(user.getId());
@@ -313,6 +325,22 @@ public class AuthService {
         HttpServletRequest request = sra.getRequest();
         String ip = ClientIpResolver.resolve(request);
         return ClientIpResolver.toRedisKeySegment(ip);
+    }
+
+    /** 设备指纹 key 片段：网关已正则校验并透传 X-Device-Fingerprint；此处防御性复检，
+     * 缺失/非法一律返回 null（该请求不参与设备锁 / 设备记录，仅 IP 维度兜底）。 */
+    private String currentDeviceFingerprint() {
+        var attrs = RequestContextHolder.getRequestAttributes();
+        if (!(attrs instanceof ServletRequestAttributes sra)) {
+            return null;
+        }
+        String raw = sra.getRequest().getHeader("X-Device-Fingerprint");
+        if (raw == null) {
+            return null;
+        }
+        String fp = raw.trim();
+        // 与网关一致：32 位 hex 为常态；限 16~64 位字母数字-，防注入与超长 Redis key
+        return fp.matches("^[A-Za-z0-9-]{16,64}$") ? fp : null;
     }
 }
 

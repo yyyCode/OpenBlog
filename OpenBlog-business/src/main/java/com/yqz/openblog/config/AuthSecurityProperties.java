@@ -10,6 +10,7 @@ public class AuthSecurityProperties {
 
     private Slider slider = new Slider();
     private LoginLockout loginLockout = new LoginLockout();
+    private DeviceLockout deviceLockout = new DeviceLockout();
     private EmailCode emailCode = new EmailCode();
 
     public Slider getSlider() {
@@ -26,6 +27,14 @@ public class AuthSecurityProperties {
 
     public void setLoginLockout(LoginLockout loginLockout) {
         this.loginLockout = loginLockout;
+    }
+
+    public DeviceLockout getDeviceLockout() {
+        return deviceLockout;
+    }
+
+    public void setDeviceLockout(DeviceLockout deviceLockout) {
+        this.deviceLockout = deviceLockout;
     }
 
     public EmailCode getEmailCode() {
@@ -92,6 +101,60 @@ public class AuthSecurityProperties {
 
         public void setMaxFailuresPerIp(int maxFailuresPerIp) {
             this.maxFailuresPerIp = maxFailuresPerIp;
+        }
+
+        public int getFailureWindowSeconds() {
+            return failureWindowSeconds;
+        }
+
+        public void setFailureWindowSeconds(int failureWindowSeconds) {
+            this.failureWindowSeconds = failureWindowSeconds;
+        }
+
+        public int getLockoutSeconds() {
+            return lockoutSeconds;
+        }
+
+        public void setLockoutSeconds(int lockoutSeconds) {
+            this.lockoutSeconds = lockoutSeconds;
+        }
+    }
+
+    /**
+     * 设备级失败封禁（按设备指纹计，与 IP 锁互补）。
+     * 指纹是网关校验过的弱信号：挡「换 IP 但设备固定」的爆破；设备指纹非权威身份，
+     * 对「每请求换指纹」的脚本无效——那由网关层（指纹轮换守卫 + 签名设备令牌）负责。
+     * 误伤面比 IP 锁小（只锁定单一指纹），故默认开启；IP 锁因 NAT 误伤在生产关闭。
+     */
+    public static class DeviceLockout {
+        private boolean enabled = true;
+        /**
+         * 同一设备（指纹）在窗口内允许的最大失败次数（仅统计密码错误）。
+         */
+        private int maxFailuresPerFp = 5;
+        /**
+         * 失败计数滑动窗口（秒）。
+         */
+        private int failureWindowSeconds = 300;
+        /**
+         * 触发锁定后的禁止登录时长（秒）。
+         */
+        private int lockoutSeconds = 900;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getMaxFailuresPerFp() {
+            return maxFailuresPerFp;
+        }
+
+        public void setMaxFailuresPerFp(int maxFailuresPerFp) {
+            this.maxFailuresPerFp = maxFailuresPerFp;
         }
 
         public int getFailureWindowSeconds() {

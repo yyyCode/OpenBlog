@@ -71,4 +71,49 @@ public class LoginLockoutService {
         redisOps.delete(RedisKeys.loginFail(ipKeySegment));
         redisOps.delete(RedisKeys.loginLock(ipKeySegment));
     }
+
+    // ==================== 设备维度（与 IP 维度互补，见 AuthSecurityProperties.DeviceLockout） ====================
+    // fpKeySegment 传 null（无指纹设备）一律跳过：该设备不参与设备锁，仍受 IP 锁兜底。
+
+    public void assertNotDeviceLocked(String fpKeySegment) {
+        if (fpKeySegment == null || !authSecurityProperties.getDeviceLockout().isEnabled()) {
+            return;
+        }
+        if (redisOps.hasKey(RedisKeys.deviceLock(fpKeySegment))) {
+            throw new BizException(4292, "该设备登录尝试过于频繁，请稍后再试");
+        }
+    }
+
+    /**
+     * 密码校验失败时调用（设备指纹维度）。
+     */
+    public void recordDevicePasswordFailure(String fpKeySegment) {
+        if (fpKeySegment == null || !authSecurityProperties.getDeviceLockout().isEnabled()) {
+            return;
+        }
+        var cfg = authSecurityProperties.getDeviceLockout();
+        String failKey = RedisKeys.deviceFail(fpKeySegment);
+        Long c = redisOps.increment(failKey).orElse(null);
+        if (c == null) {
+            return;
+        }
+        if (c == 1L) {
+            redisOps.expire(failKey, Duration.ofSeconds(Math.max(30, cfg.getFailureWindowSeconds())));
+        }
+        if (c >= cfg.getMaxFailuresPerFp()) {
+            redisOps.set(RedisKeys.deviceLock(fpKeySegment), "1",
+                    Duration.ofSeconds(Math.max(60, cfg.getLockoutSeconds())));
+        }
+    }
+
+    /**
+     * 登录成功时清除该设备的失败计数与锁定（若存在）。
+     */
+    public void clearDeviceFailures(String fpKeySegment) {
+        if (fpKeySegment == null || !authSecurityProperties.getDeviceLockout().isEnabled()) {
+            return;
+        }
+        redisOps.delete(RedisKeys.deviceFail(fpKeySegment));
+        redisOps.delete(RedisKeys.deviceLock(fpKeySegment));
+    }
 }

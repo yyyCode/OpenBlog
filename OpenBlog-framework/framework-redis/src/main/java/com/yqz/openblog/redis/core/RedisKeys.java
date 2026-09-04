@@ -31,6 +31,9 @@ public final class RedisKeys {
 
     private static final String SECURITY_LOGIN_FAIL = "openblog:security:login:fail";
     private static final String SECURITY_LOGIN_LOCK = "openblog:security:login:lock";
+    private static final String SECURITY_DEVICE_FAIL = "openblog:security:device:fail";
+    private static final String SECURITY_DEVICE_LOCK = "openblog:security:device:lock";
+    private static final String SECURITY_ACCOUNT_DEVICE = "openblog:security:account:device";
     private static final String SECURITY_SLIDER_PENDING = "openblog:security:slider:pending";
     private static final String SECURITY_SLIDER_OK = "openblog:security:slider:ok";
     private static final String SECURITY_EMAIL_CODE = "openblog:security:email:code";
@@ -66,6 +69,18 @@ public final class RedisKeys {
 
     public static String loginLock(String ipKeySegment) {
         return SECURITY_LOGIN_LOCK + ":" + ipKeySegment;
+    }
+
+    public static String deviceFail(String fpKeySegment) {
+        return SECURITY_DEVICE_FAIL + ":" + fpKeySegment;
+    }
+
+    public static String deviceLock(String fpKeySegment) {
+        return SECURITY_DEVICE_LOCK + ":" + fpKeySegment;
+    }
+
+    public static String accountDevices(long userId) {
+        return SECURITY_ACCOUNT_DEVICE + ":" + userId;
     }
 
     public static String sliderPending(String id) {
