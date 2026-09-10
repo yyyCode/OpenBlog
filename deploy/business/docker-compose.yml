@@ -11,6 +11,10 @@ services:
       context: .
     container_name: openblog-business
     restart: always
+    # 安全：8082 必须发布在 0.0.0.0 —— 网关容器经 host.docker.internal:8082 回连本服务，
+    # 因此它同时直接暴露给外网。须在宝塔/宿主防火墙仅放行内网访问 8082（外部只暴露 80/443），
+    # 否则可绕过网关的 JWT 校验与限流直连 business（如对 /api/v1/auth/email-code 无限发信）。
+    # 详见 deploy/business/README.md「端口暴露安全」
     ports:
       - "8082:8082"
     environment:
