@@ -222,7 +222,10 @@ public class ArticleService {
     }
 
     public PageResult<ArticleListItemResponse> listPublished(int page, int size, Long categoryId) {
-        Optional<PageResult<ArticleListItemResponse>> cached = publishedContentCache.getList(categoryId, page, size);
+        // 版本号只读一次：读缓存与写回缓存必须用同一个版本号。若写回时重新读版本号，则并发发布/
+        // 取消发布递增版本号后，本轮基于旧数据算出的结果会落到新版本的 key 上并持续生效到 TTL 到期
+        long version = publishedContentCache.currentVersion();
+        Optional<PageResult<ArticleListItemResponse>> cached = publishedContentCache.getList(version, categoryId, page, size);
         if (cached.isPresent()) {
             return cached.get();
         }
@@ -242,7 +245,7 @@ public class ArticleService {
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
         List<ArticleListItemResponse> items = mapListItems(p.getRecords());
         PageResult<ArticleListItemResponse> result = new PageResult<>(items, page, size, p.getTotal());
-        publishedContentCache.putList(categoryId, page, size, result);
+        publishedContentCache.putList(version, categoryId, page, size, result);
         return result;
     }
 

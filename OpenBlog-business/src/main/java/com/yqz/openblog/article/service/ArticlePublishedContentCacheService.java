@@ -93,9 +93,14 @@ public class ArticlePublishedContentCacheService {
     // ==================== 文章列表缓存（分页） ====================
 
     /**
-     * 获取当前列表版本号。版本号用于构造缓存 key，不存在时默认为 0。
+     * 读取当前列表版本号。版本号用于构造缓存 key，不存在时默认为 0。
+     * <p>
+     * 一次「读缓存 → 查库 → 写回缓存」流程中只应调用本方法一次，并把同一个版本号分别传给
+     * {@link #getList(long, Long, int, int)} 与 {@link #putList(long, Long, int, int, PageResult)}。
+     * 若写回时重新读取版本号，则并发的写操作递增版本号后，基于旧数据算出的结果会被写到新版本的
+     * key 上，从而在列表 TTL 内持续返回陈旧的文章集合（漏掉新发布的文章、保留已下线的文章）。
      */
-    private long getListVersion() {
+    public long currentVersion() {
         return redisOps.get(RedisKeys.CONTENT_ARTICLE_LIST_VERSION)
                 .map(v -> {
                     try {
@@ -115,8 +120,11 @@ public class ArticlePublishedContentCacheService {
         redisOps.increment(RedisKeys.CONTENT_ARTICLE_LIST_VERSION);
     }
 
-    public Optional<PageResult<ArticleListItemResponse>> getList(Long categoryId, int page, int size) {
-        long version = getListVersion();
+    /**
+     * @param version {@link #currentVersion()} 的返回值；必须与写回时的
+     *                {@link #putList(long, Long, int, int, PageResult)} 使用同一个版本号
+     */
+    public Optional<PageResult<ArticleListItemResponse>> getList(long version, Long categoryId, int page, int size) {
         String json = redisOps.get(RedisKeys.articleList(version, categoryId, page, size)).orElse(null);
         if (json == null || json.isBlank()) {
             return Optional.empty();
@@ -129,13 +137,15 @@ public class ArticlePublishedContentCacheService {
         }
     }
 
-    public void putList(Long categoryId, int page, int size, PageResult<ArticleListItemResponse> payload) {
+    /**
+     * @param version 与 {@link #getList(long, Long, int, int)} 使用的同一个版本号，禁止在此重新读取
+     */
+    public void putList(long version, Long categoryId, int page, int size, PageResult<ArticleListItemResponse> payload) {
         if (payload == null) {
             return;
         }
         int minutes = Math.max(1, redisProperties.getArticleListTtlMinutes());
         try {
-            long version = getListVersion();
             String json = objectMapper.writeValueAsString(payload);
             redisOps.set(RedisKeys.articleList(version, categoryId, page, size), json, Duration.ofMinutes(minutes));
         } catch (Exception e) {
