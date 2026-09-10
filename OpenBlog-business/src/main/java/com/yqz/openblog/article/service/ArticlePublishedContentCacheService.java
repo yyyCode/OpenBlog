@@ -18,7 +18,7 @@ import java.util.Optional;
 /**
  * 已发布文章的 Redis 缓存服务。
  * <p>
- * 包含两部分缓存：
+ * 包含三部分缓存：
  * <ol>
  *   <li>文章正文缓存（个体）：缓存相对稳定的正文与元数据。详情读路径命中缓存后，
  *       计数类字段（阅读/点赞/收藏/评论数）仍实时从数据库合并，不随缓存过期。</li>
@@ -28,8 +28,20 @@ import java.util.Optional;
  *       反序列化、不查库——列表计数最多滞后一个列表 TTL。这是有意取舍：点赞/收藏/评论/阅读
  *       等计数写不触发版本号失效，避免高并发计数把整份列表缓存打爆；可接受的滞后范围
  *       由 {@code article-list-ttl-minutes} 决定。</li>
+ *   <li>不存在的文章 id 的负缓存：详情接口遇到不存在的 id 时记录之，使同一 id 的重复请求直接
+ *       404、不再查库。只对「不存在」写标记，不对「存在但未发布」写——后者随时可能被发布，
+ *       写标记会与发布路径的失效构成竞态。</li>
  * </ol>
  * Redis 不可用或读写异常时：读侧返回 empty，写侧忽略，由 {@link ArticleService} 直接走数据库。
+ * <p>
+ * fail-open 的代价是失效操作失败时旧缓存不会被清掉，滞后窗口由各自 TTL 决定，且两者不对称：
+ * <ul>
+ *   <li>{@code evictPublishedList} 静默失败 → 列表的文章集合与排序最长陈旧
+ *       {@code openblog.cache.article-list-ttl-minutes}（默认 5）分钟</li>
+ *   <li>{@code evict} 静默失败 → 正文/标题最长陈旧 {@code openblog.cache.article-published-ttl-minutes}
+ *       （默认 30）分钟</li>
+ * </ul>
+ * 即「Redis 抖动时管理员改了已发布文章」这一最痛场景的窗口取正文 TTL，调大该值前请先评估这一点。
  */
 @Service
 public class ArticlePublishedContentCacheService {
@@ -83,11 +95,48 @@ public class ArticlePublishedContentCacheService {
         }
     }
 
+    /**
+     * 清除正文缓存与 404 负缓存标记。
+     * <p>
+     * 负缓存标记只会在「id 不存在」时写入（见 {@link #markMissing(Long)}），而不存在的 id 不会
+     * 变为可读，故此处对标记的清除是防御性的：保持 {@code evict} 的语义始终为「彻底丢弃该 id 的
+     * 一切缓存」，即便将来放宽写标记的条件也不会残留。
+     */
     public void evict(Long articleId) {
         if (articleId == null) {
             return;
         }
         redisOps.delete(RedisKeys.articleBody(articleId));
+        redisOps.delete(RedisKeys.articleMissing(articleId));
+    }
+
+    // ==================== 文章 404 负缓存 ====================
+
+    /**
+     * 该 id 是否已知不可读。命中即可直接返回 404，无需查库。
+     * <p>
+     * Redis 异常时 {@code hasKey} 返回 false（fail-open），退化为按原逻辑查库。
+     */
+    public boolean isMissing(Long articleId) {
+        if (articleId == null) {
+            return false;
+        }
+        return redisOps.hasKey(RedisKeys.articleMissing(articleId));
+    }
+
+    /**
+     * 记录「该 id 不存在」，避免扫描器、失效外链、爬虫重试等反复请求同一 id 时每次都查库。
+     * <p>
+     * 调用方只应在确认行不存在时写入（不存在的 id 不会变为可读，标记不会失效）。代价是详情读路径
+     * 多一次 Redis 存在性检查（约 0.2ms），换取 404 路径完全不查库；正缓存命中时的数据库读是计数
+     * 实时合并所必需，不受影响。TTL 见 {@code openblog.cache.article-missing-ttl-minutes}。
+     */
+    public void markMissing(Long articleId) {
+        if (articleId == null) {
+            return;
+        }
+        int minutes = Math.max(1, redisProperties.getArticleMissingTtlMinutes());
+        redisOps.set(RedisKeys.articleMissing(articleId), "1", Duration.ofMinutes(minutes));
     }
 
     // ==================== 文章列表缓存（分页） ====================
@@ -115,6 +164,9 @@ public class ArticlePublishedContentCacheService {
     /**
      * 递增列表版本号，使所有旧版本列表缓存自然过期（靠 TTL 清理）。
      * 任何影响已发布列表的写操作（发布、取消发布、更新已发布文章、删除）都应调用此方法。
+     * <p>
+     * fail-open：Redis 故障时 {@code increment} 静默失败且不阻断写操作，此时列表最多陈旧
+     * {@code openblog.cache.article-list-ttl-minutes} 分钟。
      */
     public void evictPublishedList() {
         redisOps.increment(RedisKeys.CONTENT_ARTICLE_LIST_VERSION);
