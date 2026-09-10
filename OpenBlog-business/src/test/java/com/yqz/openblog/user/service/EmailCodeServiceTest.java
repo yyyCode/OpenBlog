@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,8 +54,25 @@ class EmailCodeServiceTest {
     private void stubPreconditions() {
         when(emailValidator.validate(anyString())).thenReturn(null);
         when(userMapper.selectCount(any())).thenReturn(0L);
-        when(redisOps.hasKey(anyString())).thenReturn(false);
+        // 冷却占位成功 = 本次可发信（SETNX 返回 true）
+        when(redisOps.setIfAbsent(anyString(), anyString(), any())).thenReturn(true);
         when(redisOps.get(anyString())).thenReturn(Optional.empty());
+    }
+
+    @Test
+    void sendCode_cooldownAlreadyHeld_rejectsWithoutSending() {
+        // 冷却占位失败（SETNX false）→ 4293，且完全不触碰通知服务。
+        // 这是并发重复发信的闸门：原先 hasKey + set 两步会让并发请求各发一封信。
+        when(emailValidator.validate(anyString())).thenReturn(null);
+        when(userMapper.selectCount(any())).thenReturn(0L);
+        when(redisOps.setIfAbsent(anyString(), anyString(), any())).thenReturn(false);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER));
+
+        assertEquals(4293, ex.getCode());
+        verify(redisOps).setIfAbsent(eq(RedisKeys.emailCooldown("a@example.com")), eq("1"), any());
+        verify(notificationRpcService, never()).submit(any(NotificationMessage.class));
     }
 
     @Test

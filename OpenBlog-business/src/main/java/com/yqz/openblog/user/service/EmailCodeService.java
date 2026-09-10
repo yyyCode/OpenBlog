@@ -17,10 +17,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 邮箱验证码：生成 / 发送（经 Dubbo 调 email 服务）/ 校验。服务注册验证码与找回密码验证码两种用途：
@@ -41,6 +41,12 @@ public class EmailCodeService {
 
     private static final String SUBJECT = "OpenBlog 注册验证码";
     private static final String RESET_SUBJECT = "OpenBlog 找回密码验证码";
+
+    /**
+     * 验证码随机源。用 {@link SecureRandom} 而非 {@code ThreadLocalRandom}：验证码是安全凭证，
+     * 不应取自可预测的伪随机序列。SecureRandom 线程安全，本路径每封邮件至多取一次，无争用压力。
+     */
+    private static final SecureRandom CODE_RANDOM = new SecureRandom();
 
     private final RedisOps redisOps;
     private final AuthSecurityProperties authSecurityProperties;
@@ -88,8 +94,15 @@ public class EmailCodeService {
 
         AuthSecurityProperties.EmailCode cfg = authSecurityProperties.getEmailCode();
 
+        // 冷却用 SETNX 一次性占位。原先「hasKey 检查 + 稍后 set」是两步，并发请求会同时通过检查、
+        // 各自发一封信（邮件轰炸 + 烧发信配额）。占位在发信之前完成，故失败分支必须释放它，否则
+        // 用户要白等一个冷却周期才能重试（见下方两个 catch）。
+        // 注意这是 fail-closed：Redis 故障时 setIfAbsent 返回 false（见 DefaultRedisOps），请求会被
+        // 拒为 4293。此处刻意不 fail-open —— 故障期间验证码本就写不进 Redis，放行只会发出一封永远
+        // 无法校验的邮件，拒绝比"发了也不能用"更有信息量。
         String cooldownKey = RedisKeys.emailCooldown(email);
-        if (redisOps.hasKey(cooldownKey)) {
+        if (!redisOps.setIfAbsent(cooldownKey, "1",
+                Duration.ofSeconds(Math.max(10, cfg.getResendCooldownSeconds())))) {
             throw new BizException(4293, "发送过于频繁，请稍后再试");
         }
 
@@ -97,12 +110,10 @@ public class EmailCodeService {
         String codeKey = RedisKeys.emailCode(email);
         String code = redisOps.get(codeKey).orElse(null);
         if (code == null) {
-            code = String.format("%06d", ThreadLocalRandom.current().nextInt(1_000_000));
+            code = String.format("%06d", CODE_RANDOM.nextInt(1_000_000));
         }
         // 无论新生成还是复用，都刷新验证码 TTL（从本次发送重新计 5 分钟）。
-        // 先落库再发信：即便发信失败也保留冷却，防止滥用。
         redisOps.set(codeKey, code, Duration.ofSeconds(Math.max(30, cfg.getCodeTtlSeconds())));
-        redisOps.set(cooldownKey, "1", Duration.ofSeconds(Math.max(10, cfg.getResendCooldownSeconds())));
 
         // 经 Dubbo 调 message 模块统一通知服务，EMAIL 渠道在 message 内部路由投递。
         // 幂等保障由渠道内部完成（retries=0 + 幂等键 + email_records 唯一索引），
