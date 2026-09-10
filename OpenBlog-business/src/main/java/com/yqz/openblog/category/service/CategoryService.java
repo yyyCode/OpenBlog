@@ -8,6 +8,8 @@ import com.yqz.openblog.category.entity.ArticleCategory;
 import com.yqz.openblog.category.repo.ArticleCategoryRepository;
 import com.yqz.openblog.common.BizException;
 import com.yqz.openblog.common.TreeUtils;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,16 +18,48 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.yqz.openblog.article.entity.Article;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CategoryService {
 
+    /** 整表数据缓存的固定 key（只缓存一份全量分类） */
+    private static final String ALL_CATEGORIES_KEY = "all";
+
     private final ArticleCategoryRepository categoryRepository;
     private final ArticleMapper articleMapper;
+
+    /**
+     * 全量分类的进程内缓存。
+     * <p>
+     * {@link #resolveMeta} 与 {@link #collectSelfAndDescendantIds} 都在文章详情/列表热路径上被逐
+     * 请求调用，而两者各自只需一次全表读即可服务；分类表小且只有本类会写，故整表缓存 60s，并在
+     * create/update/delete 后显式失效。TTL 是兜底而非主要失效手段，用于覆盖两种情况：
+     * 多实例部署下其它实例收不到本实例的失效、以及「失效发生在事务提交前」时并发读回填进缓存的
+     * 提交前数据（影响为分类名/路径最多滞后 60s）。
+     * <p>
+     * 管理端的 {@link #listTree}/{@link #listFlat} 与写路径的 {@link #isDescendant} 不读此缓存，
+     * 保持读到的分类数据与库内一致。
+     */
+    private final Cache<String, List<ArticleCategory>> allCategoriesCache = Caffeine.newBuilder()
+            .expireAfterWrite(60, TimeUnit.SECONDS)
+            .maximumSize(1)
+            .build();
 
     public CategoryService(ArticleCategoryRepository categoryRepository, ArticleMapper articleMapper) {
         this.categoryRepository = categoryRepository;
         this.articleMapper = articleMapper;
+    }
+
+    /** 读取全量分类（走缓存）。 */
+    private List<ArticleCategory> allCategories() {
+        return allCategoriesCache.get(ALL_CATEGORIES_KEY,
+                key -> categoryRepository.findAllByOrderBySortOrderAscIdAsc());
+    }
+
+    /** 分类表发生写入后调用，使缓存下次读取时重新加载。 */
+    private void invalidateAllCategories() {
+        allCategoriesCache.invalidate(ALL_CATEGORIES_KEY);
     }
 
     public List<CategoryTreeNodeResponse> listTree() {
@@ -54,6 +88,7 @@ public class CategoryService {
         ArticleCategory c = new ArticleCategory();
         apply(c, req, null);
         c = categoryRepository.save(c);
+        invalidateAllCategories();
         return toFlatItem(c, indexById(categoryRepository.findAllByOrderBySortOrderAscIdAsc()));
     }
 
@@ -63,6 +98,7 @@ public class CategoryService {
                 .orElseThrow(() -> new BizException(4041, "分类不存在"));
         apply(c, req, id);
         c = categoryRepository.save(c);
+        invalidateAllCategories();
         return toFlatItem(c, indexById(categoryRepository.findAllByOrderBySortOrderAscIdAsc()));
     }
 
@@ -80,6 +116,7 @@ public class CategoryService {
             throw new BizException(4091, "该分类下仍有文章，无法删除");
         }
         categoryRepository.deleteById(id);
+        invalidateAllCategories();
     }
 
     public void validateCategoryId(Long categoryId) {
@@ -95,7 +132,7 @@ public class CategoryService {
         if (categoryId == null) {
             return CategoryMeta.empty();
         }
-        Map<Long, ArticleCategory> byId = indexById(categoryRepository.findAllByOrderBySortOrderAscIdAsc());
+        Map<Long, ArticleCategory> byId = indexById(allCategories());
         ArticleCategory c = byId.get(categoryId);
         if (c == null) {
             return CategoryMeta.empty();
@@ -108,7 +145,7 @@ public class CategoryService {
         if (categoryId == null) {
             return Collections.emptySet();
         }
-        List<ArticleCategory> all = categoryRepository.findAllByOrderBySortOrderAscIdAsc();
+        List<ArticleCategory> all = allCategories();
         List<Long> ids = all.stream().map(ArticleCategory::getId).toList();
         Map<Long, List<Long>> childrenMap = TreeUtils.buildChildrenMap(ids, id -> {
             ArticleCategory cat = all.stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null);

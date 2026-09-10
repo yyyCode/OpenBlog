@@ -19,6 +19,7 @@ public final class RedisKeys {
     // ==================== content ====================
 
     private static final String CONTENT_ARTICLE_BODY = "openblog:content:article:body";
+    private static final String CONTENT_ARTICLE_MISSING = "openblog:content:article:missing";
     private static final String CONTENT_ARTICLE_LIST = "openblog:content:article:list";
     public static final String CONTENT_ARTICLE_LIST_VERSION = "openblog:content:article:list:version";
 
@@ -48,6 +49,11 @@ public final class RedisKeys {
 
     public static String articleBody(long articleId) {
         return CONTENT_ARTICLE_BODY + ":" + articleId;
+    }
+
+    /** 文章 404 负缓存：标记该 id 当前不可读，避免反复查库 */
+    public static String articleMissing(long articleId) {
+        return CONTENT_ARTICLE_MISSING + ":" + articleId;
     }
 
     public static String articleList(long version, Long categoryId, int page, int size) {

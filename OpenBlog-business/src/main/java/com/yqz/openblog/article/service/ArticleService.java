@@ -222,7 +222,10 @@ public class ArticleService {
     }
 
     public PageResult<ArticleListItemResponse> listPublished(int page, int size, Long categoryId) {
-        Optional<PageResult<ArticleListItemResponse>> cached = publishedContentCache.getList(categoryId, page, size);
+        // 版本号只读一次：读缓存与写回缓存必须用同一个版本号。若写回时重新读版本号，则并发发布/
+        // 取消发布递增版本号后，本轮基于旧数据算出的结果会落到新版本的 key 上并持续生效到 TTL 到期
+        long version = publishedContentCache.currentVersion();
+        Optional<PageResult<ArticleListItemResponse>> cached = publishedContentCache.getList(version, categoryId, page, size);
         if (cached.isPresent()) {
             return cached.get();
         }
@@ -242,7 +245,7 @@ public class ArticleService {
         IPage<Article> p = articleMapper.selectPage(mpPage, w);
         List<ArticleListItemResponse> items = mapListItems(p.getRecords());
         PageResult<ArticleListItemResponse> result = new PageResult<>(items, page, size, p.getTotal());
-        publishedContentCache.putList(categoryId, page, size, result);
+        publishedContentCache.putList(version, categoryId, page, size, result);
         return result;
     }
 
@@ -258,8 +261,22 @@ public class ArticleService {
     }
 
     public ArticleDetailResponse detailPublished(Long id, String clientIp) {
+        // 负缓存命中：该 id 已被确认不可读，直接 404，不查库
+        if (publishedContentCache.isMissing(id)) {
+            throw new BizException(4041, "文章不存在");
+        }
+
         Article a = articleMapper.selectById(id);
-        if (a == null || a.getStatus() != ArticleStatus.PUBLISHED) {
+        if (a == null) {
+            // 该 id 不存在：落负缓存，使同一 id 的重复请求（扫描器、失效外链、爬虫重试）不再查库。
+            // 只对「不存在」写标记、不对「存在但未发布」写——后者随时可能被发布，而本次写标记与
+            // 发布路径的 evict 存在竞态，残留的标记会把刚发布的文章 404 掉最长一个 TTL。
+            // 不存在的 id 不会变为可读，故这种标记除 TTL 外无需失效。
+            publishedContentCache.markMissing(id);
+            throw new BizException(4041, "文章不存在");
+        }
+        if (a.getStatus() != ArticleStatus.PUBLISHED) {
+            // 行仍在、但已不可读：清掉正文缓存自愈，覆盖手工改库等绕过写路径的变更。
             publishedContentCache.evict(id);
             throw new BizException(4041, "文章不存在");
         }
@@ -377,6 +394,8 @@ public class ArticleService {
         if (!a.getAuthorId().equals(authorId)) {
             throw new BizException(4031, "无权限");
         }
+        // 失效判断需要原状态（见下方 evictPublishedList 的条件），在 setStatus 之前捕获
+        ArticleStatus previousStatus = a.getStatus();
         ArticleBody body = articleBodyMapper.selectById(articleId);
         String md = body == null ? null : body.getContentMarkdown();
         if (a.getTitle() == null || a.getTitle().trim().isEmpty() || md == null || md.trim().isEmpty()) {
@@ -398,7 +417,12 @@ public class ArticleService {
         a.setRejectedReason(null);
         articleMapper.updateById(a);
         publishedContentCache.evict(articleId);
-        publishedContentCache.evictPublishedList();
+        // 仅当文章原本或现在位于已发布列表时才全量失效：DRAFT→SCHEDULED 之类的转换不影响已发布
+        // 列表，无谓自增会让热门列表白冷启动一次。必须同时看原状态——已发布文章改约到未来时间会
+        // 从列表移出，同样需要失效。
+        if (previousStatus == ArticleStatus.PUBLISHED || a.getStatus() == ArticleStatus.PUBLISHED) {
+            publishedContentCache.evictPublishedList();
+        }
 
         if (a.getStatus() == ArticleStatus.PUBLISHED) {
             baiduPushService.pushArticleUrl(articleId);
