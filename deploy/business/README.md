@@ -87,6 +87,17 @@ OpenBlog-gateway（API 网关，8090）已 Docker 化 + 接入 CI，部署与切
 前提：服务器已装 Docker，Runner 用户有 docker 权限。前端走另一条 `deploy-frontend` 流水线。
 改动 `deploy/business/**` 也会触发本流水线（Dockerfile/compose 变更即生效）。
 
+## 端口暴露安全
+
+compose 将 8082 发布在宿主 0.0.0.0 —— 这是必需的（网关容器经 `host.docker.internal:8082` 回连
+business，绑到 127.0.0.1 会切断这一跳），但也**直接暴露给外网**。上线时必须在宝塔/宿主防火墙
+仅放行内网访问 8082（外部只暴露 80/443），否则攻击者可绕过网关直连 business，使网关的 JWT 校验
+与限流（如 `/api/v1/auth/email-code` 的 5 次/分钟）全部失效。与 `deploy/gateway/README.md`
+「端口暴露安全」同理。
+
+message 服务的 20883（Dubbo）同样须放行内网——business 容器要经宿主 IP 回连它；其 HTTP 8083
+已改为仅绑 127.0.0.1（无跨容器消费方）。
+
 ## 常见问题
 
 - **验证码发不出，business 日志抛 5002「邮件服务暂不可用 / No provider」**：message 服务（8083）

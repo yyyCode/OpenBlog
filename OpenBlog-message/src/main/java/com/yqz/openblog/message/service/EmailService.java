@@ -1,12 +1,9 @@
 package com.yqz.openblog.message.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yqz.openblog.message.api.EmailSendRequest;
 import com.yqz.openblog.message.api.EmailSendResult;
-import com.yqz.openblog.message.dto.EmailRecordResponse;
 import com.yqz.openblog.message.entity.EmailRecord;
 import com.yqz.openblog.message.entity.EmailStatus;
 import com.yqz.openblog.message.exception.EmailSendException;
@@ -18,8 +15,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class EmailService {
@@ -105,35 +100,5 @@ public class EmailService {
                 r.getSentAt(),
                 r.getCreatedAt()
         );
-    }
-
-    /**
-     * 分页查询邮件记录（管理后台用）。
-     */
-    public IPage<EmailRecordResponse> listRecords(int page, int size, String statusFilter) {
-        LambdaQueryWrapper<EmailRecord> w = Wrappers.lambdaQuery(EmailRecord.class)
-                .orderByDesc(EmailRecord::getCreatedAt);
-        if (statusFilter != null && !statusFilter.isBlank()) {
-            w.eq(EmailRecord::getStatus, EmailStatus.valueOf(statusFilter));
-        }
-
-        IPage<EmailRecord> p = emailRecordMapper.selectPage(new Page<>(page + 1, size), w);
-
-        List<EmailRecordResponse> items = p.getRecords().stream().map(r -> {
-            EmailRecordResponse resp = new EmailRecordResponse();
-            resp.setId(r.getId());
-            resp.setRecipient(r.getRecipient());
-            resp.setSubject(r.getSubject());
-            resp.setStatus(r.getStatus().name());
-            resp.setErrorMsg(r.getErrorMsg());
-            resp.setRequestId(r.getRequestId());
-            resp.setSentAt(r.getSentAt());
-            resp.setCreatedAt(r.getCreatedAt());
-            return resp;
-        }).collect(Collectors.toList());
-
-        IPage<EmailRecordResponse> result = new Page<>(p.getCurrent(), p.getSize(), p.getTotal());
-        result.setRecords(items);
-        return result;
     }
 }
