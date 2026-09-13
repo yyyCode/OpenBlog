@@ -33,6 +33,12 @@ import java.util.List;
 @Service
 public class AuthService {
 
+    /**
+     * 哨兵口令：仅用于启动时生成一个合法 BCrypt 哈希做恒定开销陪跑（见 {@link #absentAccountHash}）。
+     * 它的明文与哈希都不落库、不回显，也永远不会成为任何账号的凭据。
+     */
+    private static final String ABSENT_ACCOUNT_SENTINEL = "openblog-absent-account-sentinel";
+
     private final UserMapper userMapper;
     private final RefreshTokenMapper refreshTokenMapper;
     private final PasswordEncoder passwordEncoder;
@@ -45,6 +51,13 @@ public class AuthService {
     private final MediaService mediaService;
     private final EmailValidator emailValidator;
     private final EmailCodeService emailCodeService;
+
+    /**
+     * 账号不存在时用来陪跑的 BCrypt 哈希（启动时由 {@link #ABSENT_ACCOUNT_SENTINEL} 生成）。
+     * BCrypt 比对是有意设计的慢操作（约几十毫秒），若账号不存在时直接返回，攻击者按响应时间
+     * 就能区分「账号不存在」与「密码错误」——错误提示统一也挡不住这个信道，故补一次等开销比对。
+     */
+    private final String absentAccountHash;
 
     public AuthService(UserMapper userMapper,
                         RefreshTokenMapper refreshTokenMapper,
@@ -70,6 +83,8 @@ public class AuthService {
         this.mediaService = mediaService;
         this.emailValidator = emailValidator;
         this.emailCodeService = emailCodeService;
+        // 启动时生成一次（约一次 BCrypt 的开销），此后每条「账号不存在」的登录请求复用同一个哈希
+        this.absentAccountHash = passwordEncoder.encode(ABSENT_ACCOUNT_SENTINEL);
     }
 
     public AuthResponse register(RegisterRequest req) {
@@ -132,24 +147,25 @@ public class AuthService {
         if (user == null) {
             user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getEmail, req.getAccount()));
         }
-        if (user == null) {
+
+        // 账号不存在时也跑一次 BCrypt（哨兵哈希），与「密码错误」保持等开销，堵住按响应时间枚举账号的信道
+        boolean passwordOk = passwordEncoder.matches(req.getPassword(),
+                user != null && user.getPasswordHash() != null ? user.getPasswordHash() : absentAccountHash);
+        if (user == null || !passwordOk) {
             loginLockoutService.recordPasswordFailure(ipSeg);
             loginLockoutService.recordDevicePasswordFailure(fp);
             throw new BizException(clientErrorCode(), "账号或密码错误");
         }
 
+        // 账号状态必须在密码校验之后判定：放在前面则不需要正确密码，就能从响应区分出
+        // 「账号不存在 / 待审核 / 已封禁」，等于白送一份账号枚举与状态探测接口。
+        // 走到这里密码已证明正确，故不再计失败次数——那是「密码错误」的计数，误计会让同 NAT 出口
+        // 上无关用户被牵连锁定（封禁态本身已是拒绝登录的终态）。
         if ("PENDING".equals(user.getStatus())) {
             throw new BizException(4014, "账号待管理员审核通过后方可登录");
         }
         if ("BANNED".equals(user.getStatus())) {
-            loginLockoutService.recordPasswordFailure(ipSeg);
-            loginLockoutService.recordDevicePasswordFailure(fp);
             throw new BizException(4011, "账号已被封禁");
-        }
-        if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
-            loginLockoutService.recordPasswordFailure(ipSeg);
-            loginLockoutService.recordDevicePasswordFailure(fp);
-            throw new BizException(clientErrorCode(), "账号或密码错误");
         }
 
         loginLockoutService.clearFailures(ipSeg);
