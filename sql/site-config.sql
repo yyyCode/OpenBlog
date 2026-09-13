@@ -21,4 +21,6 @@ INSERT IGNORE INTO site_config (config_key, config_value) VALUES
 ('default_avatar_url','https://via.placeholder.com/120x120.png?text=OpenBlog'),
 ('site_start_date',  '2026-03-20'),
 ('footer_copyright', '© 2026 OpenBlog'),
-('hero_image_url', '');
+('hero_image_url', ''),
+('job_intention',    '后端 / 全栈开发工程师'),
+('contact_email',    '2678785492@qq.com');

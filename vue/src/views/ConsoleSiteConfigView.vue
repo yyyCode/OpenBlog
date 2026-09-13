@@ -92,6 +92,19 @@
           </div>
         </div>
 
+        <!-- 关于页面 -->
+        <div class="admin-section">
+          <h2 class="admin-section-title">关于页面</h2>
+          <div class="field">
+            <div class="label">求职意向</div>
+            <input v-model="form.job_intention" class="input" type="text" placeholder="后端 / 全栈开发工程师" />
+          </div>
+          <div class="field">
+            <div class="label">联系邮箱</div>
+            <input v-model="form.contact_email" class="input" type="email" placeholder="you@example.com" />
+          </div>
+        </div>
+
         <!-- 页脚 -->
         <div class="admin-section">
           <h2 class="admin-section-title">页脚</h2>
@@ -134,6 +147,8 @@ const form = ref({
   default_avatar_url: '',
   site_start_date: '',
   hero_image_url: '',
+  job_intention: '',
+  contact_email: '',
   footer_copyright: ''
 })
 
