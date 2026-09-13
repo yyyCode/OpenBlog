@@ -122,6 +122,13 @@ openblog:
     issuer: openblog
     access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 2592000
+  # 敏感词过滤白名单：内置词库是通用表，正常词也会被误收（comment/forum 提交时 4003 拦截）。
+  # 「长期」在词库里是一条裸词（邻居是「找长期小姐」「长期出售手枪」这类垃圾短语），
+  # 正常语境（如「长期共事」）会被误伤，故豁免。新增条目依据服务日志的
+  # "敏感词命中 words=... context=..." 行判断；改此项需重启服务。
+  sensitive-word:
+    allow-words:
+      - "长期"
   storage:
     # 存储类型：local（本地磁盘）| minio（对象存储，本地与服务器共用同一 MinIO 即可访问相同图片）
     type: minio

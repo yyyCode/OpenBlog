@@ -275,8 +275,9 @@ public class ForumService {
     private void checkSensitive(String... texts) {
         for (String text : texts) {
             if (text == null || text.isBlank()) continue;
+            // 命中详情（哪个词、哪段上下文）由 SensitiveWordFilter 内部打 WARN 日志；
+            // 对外仍是通用提示，不回显命中词（那等于把词库送给用户）
             if (sensitiveWordFilter.contains(text)) {
-                List<String> words = sensitiveWordFilter.findAll(text);
                 throw new BizException(4003, "内容包含敏感词，请修改后重试");
             }
         }
