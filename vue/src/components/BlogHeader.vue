@@ -100,7 +100,7 @@
               <path d="M11 12h1v5h1" />
             </svg>
           </span>
-          关于我们
+          关于
         </router-link>
 
         <div class="site-nav-auth site-nav-auth-trailing" aria-label="账户">
