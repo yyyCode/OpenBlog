@@ -50,6 +50,10 @@ openblog:
     secret: ${OPENBLOG_DEVICE_TOKEN_SECRET:}
     ttl-seconds: 604800
   gateway:
+    access-log:
+      # 每请求一条 INFO 访问日志：来源 IP / 方法 / 路径 / 状态码 / 耗时 / traceId。
+      # 只记 path 不记 query（防敏感参数落盘）。日志量敏感或压测时可置 false 关闭。
+      enabled: true
     auth:
       skip-paths:
         - /api/v1/auth/login

@@ -11,6 +11,7 @@ public class GatewayProperties {
 
     private Auth auth = new Auth();
     private RateLimit rateLimit = new RateLimit();
+    private AccessLog accessLog = new AccessLog();
 
     public Auth getAuth() {
         return auth;
@@ -26,6 +27,27 @@ public class GatewayProperties {
 
     public void setRateLimit(RateLimit rateLimit) {
         this.rateLimit = rateLimit;
+    }
+
+    public AccessLog getAccessLog() {
+        return accessLog;
+    }
+
+    public void setAccessLog(AccessLog accessLog) {
+        this.accessLog = accessLog;
+    }
+
+    /** 访问日志开关（openblog.gateway.access-log.*）。 */
+    public static class AccessLog {
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
     }
 
     public static class Auth {
