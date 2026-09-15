@@ -427,10 +427,30 @@ html.homepage-scroll-snap {
   justify-content: center;
   text-align: center;
   padding: 40px 24px 64px;
+  /* 提示背景粒子可以拖动 */
+  cursor: grab;
+}
+.home-screen-slogan.home-slogan-grabbing {
+  cursor: grabbing;
 }
 [data-theme='dark'] .home-screen-slogan {
   background-color: #0f1114;
 }
+/* 背景粒子星网画布：铺满整屏、位于文字之下、不接收鼠标事件 */
+.home-slogan-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+/* 文字抬到画布之上（未加动画时也不影响原布局） */
+.home-slogan-inner {
+  position: relative;
+  z-index: 1;
+}
+
 .home-slogan-title {
   margin: 0;
   font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', serif;
@@ -460,6 +480,7 @@ html.homepage-scroll-snap {
   bottom: 18px;
   left: 0;
   right: 0;
+  z-index: 1;
   text-align: center;
   font-size: 12px;
   letter-spacing: 2px;
