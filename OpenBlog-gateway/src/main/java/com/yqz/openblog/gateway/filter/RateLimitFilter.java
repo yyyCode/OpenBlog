@@ -76,7 +76,7 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     private Mono<Void> applyRule(ServerWebExchange exchange, GatewayFilterChain chain,
                                  GatewayProperties.Rule rule) {
         return Mono.fromCallable(() -> {
-            String ip = clientIp(exchange);
+            String ip = ClientIpResolver.resolve(exchange);
             // 第 1 层防构造预检：指纹是自报 header，脚本可每请求伪造新指纹。同一 IP 窗口内新指纹超预算
             // → 判定轮换，直接拒绝（不计数、guard 内不落库）。仅 FP_IP 规则需要携带指纹信号。
             String fp = rule.getScope() == GatewayProperties.Scope.FP_IP
@@ -149,22 +149,6 @@ public class RateLimitFilter implements GlobalFilter, Ordered {
     private String bearerToken(ServerWebExchange exchange) {
         String auth = exchange.getRequest().getHeaders().getFirst("Authorization");
         return (auth != null && auth.startsWith("Bearer ")) ? auth.substring(7) : null;
-    }
-
-    private String clientIp(ServerWebExchange exchange) {
-        // nginx 用 $remote_addr 覆写 X-Real-IP（不可伪造），优先使用；X-Forwarded-For 首跳是客户端可控的，仅作回退。
-        String realIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp;
-        }
-        String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
-        if (exchange.getRequest().getRemoteAddress() != null) {
-            return exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
-        }
-        return "unknown";
     }
 
     @Override
