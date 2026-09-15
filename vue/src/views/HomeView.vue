@@ -1,7 +1,8 @@
 <template>
   <div class="home-screens">
-    <!-- 第 1 屏：口号区 -->
+    <!-- 第 1 屏：口号区（背景粒子星网：纯装饰层，hero 配图时让位不叠加） -->
     <section class="home-screen home-screen-slogan" :style="sloganBgStyle">
+      <canvas v-if="showSloganFx" ref="sloganFxRef" class="home-slogan-fx" aria-hidden="true"></canvas>
       <div class="home-slogan-inner">
         <h1 class="home-slogan-title" v-html="sloganTitleHtml"></h1>
         <p v-if="heroSubtitle" class="home-slogan-sub" v-html="heroSubtitleHtml"></p>
@@ -255,7 +256,7 @@
 </template>
 
 <script setup>
-import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from '../api/article'
@@ -293,6 +294,289 @@ const sloganTitleHtml = computed(() => {
     .replace(/\n/g, '<br />')
 })
 const heroSubtitleHtml = computed(() => heroSubtitle.value.replace(/\n/g, '<br />'))
+
+// ---- 第 1 屏背景动画：粒子星网（缓慢漂移的点，邻近自动牵线） ----
+// 纯装饰：canvas 层 pointer-events:none，位于文字之下，不改动任何文案/字体/配色
+const sloganFxRef = ref(null)
+// hero 配了整屏大图时不叠加动画（会和图片打架），纯色底才启用
+const showSloganFx = computed(() => !heroImageUrl.value)
+
+const FX_DENSITY = 14000 // 每多少 px² 放一个粒子
+const FX_MAX = 70 // 粒子上限（保证低端机也不掉帧）
+const FX_LINK_DIST = 140 // 距离小于该值才牵线
+const FX_SPEED = 0.22 // 漂移速度 px/帧
+const FX_SPRING = 0.0008 // 被推走后回位的弹簧（越小回得越慢）
+const FX_DAMPING = 0.97 // 每帧阻尼，配合弹簧给出"黏滞"手感
+const FX_GRAB_RADIUS = 170 // 拖拽影响半径
+const FX_GRAB_STRENGTH = 0.9 // 光标位移传递给粒子的比例
+
+let sloganFxRaf = 0
+let sloganFxObserver = null
+let sloganFxThemeObserver = null
+let sloganFxHandlers = null
+let sloganFxRunning = false
+let sloganFxOnScreen = true
+let sloganFxMounted = false
+
+// 亮/暗色两套描边色，跟随 <html data-theme>
+function sloganFxPalette() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark'
+  return dark
+    ? { dot: 'rgba(122, 156, 255, 0.72)', line: '91, 140, 255' }
+    : { dot: 'rgba(51, 112, 255, 0.52)', line: '51, 112, 255' }
+}
+
+function startSloganFx() {
+  const canvas = sloganFxRef.value
+  if (!canvas || sloganFxRunning) return
+  // 系统开了「减弱动态效果」就不画，尊重无障碍设置
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  sloganFxRunning = true
+  let w = 0
+  let h = 0
+  let palette = sloganFxPalette()
+  let particles = []
+
+  // 拖拽状态：dragging 为按下拖动中，dragActive 为光标真的落在画面内
+  const dragging = { on: false }
+  let cursorX = -1
+  let cursorY = -1
+  let prevCursorX = -1
+  let prevCursorY = -1
+  let cursorDx = 0
+  let cursorDy = 0
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect()
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    w = rect.width
+    h = rect.height
+    if (!w || !h) return
+    canvas.width = Math.round(w * dpr)
+    canvas.height = Math.round(h * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+    const count = Math.max(18, Math.min(FX_MAX, Math.round((w * h) / FX_DENSITY)))
+    // 每个粒子：hx/hy 是会自己漂移的"家"，x/y = 家 + 可被拖走的偏移
+    particles = Array.from({ length: count }, () => {
+      const hx = Math.random() * w
+      const hy = Math.random() * h
+      return {
+        hx,
+        hy,
+        hvx: (Math.random() - 0.5) * 2 * FX_SPEED,
+        hvy: (Math.random() - 0.5) * 2 * FX_SPEED,
+        x: hx,
+        y: hy,
+        vx: 0,
+        vy: 0,
+        r: 1 + Math.random() * 1.4
+      }
+    })
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h)
+    if (!sloganFxOnScreen) {
+      // 滚走期间重置光标记录，回来时不会把"积压"的位移一次性甩给粒子
+      prevCursorX = cursorX
+      prevCursorY = cursorY
+      sloganFxRaf = requestAnimationFrame(draw)
+      return
+    }
+
+    // 光标本帧位移，作为拖拽传递给粒子的"推力"
+    cursorDx = dragging.on ? cursorX - prevCursorX : 0
+    cursorDy = dragging.on ? cursorY - prevCursorY : 0
+    prevCursorX = cursorX
+    prevCursorY = cursorY
+    const dragActive =
+      dragging.on && cursorX >= 0 && cursorX <= w && cursorY >= 0 && cursorY <= h
+
+    for (const p of particles) {
+      // 家位置自己缓慢漂移，撞到边就反弹（比绕回更平滑，也不会让粒子横穿整屏）
+      p.hx += p.hvx
+      p.hy += p.hvy
+      if (p.hx < 0) {
+        p.hx = 0
+        p.hvx = Math.abs(p.hvx)
+      } else if (p.hx > w) {
+        p.hx = w
+        p.hvx = -Math.abs(p.hvx)
+      }
+      if (p.hy < 0) {
+        p.hy = 0
+        p.hvy = Math.abs(p.hvy)
+      } else if (p.hy > h) {
+        p.hy = h
+        p.hvy = -Math.abs(p.hvy)
+      }
+
+      // 弹簧拉回家 + 阻尼：松手后慢慢归位，网络自己"长"回来
+      p.vx = (p.vx + (p.hx - p.x) * FX_SPRING) * FX_DAMPING
+      p.vy = (p.vy + (p.hy - p.y) * FX_SPRING) * FX_DAMPING
+
+      // 拖拽：光标扫过的粒子被带走，力度按距离衰减
+      if (dragActive) {
+        const dx = p.x - cursorX
+        const dy = p.y - cursorY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < FX_GRAB_RADIUS) {
+          const falloff = 1 - dist / FX_GRAB_RADIUS
+          p.vx += cursorDx * FX_GRAB_STRENGTH * falloff
+          p.vy += cursorDy * FX_GRAB_STRENGTH * falloff
+        }
+      }
+
+      p.x += p.vx
+      p.y += p.vy
+    }
+
+    // 拖拽时从光标牵线到被"抓"住的粒子，明确告诉用户抓到了东西
+    if (dragActive) {
+      ctx.lineWidth = 1
+      for (const p of particles) {
+        const dx = p.x - cursorX
+        const dy = p.y - cursorY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist > FX_GRAB_RADIUS) continue
+        const alpha = (1 - dist / FX_GRAB_RADIUS) * 0.5
+        ctx.strokeStyle = `rgba(${palette.line}, ${alpha.toFixed(3)})`
+        ctx.beginPath()
+        ctx.moveTo(cursorX, cursorY)
+        ctx.lineTo(p.x, p.y)
+        ctx.stroke()
+      }
+    }
+
+    // 先连线后画点，避免线盖住点的实心感
+    ctx.lineWidth = 1
+    for (let i = 0; i < particles.length; i++) {
+      const a = particles[i]
+      for (let j = i + 1; j < particles.length; j++) {
+        const b = particles[j]
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        const d2 = dx * dx + dy * dy
+        if (d2 > FX_LINK_DIST * FX_LINK_DIST) continue
+        const alpha = (1 - Math.sqrt(d2) / FX_LINK_DIST) * 0.32
+        ctx.strokeStyle = `rgba(${palette.line}, ${alpha.toFixed(3)})`
+        ctx.beginPath()
+        ctx.moveTo(a.x, a.y)
+        ctx.lineTo(b.x, b.y)
+        ctx.stroke()
+      }
+    }
+
+    ctx.fillStyle = palette.dot
+    for (const p of particles) {
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+      ctx.fill()
+    }
+
+    sloganFxRaf = requestAnimationFrame(draw)
+  }
+
+  resize()
+  if (!w || !h) {
+    sloganFxRunning = false
+    return
+  }
+
+  // 只在第 1 屏进入视口时绘制，滚走后空转（不浪费 CPU）
+  sloganFxObserver = new IntersectionObserver(
+    entries => {
+      sloganFxOnScreen = entries.some(e => e.isIntersecting)
+    },
+    { threshold: 0 }
+  )
+  sloganFxObserver.observe(canvas)
+
+  // 主题切换时换色
+  sloganFxThemeObserver = new MutationObserver(() => {
+    palette = sloganFxPalette()
+  })
+  sloganFxThemeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme']
+  })
+
+  window.addEventListener('resize', onSloganFxResize)
+
+  // 拖拽交互：监听挂在父级 section 上（canvas 仍是 pointer-events:none，不挡任何东西）。
+  // 触屏不做拖拽，交给浏览器滚动，避免和整屏吸附打架。
+  const section = canvas.parentElement
+
+  function toCanvasXY(e) {
+    const rect = canvas.getBoundingClientRect()
+    cursorX = e.clientX - rect.left
+    cursorY = e.clientY - rect.top
+  }
+
+  function onDown(e) {
+    if (e.pointerType === 'touch') return
+    // 阻止拖拽时把标题文字选蓝——背景拖动的手感优先；要恢复选中删掉这行即可
+    e.preventDefault()
+    toCanvasXY(e)
+    prevCursorX = cursorX
+    prevCursorY = cursorY
+    dragging.on = true
+    if (section) section.classList.add('home-slogan-grabbing')
+  }
+
+  function onMove(e) {
+    toCanvasXY(e)
+  }
+
+  function onUp() {
+    dragging.on = false
+    if (section) section.classList.remove('home-slogan-grabbing')
+  }
+
+  sloganFxHandlers = { section, onDown, onMove, onUp }
+  if (section) section.addEventListener('pointerdown', onDown)
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+
+  sloganFxRaf = requestAnimationFrame(draw)
+}
+
+function onSloganFxResize() {
+  // resize 重建粒子，防抖避免拖拽窗口时反复分配
+  clearTimeout(onSloganFxResize.timer)
+  onSloganFxResize.timer = setTimeout(() => {
+    stopSloganFx()
+    startSloganFx()
+  }, 180)
+}
+
+function stopSloganFx() {
+  if (sloganFxRaf) cancelAnimationFrame(sloganFxRaf)
+  sloganFxRaf = 0
+  if (sloganFxObserver) sloganFxObserver.disconnect()
+  if (sloganFxThemeObserver) sloganFxThemeObserver.disconnect()
+  sloganFxObserver = null
+  sloganFxThemeObserver = null
+  window.removeEventListener('resize', onSloganFxResize)
+  if (sloganFxHandlers) {
+    const { section, onDown, onMove, onUp } = sloganFxHandlers
+    if (section) {
+      section.removeEventListener('pointerdown', onDown)
+      section.classList.remove('home-slogan-grabbing')
+    }
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+    sloganFxHandlers = null
+  }
+  sloganFxRunning = false
+  sloganFxOnScreen = true
+}
 
 // ---- 第 3 屏：网站时间线（静态内置关键节点） ----
 const milestones = [
@@ -384,6 +668,8 @@ function goTopic(id) {
 
 onMounted(async () => {
   enableHomepageSnap()
+  sloganFxMounted = true
+  if (showSloganFx.value) startSloganFx()
   loading.value = true
   try {
     const list = await fetchArticles({ page: 0, size: 8 })
@@ -408,7 +694,15 @@ onMounted(async () => {
 
 onUnmounted(() => {
   disableHomepageSnap()
+  stopSloganFx()
 })
+
+// siteConfig 异步到达后才知有没有 hero 大图：配图则卸掉动画，改回纯色则启用
+watch(showSloganFx, on => {
+  if (!sloganFxMounted) return
+  if (on) startSloganFx()
+  else stopSloganFx()
+}, { flush: 'post' })
 
 // 只在首页开启滚动吸附：实测吸顶导航高度写入 --header-h，再给 <html> 加类
 function measureHeaderHeight() {
