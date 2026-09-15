@@ -18,13 +18,22 @@ final class ClientIpResolver {
     }
 
     static String resolve(ServerWebExchange exchange) {
+        // 一律 trim：该返回值既是审计口径也是限流分桶 key，带空格的头会让 "1.2.3.4" 与 "1.2.3.4 "
+        // 落进不同桶，等于每请求换个后缀就能绕过 IP 限流。
         String realIp = exchange.getRequest().getHeaders().getFirst("X-Real-IP");
         if (realIp != null && !realIp.isBlank()) {
-            return realIp;
+            return realIp.trim();
         }
         String xff = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+            // 用 indexOf/substring 而非 split：",".split(",") 返回长度 0 的数组（Java 丢弃尾随空串），
+            // 取 [0] 抛 AIOOBE。该异常在 AccessLogFilter 的 doFinally 回调里会被 Reactor 吞掉，
+            // 于是请求方只要发一个畸形头就能让自己的访问日志整条消失——审计日志不能有这种后门。
+            int comma = xff.indexOf(',');
+            String first = (comma >= 0 ? xff.substring(0, comma) : xff).trim();
+            if (!first.isEmpty()) {
+                return first;
+            }
         }
         if (exchange.getRequest().getRemoteAddress() != null) {
             return exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();

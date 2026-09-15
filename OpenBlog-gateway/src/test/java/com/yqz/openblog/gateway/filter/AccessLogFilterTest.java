@@ -99,7 +99,7 @@ class AccessLogFilterTest {
     }
 
     @Test
-    void logsCancelledRequestAsWarning() {
+    void logsCancelledRequestAtInfo() {
         ServerWebExchange exchange = MockServerWebExchange.from(
                 MockServerHttpRequest.get("/api/v1/x").header("X-Real-IP", "1.2.3.4").build());
 
@@ -108,10 +108,35 @@ class AccessLogFilterTest {
         subscription.dispose();
 
         ILoggingEvent event = onlyEvent();
-        assertThat(event.getLevel()).isEqualTo(Level.WARN);
+        // 取消属日常流量（前端切路由/关页面），记 INFO 以免刷屏淹没真正的失败
+        assertThat(event.getLevel()).isEqualTo(Level.INFO);
         assertThat(event.getFormattedMessage())
                 .contains("gateway access cancelled")
                 .contains("ip=1.2.3.4");
+    }
+
+    @Test
+    void stillLogsWhenForwardedForIsCommaOnly() {
+        // 回归防线：",".split(",") 得到长度 0 的数组，老写法取 [0] 会抛 AIOOBE；
+        // 该异常在 doFinally 里被 Reactor 吞掉，请求方用畸形头就让自己的访问日志整条消失。
+        ServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/x").header("X-Forwarded-For", ",").build());
+
+        filter.filter(exchange, ex -> Mono.empty()).block();
+
+        assertThat(onlyEvent().getFormattedMessage()).contains("ip=");
+    }
+
+    @Test
+    void trimsWhitespaceSoRateLimitBucketsCannotBeRotated() {
+        // 带空格的头若原样入 key，"1.2.3.4 " 与 "1.2.3.4" 会落进不同限流桶
+        ServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/x").header("X-Real-IP", " 1.2.3.4 ").build());
+
+        filter.filter(exchange, ex -> Mono.empty()).block();
+
+        // 断言到下一个字段的边界，才能证明首尾空格真的被去掉了
+        assertThat(onlyEvent().getFormattedMessage()).contains("ip=1.2.3.4 method=");
     }
 
     @Test

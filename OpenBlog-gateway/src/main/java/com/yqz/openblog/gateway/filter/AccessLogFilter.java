@@ -66,8 +66,9 @@ public class AccessLogFilter implements GlobalFilter, Ordered {
             return;
         }
         if (signal == SignalType.CANCEL) {
-            // 客户端提前断开：网关超时、用户关页面、上游慢导致连接被弃
-            log.warn("gateway access cancelled: ip={} method={} path={} cost={}ms traceId={}",
+            // 客户端提前断开：前端切路由 / 关页面都会触发，属日常流量而非故障，
+            // 故记 INFO。若记 WARN，正常浏览就会持续刷 WARN，把真正的 ON_ERROR 淹掉。
+            log.info("gateway access cancelled: ip={} method={} path={} cost={}ms traceId={}",
                     ip, method, path, costMs, traceId);
             return;
         }
