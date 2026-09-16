@@ -71,7 +71,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/changelog").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/changelog/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/feedback").permitAll()
+                        // 反馈需登录（提交人取自 JWT，同一账号每天一次），故不在此放行
                         // Public articles/comments
                         .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/media/**").permitAll()

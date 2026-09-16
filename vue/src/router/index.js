@@ -226,6 +226,15 @@ router.beforeEach((to) => {
     return true
   }
 
+  // 问题反馈：需登录（提交人取自 JWT，按账号每天限一次）
+  if (to.path === '/feedback') {
+    if (!isConsoleSessionValid()) {
+      clearAuth()
+      return { path: '/login', query: { redirect: '/feedback' } }
+    }
+    return true
+  }
+
   if (!to.path.startsWith('/console')) return true
 
   const isLoginPage = to.path === '/console/login'

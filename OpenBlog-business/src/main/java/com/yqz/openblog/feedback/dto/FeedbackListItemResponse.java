@@ -7,6 +7,8 @@ import java.time.LocalDate;
 
 public class FeedbackListItemResponse {
     private Long id;
+    /** 提交用户 ID；迁移前的历史数据为 null */
+    private Long userId;
     private String submitterName;
     private String content;
     private LocalDate submitDay;
@@ -19,6 +21,14 @@ public class FeedbackListItemResponse {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getSubmitterName() {

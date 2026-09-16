@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 
 public interface FeedbackRepository extends JpaRepository<FeedbackEntry, Long> {
-    boolean existsByIpKeyAndSubmitDay(String ipKey, LocalDate submitDay);
+    boolean existsByUserIdAndSubmitDay(Long userId, LocalDate submitDay);
 
     Page<FeedbackEntry> findAllByStatusOrderByCreatedAtDesc(FeedbackEntry.Status status, Pageable pageable);
 }
