@@ -8,6 +8,8 @@ import com.yqz.openblog.feedback.entity.FeedbackEntry;
 import com.yqz.openblog.feedback.repo.FeedbackRepository;
 import com.yqz.openblog.redis.core.RedisKeys;
 import com.yqz.openblog.redis.core.RedisOps;
+import com.yqz.openblog.user.entity.User;
+import com.yqz.openblog.user.repo.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,43 +28,67 @@ public class FeedbackService {
 
     private static final Logger log = LoggerFactory.getLogger(FeedbackService.class);
 
+    /** 反馈提交人必须是有效账号；JWT 在到期前一直有效，禁用/封禁只查 token 挡不住 */
+    private static final String ACTIVE = "ACTIVE";
+
+    /** 同一账号每天一次 */
+    private static final int CODE_DUPLICATE = 4290;
+    /** 账号不存在 / 非 ACTIVE */
+    private static final int CODE_ACCOUNT_UNUSABLE = 4030;
+
     private final FeedbackRepository feedbackRepository;
+    private final UserRepository userRepository;
     private final RedisOps redisOps;
 
-    public FeedbackService(FeedbackRepository feedbackRepository, RedisOps redisOps) {
+    public FeedbackService(FeedbackRepository feedbackRepository,
+                           UserRepository userRepository,
+                           RedisOps redisOps) {
         this.feedbackRepository = feedbackRepository;
+        this.userRepository = userRepository;
         this.redisOps = redisOps;
     }
 
     @Transactional
-    public void create(FeedbackCreateRequest req, HttpServletRequest request) {
-        String ip = ClientIpResolver.resolve(request);
-        String ipKey = ClientIpResolver.toRedisKeySegment(ip);
-
-        ZoneId zone = ZoneId.systemDefault();
-        LocalDate today = LocalDate.now(zone);
-
-        // 先用 Redis 进行"每天一次"快速判定；Redis 不可用时降级用 DB 判定
-        if (!tryAcquireRedis(ipKey, today, zone)) {
-            throw new BizException(4290, "同一 IP 每天只能提交一次");
+    public void create(FeedbackCreateRequest req, Long userId, HttpServletRequest request) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null || !ACTIVE.equals(user.getStatus())) {
+            log.warn("反馈提交被拒：账号不可用。userId={}", userId);
+            throw new BizException(CODE_ACCOUNT_UNUSABLE, "账号状态不可用，无法提交反馈");
         }
 
-        // DB 兜底：避免 Redis 不可用/穿透/并发导致多写
-        if (feedbackRepository.existsByIpKeyAndSubmitDay(ipKey, today)) {
-            throw new BizException(4290, "同一 IP 每天只能提交一次");
+        String ipKey = ClientIpResolver.toRedisKeySegment(ClientIpResolver.resolve(request));
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate today = LocalDate.now(zone);
+        String key = RedisKeys.feedbackUserDay(userId, today);
+
+        // Redis 只是"今天已提交"的加速判定：命中即拒。Redis 故障时 hasKey 返回 false（fail-open），
+        // 继续走 DB 判定，绝不因缓存不可用而误拒正常提交。
+        if (redisOps.hasKey(key)) {
+            log.info("反馈限流触发。userId={}, day={}", userId, today);
+            throw new BizException(CODE_DUPLICATE, "同一账号每天只能提交一次");
+        }
+
+        // DB 是权威判据：Redis 被穿透/清空/不可用时仍能挡住重复提交
+        if (feedbackRepository.existsByUserIdAndSubmitDay(userId, today)) {
+            throw new BizException(CODE_DUPLICATE, "同一账号每天只能提交一次");
         }
 
         FeedbackEntry e = new FeedbackEntry();
+        e.setUserId(userId);
+        // 提交人姓名取自账号，不信任请求体（前端不再传）
+        e.setSubmitterName(user.getUsername());
         e.setIpKey(ipKey);
         e.setSubmitDay(today);
-        e.setSubmitterName(req.getSubmitterName().trim());
         e.setContent(req.getContent().trim());
         try {
             feedbackRepository.save(e);
         } catch (DataIntegrityViolationException dup) {
             // 并发下唯一键冲突
-            throw new BizException(4290, "同一 IP 每天只能提交一次");
+            throw new BizException(CODE_DUPLICATE, "同一账号每天只能提交一次");
         }
+
+        // 落库成功后再预热缓存：失败也不影响本次提交（DB 已持久化）
+        redisOps.set(key, "1", ttlUntilNextDay(today, zone));
     }
 
     public PageResult<FeedbackListItemResponse> listPending(int page, int size) {
@@ -79,6 +105,7 @@ public class FeedbackService {
     private FeedbackListItemResponse toListItem(FeedbackEntry e) {
         FeedbackListItemResponse r = new FeedbackListItemResponse();
         r.setId(e.getId());
+        r.setUserId(e.getUserId());
         r.setSubmitterName(e.getSubmitterName());
         r.setContent(e.getContent());
         r.setSubmitDay(e.getSubmitDay());
@@ -87,18 +114,9 @@ public class FeedbackService {
         return r;
     }
 
-    private boolean tryAcquireRedis(String ipKey, LocalDate day, ZoneId zone) {
-        String key = RedisKeys.feedbackIpDay(ipKey, day);
-        Instant now = Instant.now();
-        Instant nextDayStart = day.plusDays(1).atStartOfDay(zone).toInstant();
-        Duration ttl = Duration.between(now, nextDayStart);
-        if (ttl.isNegative() || ttl.isZero()) {
-            ttl = Duration.ofHours(24);
-        }
-        boolean ok = redisOps.setIfAbsent(key, "1", ttl);
-        if (!ok) {
-            log.info("反馈限流触发。ipKey={}, day={}", ipKey, day);
-        }
-        return ok;
+    /** 缓存到次日零点失效；跨零点调用时兜底 24 小时 */
+    private Duration ttlUntilNextDay(LocalDate day, ZoneId zone) {
+        Duration ttl = Duration.between(Instant.now(), day.plusDays(1).atStartOfDay(zone).toInstant());
+        return (ttl.isNegative() || ttl.isZero()) ? Duration.ofHours(24) : ttl;
     }
 }

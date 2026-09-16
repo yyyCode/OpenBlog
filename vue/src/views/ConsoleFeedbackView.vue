@@ -46,7 +46,8 @@
           </div>
           <div style="margin-top: 10px; white-space: pre-wrap; line-height: 1.7">{{ f.content }}</div>
           <div style="margin-top: 10px; color: var(--console-muted, var(--muted)); font-size: 12px">
-            提交日：{{ f.submitDay || '' }} · 状态：{{ statusLabel(f.status) }} · ID：{{ f.id }}
+            提交日：{{ f.submitDay || '' }} · 状态：{{ statusLabel(f.status) }} · ID：{{ f.id }} ·
+            用户：{{ f.userId ?? '历史数据' }}
           </div>
         </div>
       </div>

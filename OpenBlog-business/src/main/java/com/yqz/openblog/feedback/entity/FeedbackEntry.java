@@ -7,7 +7,8 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "feedback_entries", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_feedback_ip_day", columnNames = {"ip_key", "submit_day"})
+        // 限额维度：同一登录用户每天一次（ip_key 已降级为审计字段，不再参与唯一性）
+        @UniqueConstraint(name = "uk_feedback_user_day", columnNames = {"user_id", "submit_day"})
 }, indexes = {
         @Index(name = "idx_feedback_created_at", columnList = "created_at"),
         @Index(name = "idx_feedback_submit_day", columnList = "submit_day")
@@ -23,6 +24,11 @@ public class FeedbackEntry {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** 提交用户 ID：迁移前的历史行为 NULL（当时无归属用户） */
+    @Column(name = "user_id")
+    private Long userId;
+
+    /** 提交来源 IP 摘要：仅作审计/风控，不参与唯一性判定 */
     @Column(name = "ip_key", nullable = false, length = 80)
     private String ipKey;
 
@@ -54,6 +60,14 @@ public class FeedbackEntry {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getIpKey() {

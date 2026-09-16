@@ -109,7 +109,8 @@ public final class RedisKeys {
         return SECURITY_EMAIL_ATTEMPT + ":" + email;
     }
 
-    public static String feedbackIpDay(String ipKey, Object day) {
-        return RATELIMIT_FEEDBACK + ":" + ipKey + ":" + day;
+    /** 反馈限流：按登录用户 + 提交日（原按 IP 维度的 {@code feedbackIpDay} 已废弃） */
+    public static String feedbackUserDay(long userId, Object day) {
+        return RATELIMIT_FEEDBACK + ":u:" + userId + ":" + day;
     }
 }
