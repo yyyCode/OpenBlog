@@ -82,6 +82,19 @@ openblog:
           window-ms: 60000
           limit: 5
           scope: FP_IP
+        # 滑块两端点此前漏配，未匹配路径会被 RateLimitFilter 直接放行。
+        # 不限流的后果有两重：一是盲猜 x 的重试成本为零（177 个落点按 12px 步长猜 16 次必中，
+        # 期望约 8 次），滑块就白做了；二是每次挑战要画一张图（约 9ms CPU + 约 45KB 响应），
+        # 构成纯粹的资源放大面。分别按成本定限：challenge 贵故收紧，complete 只做一次 Redis
+        # GETDEL 故放宽。对真人而言一次发码通常只需 1~3 次 challenge，10 次/分足够宽裕。
+        - path: /api/v1/auth/slider-challenge
+          window-ms: 60000
+          limit: 10
+          scope: FP_IP
+        - path: /api/v1/auth/slider-complete
+          window-ms: 60000
+          limit: 20
+          scope: FP_IP
         - path: /api/v1/auth/refresh
           window-ms: 60000
           limit: 20

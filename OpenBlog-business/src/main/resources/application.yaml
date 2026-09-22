@@ -97,9 +97,22 @@ openblog:
       - "http://localhost:5173"
       - "http://localhost"
   auth-security:
+    # 发码滑动验证码。上线顺序是硬约束：enabled 必须在**前端滑块上线之后**再翻 true——
+    # 老前端不知道要带 sliderChallengeId，开关先于前端部署会让所有发码请求被 4001 拒掉
+    # （注册与找回密码同时不可用）。开关本身即回滚手段：翻回 false 立即对老前端恢复可用。
+    # 灰度/回滚用环境变量 OPENBLOG_SLIDER_ENABLED=true 覆盖，无需改文件重新构建。
     slider:
-      enabled: false
+      enabled: ${OPENBLOG_SLIDER_ENABLED:false}
       ttl-seconds: 300
+      # 落点容差 6px / 随机空间 176px → 盲猜单次命中率约 3.4%
+      tolerance-px: 6
+      # 轨迹启发式阈值：时长短于 100ms 判机器瞬移，长于 30s 判非人工。
+      # 取 100 而非 200：最远要拖约 340 CSS px，快甩一下就能在 200ms 内完成，阈值过高会误伤真人。
+      min-duration-ms: 100
+      max-duration-ms: 30000
+      min-trail-points: 5
+      # 速度变异系数下限，拒绝完全匀速的「机器直线」
+      min-speed-cv: 0.05
     login-lockout:
       enabled: false
       max-failures-per-ip: 5

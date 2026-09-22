@@ -29,8 +29,6 @@ public class RegisterRequest {
     @Pattern(regexp = "^\\d{6}$", message = "验证码格式不正确")
     private String code;
 
-    private String sliderChallengeId;
-
     public String getUsername() {
         return username;
     }
@@ -61,14 +59,6 @@ public class RegisterRequest {
 
     public void setCode(String code) {
         this.code = code;
-    }
-
-    public String getSliderChallengeId() {
-        return sliderChallengeId;
-    }
-
-    public void setSliderChallengeId(String sliderChallengeId) {
-        this.sliderChallengeId = sliderChallengeId;
     }
 }
 

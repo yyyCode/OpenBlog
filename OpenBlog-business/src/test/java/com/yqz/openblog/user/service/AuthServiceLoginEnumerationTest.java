@@ -59,7 +59,6 @@ class AuthServiceLoginEnumerationTest {
     @Mock private JwtService jwtService;
     @Mock private JwtProperties jwtProperties;
     @Mock private CurrentUser currentUser;
-    @Mock private SliderVerificationService sliderVerificationService;
     @Mock private LoginLockoutService loginLockoutService;
     @Mock private AccountDeviceService accountDeviceService;
     @Mock private MediaService mediaService;
@@ -73,7 +72,7 @@ class AuthServiceLoginEnumerationTest {
     @BeforeEach
     void setUp() {
         authService = new AuthService(userMapper, refreshTokenMapper, passwordEncoder, jwtService,
-                jwtProperties, currentUser, sliderVerificationService, loginLockoutService,
+                jwtProperties, currentUser, loginLockoutService,
                 accountDeviceService, mediaService, emailValidator, emailCodeService);
     }
 

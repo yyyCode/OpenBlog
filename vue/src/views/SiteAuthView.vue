@@ -110,6 +110,7 @@
               >{{ codeCooldown > 0 ? codeCooldown + 's 后重发' : (sendingCode ? '发送中…' : '获取验证码') }}</button>
             </div>
           </div>
+          <SliderCaptcha ref="registerCaptchaRef" />
           <div class="auth-field">
             <div class="auth-label">密码</div>
             <input
@@ -169,6 +170,7 @@
               >{{ codeCooldown > 0 ? codeCooldown + 's 后重发' : (sendingCode ? '发送中…' : '获取验证码') }}</button>
             </div>
           </div>
+          <SliderCaptcha ref="resetCaptchaRef" />
           <div class="auth-field">
             <div class="auth-label">新密码</div>
             <input
@@ -216,6 +218,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login, register, changePassword, sendEmailCode } from '../api/admin'
+import SliderCaptcha from '../components/SliderCaptcha.vue'
 import { getAccessTokenRole } from '../auth/session'
 import { ALLOWED_EMAIL_MESSAGE, isAllowedMailboxEmail } from '../utils/allowedEmail'
 
@@ -238,6 +241,8 @@ const sendingCode = ref(false)
 const codeCooldown = ref(0)
 let codeTimer = null
 const codeInputRef = ref(null)
+const registerCaptchaRef = ref(null)
+const resetCaptchaRef = ref(null)
 
 const changeEmail = ref('')
 const newPassword = ref('')
@@ -338,12 +343,15 @@ async function sendCode() {
   }
   sendingCode.value = true
   try {
-    const resp = await sendEmailCode(em, 'register')
+    // start() 返回一次性滑块凭证；服务端滑块关闭时返回 null，照常发码
+    const proof = await registerCaptchaRef.value.start()
+    const resp = await sendEmailCode(em, 'register', proof)
     codeSent.value = true
     startCountdown(resp?.cooldownSeconds || 60)
     nextTick(() => codeInputRef.value?.focus())
   } catch (e) {
-    registerError.value = e?.message || '验证码发送失败'
+    // 用户主动取消不算错误，不打扰
+    if (!e?.cancelled) registerError.value = e?.message || '验证码发送失败'
   } finally {
     sendingCode.value = false
   }
@@ -363,12 +371,15 @@ async function sendChangePasswordCode() {
   }
   sendingCode.value = true
   try {
-    const resp = await sendEmailCode(em, 'reset')
+    // start() 返回一次性滑块凭证；服务端滑块关闭时返回 null，照常发码
+    const proof = await resetCaptchaRef.value.start()
+    const resp = await sendEmailCode(em, 'reset', proof)
     changeCodeSent.value = true
     startCountdown(resp?.cooldownSeconds || 60)
     nextTick(() => resetCodeInputRef.value?.focus())
   } catch (e) {
-    changePasswordError.value = e?.message || '验证码发送失败'
+    // 用户主动取消不算错误，不打扰
+    if (!e?.cancelled) changePasswordError.value = e?.message || '验证码发送失败'
   } finally {
     sendingCode.value = false
   }

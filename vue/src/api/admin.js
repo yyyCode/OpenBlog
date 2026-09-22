@@ -17,11 +17,29 @@ export function register(payload) {
   })
 }
 
-/** 发送邮箱验证码。purpose: 'register'（默认，邮箱需未注册）| 'reset'（邮箱需已注册） */
-export function sendEmailCode(email, purpose = 'register') {
+/**
+ * 发送邮箱验证码。purpose: 'register'（默认，邮箱需未注册）| 'reset'（邮箱需已注册）。
+ * sliderChallengeId 为滑块通过后的一次性凭证；服务端滑块关闭时可不传。
+ */
+export function sendEmailCode(email, purpose = 'register', sliderChallengeId = null) {
+  const payload = { email, purpose }
+  if (sliderChallengeId) payload.sliderChallengeId = sliderChallengeId
   return request('/api/v1/auth/email-code', {
     method: 'POST',
-    body: JSON.stringify({ email, purpose })
+    body: JSON.stringify(payload)
+  })
+}
+
+/** 取滑块挑战。data.enabled=false 表示服务端未开启滑块，直接发码即可。 */
+export function fetchSliderChallenge() {
+  return request('/api/v1/auth/slider-challenge', { method: 'GET' })
+}
+
+/** 提交滑块落点与拖动轨迹（trail: [{x, t}]，t 为相对拖动开始的毫秒数）。 */
+export function completeSlider(challengeId, x, trail) {
+  return request('/api/v1/auth/slider-complete', {
+    method: 'POST',
+    body: JSON.stringify({ challengeId, x, trail })
   })
 }
 
