@@ -87,6 +87,9 @@ jobs:
       - name: Deploy via Docker（构建镜像 + 重启容器 + 注入 JWT secret）
         env:
           OPENBLOG_JWT_SECRET: ${{ secrets.OPENBLOG_JWT_SECRET }}
+          # 发码滑块开关。用 repo variable 而非 secret：它不是密钥，且需要在不重新构建的前提下
+          # 翻转（翻转后重跑本 job 即可）。未设置时为空，下面回退为 false。
+          OPENBLOG_SLIDER_ENABLED: ${{ vars.OPENBLOG_SLIDER_ENABLED }}
         run: |
           set -euo pipefail
           TARGET_DIR="/www/wwwroot/java/openblog"
@@ -103,7 +106,10 @@ jobs:
           fi
 
           # 3.5 写入 .env（compose 自动加载），JWT secret 与 gateway 同值
-          printf 'OPENBLOG_JWT_SECRET=%s\n' "$OPENBLOG_JWT_SECRET" > "$TARGET_DIR/.env"
+          # 滑块开关必须一起写入：本行每次部署都整体覆盖 .env，漏写会在下次部署时静默关掉开关
+          SLIDER_ENABLED="${OPENBLOG_SLIDER_ENABLED:-false}"
+          printf 'OPENBLOG_JWT_SECRET=%s\nOPENBLOG_SLIDER_ENABLED=%s\n' \
+            "$OPENBLOG_JWT_SECRET" "$SLIDER_ENABLED" > "$TARGET_DIR/.env"
 
           # 3. 拷贝新 jar + Docker 部署文件
           JAR_FILE=$(ls business/OpenBlog-business-*.jar | head -1)
