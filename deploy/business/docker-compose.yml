@@ -23,6 +23,10 @@ services:
       JAVA_OPTS: "-Xmx1024M -Xms256M"
       # 与 gateway 共用同一 JWT secret（须与 OPENBLOG_JWT_SECRET 同值，否则网关校验全 401）
       OPENBLOG_JWT_SECRET: ${OPENBLOG_JWT_SECRET}
+      # 发码滑动验证码开关（对应 application.yaml 的 ${OPENBLOG_SLIDER_ENABLED:false}）。
+      # compose 只把本文件显式列出的变量传进容器，所以这里漏写就等于该开关永远开不起来
+      # —— 往服务器 .env 里加也没用。默认 false：老前端在线时开启会让发码全被 4001 拒掉。
+      OPENBLOG_SLIDER_ENABLED: ${OPENBLOG_SLIDER_ENABLED:-false}
     volumes:
       # 日志文件持久化（共享 logback 落盘 /app/logs）
       - ./logs:/app/logs
