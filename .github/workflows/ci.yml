@@ -12,6 +12,7 @@ jobs:
   # 检测变更范围。business / message / gateway 三条链互不影响；共享契约（OpenBlog-api/**）变更会同时触发 business 与 message 双链。
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       business: ${{ steps.filter.outputs.business }}
       message: ${{ steps.filter.outputs.message }}
@@ -50,6 +51,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.business == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -75,6 +77,7 @@ jobs:
     needs: build-business
     if: ${{ needs.build-business.result == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: openblog-backend
+    timeout-minutes: 30
 
     steps:
       - name: Checkout（获取 deploy/business 下的 Docker 部署文件）
@@ -92,6 +95,17 @@ jobs:
           OPENBLOG_SLIDER_ENABLED: ${{ vars.OPENBLOG_SLIDER_ENABLED }}
         run: |
           set -euo pipefail
+
+          # 只允许部署 master 的最新提交。旧 run（或被重跑的旧 run）若排在我们之后落到同一
+          # TARGET_DIR，会把它那一版的 .env 与 docker-compose.yml 覆写回来——实测会把
+          # OPENBLOG_SLIDER_ENABLED 静默抹成 false（开关自己关上，且不报任何错）。
+          # 取不到远端 SHA（网络故障）时 LATEST_SHA 为空，同样拒绝部署：宁可漏部署，不可覆写。
+          LATEST_SHA=$(git ls-remote origin refs/heads/master | cut -f1)
+          if [ "$GITHUB_SHA" != "$LATEST_SHA" ]; then
+            echo "!! 本 run 提交 $GITHUB_SHA 不是 master 最新 $LATEST_SHA，拒绝部署以免覆写更新后的配置" >&2
+            exit 1
+          fi
+
           TARGET_DIR="/www/wwwroot/java/openblog"
           TARGET_JAR="$TARGET_DIR/OpenBlog-business-1.0.0-SNAPSHOT.jar"
 
@@ -137,6 +151,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.message == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -162,6 +177,7 @@ jobs:
     needs: build-message
     if: ${{ needs.build-message.result == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: openblog-backend
+    timeout-minutes: 30
 
     steps:
       - name: Checkout（获取 deploy/message 下的 Docker 部署文件）
@@ -178,6 +194,16 @@ jobs:
           ALIYUN_FROM: ${{ secrets.ALIYUN_FROM }}
         run: |
           set -euo pipefail
+
+          # 只允许部署 master 的最新提交。旧 run（或被重跑的旧 run）若排在我们之后落到同一
+          # TARGET_DIR，会把它那一版的 .env 覆写回来（实测同类问题会静默抹掉配置项）。
+          # 取不到远端 SHA（网络故障）时 LATEST_SHA 为空，同样拒绝部署：宁可漏部署，不可覆写。
+          LATEST_SHA=$(git ls-remote origin refs/heads/master | cut -f1)
+          if [ "$GITHUB_SHA" != "$LATEST_SHA" ]; then
+            echo "!! 本 run 提交 $GITHUB_SHA 不是 master 最新 $LATEST_SHA，拒绝部署以免覆写更新后的配置" >&2
+            exit 1
+          fi
+
           TARGET_DIR="/www/wwwroot/java/openblog-message"
           TARGET_JAR="$TARGET_DIR/OpenBlog-message-1.0.0-SNAPSHOT.jar"
 
@@ -222,6 +248,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.gateway == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -247,6 +274,7 @@ jobs:
     needs: build-gateway
     if: ${{ needs.build-gateway.result == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: openblog-backend
+    timeout-minutes: 30
 
     steps:
       - name: Checkout（获取 deploy/gateway 下的 Docker 部署文件）
@@ -262,6 +290,16 @@ jobs:
           OPENBLOG_DEVICE_TOKEN_SECRET: ${{ secrets.OPENBLOG_DEVICE_TOKEN_SECRET }}
         run: |
           set -euo pipefail
+
+          # 只允许部署 master 的最新提交。旧 run（或被重跑的旧 run）若排在我们之后落到同一
+          # TARGET_DIR，会把它那一版的 .env 覆写回来（实测同类问题会静默抹掉配置项）。
+          # 取不到远端 SHA（网络故障）时 LATEST_SHA 为空，同样拒绝部署：宁可漏部署，不可覆写。
+          LATEST_SHA=$(git ls-remote origin refs/heads/master | cut -f1)
+          if [ "$GITHUB_SHA" != "$LATEST_SHA" ]; then
+            echo "!! 本 run 提交 $GITHUB_SHA 不是 master 最新 $LATEST_SHA，拒绝部署以免覆写更新后的配置" >&2
+            exit 1
+          fi
+
           TARGET_DIR="/www/wwwroot/java/openblog-gateway"
           TARGET_JAR="$TARGET_DIR/OpenBlog-gateway-1.0.0-SNAPSHOT.jar"
 
@@ -305,6 +343,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -341,6 +380,7 @@ jobs:
     needs: build-frontend
     if: ${{ needs.build-frontend.result == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Download release bundle
