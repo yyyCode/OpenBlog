@@ -47,7 +47,9 @@ public class AuthSecurityProperties {
 
     /**
      * 滑动验证码：服务端随机生成缺口图，客户端算出缺口 x 并提交拖动轨迹。
-     * 强度上限为「挡脚本、不挡打码平台」——缺口位置存在 Redis，客户端只能从像素里解出来。
+     * 强度上限为「拦掉不做图像分析的脚本、抬高随手写脚本的成本」——缺口位置存在 Redis，
+     * 客户端只能从像素里解出来；而会写局部统计或接缝分析的人仍能解出，这是滑块验证码这一
+     * 形态的固有上限。真正的门禁是坐标容差 + 一次性消费 + 网关限流，轨迹阈值一律<b>偏向不误伤真人</b>。
      */
     public static class Slider {
         /**
@@ -64,8 +66,11 @@ public class AuthSecurityProperties {
         private int tolerancePx = 6;
         /**
          * 拖动最短耗时（毫秒），低于此值判为机器瞬移。
+         * <p>
+         * 刻意取 100 而非更高：滑块最远要拖 272 图像像素（约 340 CSS px），快甩一下就能在
+         * 200ms 内完成，阈值取 200 会误伤真实用户。100ms 仍远高于脚本瞬移的耗时。
          */
-        private int minDurationMs = 200;
+        private int minDurationMs = 100;
         /**
          * 拖动最长耗时（毫秒），超时判为非人工（也防慢速重放）。
          */
@@ -76,7 +81,8 @@ public class AuthSecurityProperties {
         private int minTrailPoints = 5;
         /**
          * 速度变异系数下限。取相邻采样点间平均速度（px/ms）序列，要求 标准差/均值 >= 本值，
-         * 即拒绝完全匀速的「机器直线」。启发式阈值，非强保证。
+         * 即拒绝完全匀速的「机器直线」。启发式阈值，非强保证——前端采样位置取整后，恒速拖动
+         * 的速度也会自然出现起伏，故它只拦得住数学上完美匀速的提交。
          */
         private double minSpeedCv = 0.05;
 

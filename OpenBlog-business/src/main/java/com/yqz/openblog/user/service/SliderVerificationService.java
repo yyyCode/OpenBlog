@@ -26,10 +26,14 @@ import java.util.UUID;
  *   <li><b>坐标容差</b>——缺口 x 由服务端随机生成且只存 Redis，客户端必须从底图像素解出，
  *       容差内才算命中（盲猜命中率约 3.4%）</li>
  *   <li><b>一次性消费</b>——pending 用 getAndDelete 取，ok 标记用 getAndDelete 取，均不可重放</li>
- *   <li><b>轨迹校验</b>——识别"算出 x 后瞬移过去"的机器行为（时长 / 点数 / 非匀速）</li>
+ *   <li><b>轨迹校验</b>——拦住"算出 x 后瞬移过去"这类不做伪装的提交（时长 / 点数 / 非匀速）。
+ *       <b>弱过滤</b>，见 {@link #trailLooksHuman}</li>
  * </ol>
- * 强度上限为「挡脚本、不挡打码平台」：缺口位置的安全性来自服务端存真值，
- * 而能识别图像的服务天然能解出 x。轨迹校验是启发式的，不是强保证。
+ * <b>强度上限，不要高估</b>：缺口位置的安全性来自服务端存真值，因此能做像素分析的人天然能解出 x
+ * ——这是滑块验证码这一形态的固有上限，换任何开源实现都一样。{@link SliderImageGenerator} 的
+ * 加固把「一次 argmin / 一次模板匹配」这类通用脚本挡在门外（实测命中率回落到盲猜基线），
+ * 但挡不住愿意针对本实现写局部统计或接缝分析的人。真正限制滥用规模的是<b>网关限流</b>
+ * （见 OpenBlog-gateway 的 rate-limit.rules 对两个滑块端点的限流）与一次性消费，不是图案难度。
  */
 @Service
 public class SliderVerificationService {
@@ -39,9 +43,30 @@ public class SliderVerificationService {
     /**
      * 轨迹「总路径 / 净位移」上限。刻意不做逐段回退拒绝：人手拖过头再拉回来
      * （overshoot-correct）是常见行为，按段判定会误伤正常用户。人手拖动的比值约 1.0~1.5，
-     * 来回锯齿的机器轨迹远大于此，3 倍足以区分。
+     * 来回锯齿的机器轨迹远大于此。
      */
     private static final double MAX_PATH_TO_NET_RATIO = 3.0;
+
+    /**
+     * 每段采样允许的指针抖动预算（像素）。总路径上限取「比值」与「净位移 + 本预算 × 段数」
+     * 两者中的较大一方。
+     * <p>
+     * 只按固定比值判定会误伤正常用户：慢速拖动时每段位移不足 1px，手抖就能让分段位移反复变号，
+     * 于是总路径随采样点数<b>线性</b>增长，而净位移是单次位移——比值随段数一起涨，合法拖动被
+     * 判成来回拉锯。取 4.0 的依据是 ±2px 量级的手抖换算到每段约 3px 的额外路径，留一档余量；
+     * 而真实锯齿轨迹的每段偏移远大于此（见 {@code complete_sawtoothTrail_rejects}），不受影响。
+     * <p>
+     * 前端已把采样节流到约 60 点/秒，正常情况下每段位移远大于抖动、不会触发这一支；
+     * 保留它是为了兜住不按节流发点的其它客户端。
+     */
+    private static final double TRAIL_JITTER_ALLOWANCE_PX = 4.0;
+
+    /**
+     * 轨迹点数硬上限，纯粹是滥用防护：本方法是 O(n) 遍历，而请求体大小不受
+     * {@code maxTrailPoints} 之类配置约束，不设上限就等于把一个无鉴权端点的 CPU 交给请求方。
+     * 前端已把采样节流到约 60 点/秒并封顶 240 点，留一倍余量。
+     */
+    private static final int MAX_TRAIL_POINTS = 500;
 
     private final RedisOps redisOps;
     private final AuthSecurityProperties authSecurityProperties;
@@ -163,6 +188,12 @@ public class SliderVerificationService {
      * 轨迹启发式判定。任一条件不满足即判为机器：采样点足够多、耗时在人类区间内、
      * 不是来回锯齿、速度有起伏（拒绝匀速直线）。
      * <p>
+     * <b>这是弱过滤，不是对抗脚本的屏障</b>：x 与 t 全由提交方掌握，攻击者只要单调提交
+     * （总路径 == 净位移）并让速度有起伏就天然通过。它的价值在于拦掉<b>不会伪装</b>的提交
+     * （零耗时瞬移、完美匀速直线、来回拉锯），以及抬高随手写脚本的人的成本。真正的门禁是
+     * 坐标容差 + 一次性消费 + 网关限流。因此这里所有阈值的选取都<b>偏向不误伤真人</b>：
+     * 误伤正常用户的代价（无法注册）远高于放过一个粗糙脚本。
+     * <p>
      * 刻意<b>不</b>做逐段回退拒绝：人手拖过头再拉回来是常见行为，按段判定会误伤正常用户，
      * 改用总路径与净位移之比兜住锯齿。速度取绝对值后再算变异系数，避免回退段的负速度
      * 把均值拉向 0 使 CV 失真。
@@ -172,7 +203,7 @@ public class SliderVerificationService {
      */
     private boolean trailLooksHuman(List<SliderCompleteRequest.TrailPoint> trail,
                                     AuthSecurityProperties.Slider cfg) {
-        if (trail == null || trail.size() < cfg.getMinTrailPoints()) {
+        if (trail == null || trail.size() < cfg.getMinTrailPoints() || trail.size() > MAX_TRAIL_POINTS) {
             return false;
         }
         for (SliderCompleteRequest.TrailPoint p : trail) {
@@ -202,7 +233,12 @@ public class SliderVerificationService {
         }
 
         double net = Math.abs(trail.get(trail.size() - 1).getX() - trail.get(0).getX());
-        if (net <= 0d || path > net * MAX_PATH_TO_NET_RATIO) {
+        if (net <= 0d) {
+            return false;
+        }
+        double allowedPath = Math.max(net * MAX_PATH_TO_NET_RATIO,
+                net + TRAIL_JITTER_ALLOWANCE_PX * speeds.size());
+        if (path > allowedPath) {
             return false;
         }
 

@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { fetchSliderChallenge, completeSlider } from '../api/admin'
 
 // 与后端 SliderImageGenerator 的底图/滑块尺寸保持一致，用于 clientX → 图像像素的换算
@@ -58,6 +58,13 @@ const IMAGE_WIDTH = 320
 const IMAGE_HEIGHT = 160
 const PIECE = 48
 const MAX_PIECE_X = IMAGE_WIDTH - PIECE
+// 轨迹采样间隔（毫秒）。约 60 点/秒已足够刻画拖动过程，且与屏幕刷新率解耦。
+const SAMPLE_INTERVAL_MS = 16
+// 与后端 min-trail-points 默认值对齐；服务端仍是权威判定，这里只是提前拦掉必然失败的提交
+const MIN_TRAIL_POINTS = 5
+// 轨迹点数上限（约 4 秒 @60 点/秒）。超长拖动多为用户按住不放，多出来的点对启发式判定没有
+// 增益，只会白白撑大请求体；落点由 force 强制记录，不受此上限影响。
+const MAX_TRAIL_POINTS = 240
 
 const visible = ref(false)
 const loading = ref(false)
@@ -158,22 +165,36 @@ function onPointerMove(e) {
 function onPointerUp() {
   if (!dragging.value) return
   dragging.value = false
+  // 终点必须记录（落点是判分依据），节流不能把它吃掉，故 force 跳过节流
+  pushSample(pieceX.value, performance.now() - dragStartTime, true)
   submit()
 }
 
 /**
- * 记录采样点。跳过 x 未变化的点：那些会形成零速度段，把速度变异系数拉低，
- * 反而让正常用户被判成"匀速机器"。后端要求点数 >= 5，故起步时先补一个原点。
+ * 记录采样点。
+ *
+ * 两处过滤都是防误伤，不要删：
+ * - 跳过 x 未变化的点：那些会形成零速度段，把速度变异系数拉低，反而让正常用户被判成"匀速机器"。
+ * - 按 SAMPLE_INTERVAL_MS 节流：采样频率原本跟随屏幕刷新率（240Hz 笔记本每 4ms 一个事件），
+ *   而指针抖动会随采样点数**线性**累积进后端算的"总路径"，把正常拖动误判成来回拉锯。
+ * - 时间戳强制严格递增：取整后同一毫秒内的相邻采样会造出 dt=0，后端把 dt<=0 当异常轨迹直接拒。
+ *
+ * 后端要求点数 >= 5，故起步时先补一个原点。
  */
-function pushSample(x, t) {
-  const rounded = Math.round(x)
+function pushSample(rawX, rawT, force = false) {
+  const x = Math.round(rawX)
   const last = trail[trail.length - 1]
-  if (last && last.x === rounded) return
-  trail.push({ x: rounded, t: Math.round(t) })
+  if (last && last.x === x) return
+  let t = Math.round(rawT)
+  if (last) {
+    if (!force && (t - last.t < SAMPLE_INTERVAL_MS || trail.length >= MAX_TRAIL_POINTS)) return
+    if (t <= last.t) t = last.t + 1
+  }
+  trail.push({ x, t })
 }
 
 async function submit() {
-  if (trail.length < 2) {
+  if (trail.length < MIN_TRAIL_POINTS) {
     hint.value = '滑动距离太短，请拖到缺口处'
     refresh()
     return

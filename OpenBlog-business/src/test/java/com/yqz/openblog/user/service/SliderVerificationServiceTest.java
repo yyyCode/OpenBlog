@@ -209,13 +209,65 @@ class SliderVerificationServiceTest {
 
     @Test
     void complete_uniformSpeedTrail_rejects() {
-        // 匀速直线 = 机器特征：算出 x 后按固定速率直线拉过去。速度变异系数为 0，低于阈值。
+        // 数学上完美匀速的直线（每段 dx/dt 完全相同，CV=0）。
+        // 注意这条检查的真实强度有限：前端采样位置取整后，连恒速拖动也会产生 CV 0.08~0.16，
+        // 高于 min-speed-cv=0.05，因此它只拦得住这种理想化提交。留着是为了覆盖该代码分支，
+        // 不要据此认为"匀速脚本会被拦下"。
         String id = "c-uniform";
         when(redisOps.getAndDelete(RedisKeys.sliderPending(id))).thenReturn(Optional.of(TARGET_X + ":" + IP));
 
         BizException ex = assertThrows(BizException.class, () -> service.complete(
                 request(IP), withTrail(id, TARGET_X, new int[]{0, 20, 40, 60, 80, 100},
                         new long[]{0, 60, 120, 180, 240, 300})));
+
+        assertEquals(4001, ex.getCode());
+    }
+
+    @Test
+    void complete_slowDragWithTremor_passes() {
+        // 误伤回归防线。慢速拖动时每段位移不足 1px，±1~2px 的手抖就能让分段位移反复变号，
+        // 总路径于是随采样点数**线性**增长，而净位移是单次位移——比值随段数一起涨。
+        // 本轨迹 220 段、净位移 180px、总路径 656px，**比值 3.644 > 3**，只按固定比值的实现
+        // 必然拒绝它；必须靠「净位移 + 每段抖动预算」那一支通过（上限 1060）。
+        // 数字是实测的：改 MAX_PATH_TO_NET_RATIO 或 TRAIL_JITTER_ALLOWANCE_PX 前先重算。
+        String id = "c-tremor";
+        when(redisOps.getAndDelete(RedisKeys.sliderPending(id))).thenReturn(Optional.of(TARGET_X + ":" + IP));
+
+        int segments = 220;
+        List<SliderCompleteRequest.TrailPoint> trail = new ArrayList<>(segments + 1);
+        for (int i = 0; i <= segments; i++) {
+            int trend = Math.round(TARGET_X * (float) i / segments);
+            // 两端不抖（起点必须是 0、终点必须落在容差内），中间交替错开
+            int tremor = (i == 0 || i == segments) ? 0 : (i % 2 == 0 ? 2 : -1);
+            trail.add(point(trend + tremor, i * 16L));
+        }
+        SliderCompleteRequest req = new SliderCompleteRequest();
+        req.setChallengeId(id);
+        req.setX(TARGET_X);
+        req.setTrail(trail);
+
+        service.complete(request(IP), req);
+
+        verify(redisOps).set(eq(RedisKeys.sliderOk(id)), eq("1"), any());
+    }
+
+    @Test
+    void complete_absurdlyLongTrail_rejects() {
+        // 滥用防护：本方法 O(n) 遍历而请求体大小不受配置约束，超长轨迹必须直接拒，
+        // 不能把一个无鉴权端点的 CPU 交给请求方。
+        String id = "c-huge";
+        when(redisOps.getAndDelete(RedisKeys.sliderPending(id))).thenReturn(Optional.of(TARGET_X + ":" + IP));
+
+        int steps = 600;
+        int[] fracs = new int[steps + 1];
+        long[] times = new long[steps + 1];
+        for (int i = 0; i <= steps; i++) {
+            fracs[i] = Math.round(100f * i / steps);
+            times[i] = i * 50L;
+        }
+
+        BizException ex = assertThrows(BizException.class, () -> service.complete(
+                request(IP), withTrail(id, TARGET_X, fracs, times)));
 
         assertEquals(4001, ex.getCode());
     }
@@ -272,7 +324,10 @@ class SliderVerificationServiceTest {
     // ==================== verifyAndConsume（发码前的消费） ====================
 
     @Test
-    void verifyAndConsume_consumesMarkerExactlyOnce() {
+    void verifyAndConsume_readsMarkerThroughGetAndDelete() {
+        // 名字如实反映断言范围：这里只证明"走的是 getAndDelete 而不是 get"。
+        // 真正的"只能消费一次"由 Redis GETDEL 的原子性保证，mock 证明不了——它每次都返回同一个
+        // 值，即使实现写成 get 也照样通过。要真验这条得跑内嵌 Redis，收益不抵成本。
         String id = "c-consume";
         when(redisOps.getAndDelete(RedisKeys.sliderOk(id))).thenReturn(Optional.of("1"));
 
@@ -333,5 +388,12 @@ class SliderVerificationServiceTest {
         }
         req.setTrail(trail);
         return req;
+    }
+
+    private static SliderCompleteRequest.TrailPoint point(int x, long t) {
+        SliderCompleteRequest.TrailPoint p = new SliderCompleteRequest.TrailPoint();
+        p.setX(x);
+        p.setT(t);
+        return p;
     }
 }
