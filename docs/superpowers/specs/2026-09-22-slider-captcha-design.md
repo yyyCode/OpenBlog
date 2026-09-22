@@ -118,14 +118,20 @@ POST /auth/slider-complete
 openblog:
   auth-security:
     slider:
-      enabled: true          # 生产开启
+      # 占位符是刻意的：@ConfigurationProperties 挂在 openblog.auth-security 下，
+      # 直接写 OPENBLOG_SLIDER_ENABLED 不会被 relaxed binding 绑定，必须显式声明占位。
+      enabled: ${OPENBLOG_SLIDER_ENABLED:false}
       ttl-seconds: 300
       tolerance-px: 6
-      min-duration-ms: 200
+      min-duration-ms: 100
       max-duration-ms: 30000
       min-trail-points: 5
       min-speed-cv: 0.05
 ```
+
+**上线顺序是硬约束，不能颠倒**：`enabled=true` 而旧前端仍在线上（含浏览器/CDN 缓存）时，
+所有发码请求会被 4001 拒绝，**注册与找回密码同时不可用**。顺序是「前端全量生效 → 再翻开关」。
+开关本身也是回滚手段：置回 `false` 等于 `verifyAndConsume` 直接放行，对所有客户端立即生效。
 
 ## 测试
 
