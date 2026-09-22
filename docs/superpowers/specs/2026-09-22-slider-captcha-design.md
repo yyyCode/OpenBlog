@@ -70,9 +70,13 @@ POST /auth/slider-complete
 1. `getAndDelete(sliderPending:{id})`，miss → 4001「验证已失效」（**一次性，防重放**）
 2. `ipSeg` 一致 → 否则 4001「验证环境异常」（**保留现有 IP 绑定**，接受移动网络误伤）
 3. `abs(x - stored.x) <= tolerancePx` → 否则 4001
-4. 轨迹：`size >= minTrailPoints`、时长 ∈ [`minDurationMs`, `maxDurationMs`]、x 单调非递减
-   （允许 ≤2px 回退）、`minSpeedCv` 校验——取相邻采样点间平均速度（px/ms）序列，
+4. 轨迹：`size >= minTrailPoints`、时长 ∈ [`minDurationMs`, `maxDurationMs`]、总路径 / 净位移
+   `<= 3.0`、`minSpeedCv` 校验——取相邻采样点间平均速度绝对值（px/ms）序列，
    要求变异系数 `CV = 标准差 / 均值 >= minSpeedCv`，即拒绝完全匀速的"机器直线"
+   > **实现期修正**：初稿此处写的是「x 单调非递减，允许 ≤2px 回退」。实现时发现该规则会误伤
+   > 正常用户——人手拖过头再拉回来（overshoot-correct）是常见行为，回退 3px 即被拒。
+   > 改为限制总路径与净位移之比兜住来回锯齿（人手约 1.0~1.5，锯齿远大于 3），
+   > 速度也改取绝对值后算 CV，避免回退段的负速度把均值拉向 0 使 CV 失真。
 5. 全部通过 → 写 `sliderOk:{id}`
 
 ### 接入发码接口
