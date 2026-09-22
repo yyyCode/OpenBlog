@@ -45,15 +45,40 @@ public class AuthSecurityProperties {
         this.emailCode = emailCode;
     }
 
+    /**
+     * 滑动验证码：服务端随机生成缺口图，客户端算出缺口 x 并提交拖动轨迹。
+     * 强度上限为「挡脚本、不挡打码平台」——缺口位置存在 Redis，客户端只能从像素里解出来。
+     */
     public static class Slider {
         /**
-         * 是否要求登录/注册前先完成「滑到尽头」验证（Redis 记录一次性凭证）。
+         * 是否要求发码前先完成滑动验证（Redis 记录一次性凭证）。
          */
         private boolean enabled = false;
         /**
          * challenge / 通过标记有效时间（秒）。
          */
         private int ttlSeconds = 300;
+        /**
+         * 允许的落点误差（像素）。容差 6px / 随机空间 176px → 盲猜单次命中率约 3.4%。
+         */
+        private int tolerancePx = 6;
+        /**
+         * 拖动最短耗时（毫秒），低于此值判为机器瞬移。
+         */
+        private int minDurationMs = 200;
+        /**
+         * 拖动最长耗时（毫秒），超时判为非人工（也防慢速重放）。
+         */
+        private int maxDurationMs = 30000;
+        /**
+         * 轨迹最少采样点数。
+         */
+        private int minTrailPoints = 5;
+        /**
+         * 速度变异系数下限。取相邻采样点间平均速度（px/ms）序列，要求 标准差/均值 >= 本值，
+         * 即拒绝完全匀速的「机器直线」。启发式阈值，非强保证。
+         */
+        private double minSpeedCv = 0.05;
 
         public boolean isEnabled() {
             return enabled;
@@ -69,6 +94,46 @@ public class AuthSecurityProperties {
 
         public void setTtlSeconds(int ttlSeconds) {
             this.ttlSeconds = ttlSeconds;
+        }
+
+        public int getTolerancePx() {
+            return tolerancePx;
+        }
+
+        public void setTolerancePx(int tolerancePx) {
+            this.tolerancePx = tolerancePx;
+        }
+
+        public int getMinDurationMs() {
+            return minDurationMs;
+        }
+
+        public void setMinDurationMs(int minDurationMs) {
+            this.minDurationMs = minDurationMs;
+        }
+
+        public int getMaxDurationMs() {
+            return maxDurationMs;
+        }
+
+        public void setMaxDurationMs(int maxDurationMs) {
+            this.maxDurationMs = maxDurationMs;
+        }
+
+        public int getMinTrailPoints() {
+            return minTrailPoints;
+        }
+
+        public void setMinTrailPoints(int minTrailPoints) {
+            this.minTrailPoints = minTrailPoints;
+        }
+
+        public double getMinSpeedCv() {
+            return minSpeedCv;
+        }
+
+        public void setMinSpeedCv(double minSpeedCv) {
+            this.minSpeedCv = minSpeedCv;
         }
     }
 

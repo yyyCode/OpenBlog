@@ -45,14 +45,15 @@ public class AuthController {
     public ApiResponse<Void> sliderComplete(
             @RequestBody @Valid SliderCompleteRequest req,
             HttpServletRequest request) {
-        sliderVerificationService.complete(request, req.getChallengeId());
+        sliderVerificationService.complete(request, req);
         return ApiResponse.ok();
     }
 
     @PostMapping("/auth/email-code")
     public ApiResponse<EmailCodeResponse> emailCode(@RequestBody @Valid EmailCodeRequest req) {
         EmailCodeResponse resp = new EmailCodeResponse();
-        resp.setCooldownSeconds(emailCodeService.sendCode(req.getEmail(), req.getPurpose()));
+        resp.setCooldownSeconds(emailCodeService.sendCode(
+                req.getEmail(), req.getPurpose(), req.getSliderChallengeId()));
         return ApiResponse.ok(resp);
     }
 

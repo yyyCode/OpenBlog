@@ -52,6 +52,7 @@ public class EmailCodeService {
     private final AuthSecurityProperties authSecurityProperties;
     private final UserMapper userMapper;
     private final EmailValidator emailValidator;
+    private final SliderVerificationService sliderVerificationService;
 
     /** Dubbo 调统一通知服务。retries=0：同步链路 messageId 为空 → 渠道每次生成新幂等键，重试会重复发信。 */
     @DubboReference(retries = 0, timeout = 5000)
@@ -60,21 +61,28 @@ public class EmailCodeService {
     public EmailCodeService(RedisOps redisOps,
                             AuthSecurityProperties authSecurityProperties,
                             UserMapper userMapper,
-                            EmailValidator emailValidator) {
+                            EmailValidator emailValidator,
+                            SliderVerificationService sliderVerificationService) {
         this.redisOps = redisOps;
         this.authSecurityProperties = authSecurityProperties;
         this.userMapper = userMapper;
         this.emailValidator = emailValidator;
+        this.sliderVerificationService = sliderVerificationService;
     }
 
     /**
      * 发送验证码到指定邮箱，返回冷却秒数（供前端倒计时）。
      * purpose=register：邮箱需未注册（注册流程）；purpose=reset：邮箱需已注册（找回/修改密码流程），
-     * 主题与邮件模板随用途区分。前置流程：邮箱格式白名单 → 注册态校验 → 冷却检查 →
+     * 主题与邮件模板随用途区分。前置流程：滑动验证 → 邮箱格式白名单 → 注册态校验 → 冷却检查 →
      * 生成 6 位码入 Redis → 通知层发信（Email 渠道 → Dubbo）。
      * 发信失败时删除已落库的验证码与冷却键，让用户可立即重试。
+     * <p>
+     * 滑动验证必须排在冷却 SETNX <b>之前</b>：冷却键是「发信前占位」，若滑块在占位之后再校验，
+     * 一次失败的滑块会白占满一个冷却周期，用户需空等才能重试（与下方两个 catch 释放冷却同源）。
+     * 置于最前则滑块失败直接抛 4001，完全不触碰冷却键。
      */
-    public int sendCode(String rawEmail, String purpose) {
+    public int sendCode(String rawEmail, String purpose, String sliderChallengeId) {
+        sliderVerificationService.verifyAndConsume(sliderChallengeId);
         String email = normalizeEmail(rawEmail);
 
         String emailError = emailValidator.validate(email);

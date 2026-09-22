@@ -97,9 +97,20 @@ openblog:
       - "http://localhost:5173"
       - "http://localhost"
   auth-security:
+    # 发码滑动验证码。enabled 必须在**前端滑块上线之后**再翻 true：老前端不知道要带
+    # sliderChallengeId，开关先于前端部署会让所有发码请求被 4001 拒掉。
+    # 翻开关前请先确认站点已发布带 SliderCaptcha 组件的前端版本（或用 OPENBLOG_SLIDER_ENABLED 灰度）。
     slider:
       enabled: false
       ttl-seconds: 300
+      # 落点容差 6px / 随机空间 176px → 盲猜单次命中率约 3.4%
+      tolerance-px: 6
+      # 轨迹启发式阈值：时长短于 200ms 判机器瞬移，长于 30s 判非人工
+      min-duration-ms: 200
+      max-duration-ms: 30000
+      min-trail-points: 5
+      # 速度变异系数下限，拒绝完全匀速的「机器直线」
+      min-speed-cv: 0.05
     login-lockout:
       enabled: false
       max-failures-per-ip: 5

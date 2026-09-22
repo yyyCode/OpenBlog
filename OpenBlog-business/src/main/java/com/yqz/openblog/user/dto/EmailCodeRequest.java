@@ -20,6 +20,11 @@ public class EmailCodeRequest {
 
     private String purpose;
 
+    /**
+     * 滑动验证通过后的一次性凭证。滑块开关关闭时可不传（服务端直接放行）。
+     */
+    private String sliderChallengeId;
+
     public String getEmail() {
         return email;
     }
@@ -34,5 +39,13 @@ public class EmailCodeRequest {
 
     public void setPurpose(String purpose) {
         this.purpose = purpose;
+    }
+
+    public String getSliderChallengeId() {
+        return sliderChallengeId;
+    }
+
+    public void setSliderChallengeId(String sliderChallengeId) {
+        this.sliderChallengeId = sliderChallengeId;
     }
 }

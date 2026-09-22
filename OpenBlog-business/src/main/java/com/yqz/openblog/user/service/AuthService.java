@@ -45,7 +45,6 @@ public class AuthService {
     private final JwtService jwtService;
     private final com.yqz.openblog.security.JwtProperties jwtProperties;
     private final CurrentUser currentUser;
-    private final SliderVerificationService sliderVerificationService;
     private final LoginLockoutService loginLockoutService;
     private final AccountDeviceService accountDeviceService;
     private final MediaService mediaService;
@@ -65,7 +64,6 @@ public class AuthService {
                         JwtService jwtService,
                         com.yqz.openblog.security.JwtProperties jwtProperties,
                         CurrentUser currentUser,
-                        SliderVerificationService sliderVerificationService,
                         LoginLockoutService loginLockoutService,
                         AccountDeviceService accountDeviceService,
                         MediaService mediaService,
@@ -77,7 +75,6 @@ public class AuthService {
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
         this.currentUser = currentUser;
-        this.sliderVerificationService = sliderVerificationService;
         this.loginLockoutService = loginLockoutService;
         this.accountDeviceService = accountDeviceService;
         this.mediaService = mediaService;
@@ -88,7 +85,6 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest req) {
-        sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
         // 用户名归一化：去掉首尾空白（DTO 层 @Pattern 已禁空白字符，此处为绕过校验的内部调用兜底）
         String username = req.getUsername() == null ? null : req.getUsername().trim();
 
@@ -141,7 +137,6 @@ public class AuthService {
         String fp = currentDeviceFingerprint();
         loginLockoutService.assertNotLocked(ipSeg);
         loginLockoutService.assertNotDeviceLocked(fp);
-        sliderVerificationService.verifyAndConsume(req.getSliderChallengeId());
 
         User user = userMapper.selectOne(Wrappers.lambdaQuery(User.class).eq(User::getUsername, req.getAccount()));
         if (user == null) {
