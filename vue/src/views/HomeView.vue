@@ -71,63 +71,97 @@
       </div>
     </section>
 
-    <!-- 第 3 屏：项目推荐 -->
-    <section class="home-screen home-screen-projects">
+    <!-- 第 3 屏：项目推荐（横向无限流水；项目少于 4 个填不满一屏，退回静态网格） -->
+    <section class="home-screen home-screen-projects" :style="railStyle">
       <div class="home-projects">
         <div class="home-projects-head">
-          <span class="home-projects-kicker">HANDMADE · PROJECTS</span>
-          <h2 class="home-projects-title">项目推荐</h2>
-          <p class="home-projects-sub">把喜欢的东西做出来 —— 亲手写过的项目，欢迎进来看看</p>
+          <div>
+            <span class="home-projects-kicker">HANDMADE · PROJECTS</span>
+            <h2 class="home-projects-title">项目推荐</h2>
+            <p class="home-projects-sub">亲手写过的项目，欢迎进来看看</p>
+          </div>
+          <router-link class="home-projects-more" to="/projects">查看全部项目 →</router-link>
         </div>
 
-        <div v-if="latestProjects.length" class="home-projects-grid">
+        <template v-if="latestProjects.length">
           <div
-            v-for="(item, i) in latestProjects"
-            :key="item.id"
-            class="home-project-card"
-            :class="{ 'home-project-card--featured': i === 0 }"
-            @click="goProject(item.id)"
+            ref="railRef"
+            class="home-projects-rail"
+            :class="{ 'home-projects-rail--static': !useRail }"
           >
-            <div class="home-project-cover">
-              <img v-if="item.coverMediaKey" :src="coverUrl(item.coverMediaKey)" alt="cover" />
-              <span class="home-project-index">{{ String(i + 1).padStart(2, '0') }}</span>
-              <span v-if="i === 0" class="home-project-pick">精选</span>
-            </div>
-            <div class="home-project-body">
-              <div class="home-project-title">{{ item.title }}</div>
-              <div class="home-project-summary">{{ item.summary || '暂无简介' }}</div>
-              <div v-if="item.techStack" class="home-project-tags">
-                <span v-for="tag in splitTags(item.techStack)" :key="tag" class="home-project-tag">{{ tag }}</span>
-              </div>
-              <div class="home-project-links">
-                <a
-                  v-if="item.projectUrl"
-                  :href="item.projectUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  @click.stop
-                >项目链接</a>
-                <a
-                  v-if="item.githubUrl"
-                  :href="item.githubUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  @click.stop
-                >GitHub</a>
+            <div class="home-projects-mover">
+              <!-- 同一份卡片组复制 N 份首尾相接，每轮位移恰好一份的宽度，接缝处看不出跳变 -->
+              <div
+                v-for="copy in railCopies"
+                :key="copy"
+                :ref="copy === 1 ? setRailGroupRef : undefined"
+                class="home-projects-grp"
+                :class="{ 'home-projects-grp--copy': copy > 1 }"
+              >
+                <article
+                  v-for="item in latestProjects"
+                  :key="item.id"
+                  class="home-project-card"
+                  @click="goProject(item.id)"
+                >
+                  <div class="home-project-cover">
+                    <img
+                      v-if="item.coverMediaKey"
+                      :src="coverUrl(item.coverMediaKey)"
+                      :alt="item.title"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="home-project-body">
+                    <div class="home-project-title">{{ item.title }}</div>
+                    <div class="home-project-summary">{{ item.summary || '暂无简介' }}</div>
+                    <div v-if="item.techStack" class="home-project-tags">
+                      <span
+                        v-for="tag in splitTags(item.techStack)"
+                        :key="tag"
+                        class="home-project-tag"
+                        :class="`home-project-tag--${tagKind(tag)}`"
+                      >{{ tag }}</span>
+                    </div>
+                    <div class="home-project-links">
+                      <a
+                        v-if="item.projectUrl"
+                        class="home-project-link home-project-link--primary"
+                        :href="item.projectUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click.stop
+                      >访问项目</a>
+                      <a
+                        v-if="item.githubUrl"
+                        class="home-project-link"
+                        :href="item.githubUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click.stop
+                      >GitHub</a>
+                    </div>
+                  </div>
+                </article>
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- 与滚动同周期、同暂停的进度条，替代原先与滚动位置毫无关系的静态圆点 -->
+          <div v-if="useRail" class="home-projects-progress">
+            <div class="home-projects-progress-track">
+              <div class="home-projects-progress-fill"></div>
+            </div>
+          </div>
+        </template>
 
         <div v-else class="card">
           <div class="card-body" style="padding: 22px; color: var(--muted)">暂无项目推荐，敬请期待</div>
         </div>
-
-        <router-link class="home-projects-more" to="/projects">查看全部项目 →</router-link>
       </div>
     </section>
 
-    <!-- 第 4 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐居中 bento） -->
+    <!-- 第 4 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐的横向流水） -->
     <section class="home-screen home-screen-companies">
       <div class="home-companies">
         <div class="home-companies-copy">
@@ -592,8 +626,59 @@ const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
 
-// ---- 第 3 屏：项目推荐（只取前 4 个已发布项目，首个做精选大卡） ----
+// ---- 第 3 屏：项目推荐（横向无限流水） ----
 const latestProjects = ref([])
+
+// 少于这个数，一份卡片组填不满一屏，循环会露出空白 —— 这时退回静态网格
+const RAIL_MIN_CARDS = 4
+// 滚动线速度（px/s），再按卡片组宽度换算成每轮时长，卡片多少都保持同一观感速度
+const RAIL_SPEED = 58
+
+const useRail = computed(() => latestProjects.value.length >= RAIL_MIN_CARDS)
+
+const railRef = ref(null)
+const railGroupRef = ref(null)
+// 至少复制 2 份才能首尾衔接；可视区比一份还宽时得再复制，否则会同时看到两份里的同一张卡
+const railCopyCount = ref(2)
+// 退回静态网格时只留一份，否则同一批项目会在网格里重复出现两遍
+const railCopies = computed(() => (useRail.value ? railCopyCount.value : 1))
+const railShift = ref(0)
+const railDur = ref(32)
+
+const railStyle = computed(() =>
+  useRail.value && railShift.value
+    ? { '--mq-shift': `${-railShift.value}px`, '--mq-dur': `${railDur.value}s` }
+    : null
+)
+
+function setRailGroupRef(el) {
+  if (el) railGroupRef.value = el
+}
+
+function syncRail() {
+  const rail = railRef.value
+  const grp = railGroupRef.value
+  if (!rail || !grp || !useRail.value) return
+  const groupW = grp.scrollWidth
+  if (!groupW) return
+  railCopyCount.value = Math.max(2, Math.ceil(rail.offsetWidth / groupW) + 1)
+  railShift.value = groupW
+  railDur.value = Math.max(18, Math.round(groupW / RAIL_SPEED))
+}
+
+let railObserver = null
+function observeRail() {
+  if (railObserver) railObserver.disconnect()
+  if (!railRef.value || !railGroupRef.value || !useRail.value) return
+  // 封面图加载完、窗口缩放都会改变一份的宽度，交给 ResizeObserver 跟着重算
+  railObserver = new ResizeObserver(syncRail)
+  railObserver.observe(railRef.value)
+  railObserver.observe(railGroupRef.value)
+  syncRail()
+}
+
+// 项目到位后才量得出一份的真实宽度（图片未加载时会偏小），所以等 DOM 更新后再量
+watch(useRail, observeRail, { flush: 'post' })
 
 // ---- 第 4 屏：小而美公司（预览前 6 家，跳转 /jobs/companies 看全部） ----
 const previewCompanies = ref([])
@@ -695,6 +780,7 @@ onMounted(async () => {
 onUnmounted(() => {
   disableHomepageSnap()
   stopSloganFx()
+  if (railObserver) railObserver.disconnect()
 })
 
 // siteConfig 异步到达后才知有没有 hero 大图：配图则卸掉动画，改回纯色则启用
@@ -734,6 +820,34 @@ function goProject(id) {
 function splitTags(v) {
   if (!v) return []
   return v.split(',').map(s => s.trim()).filter(Boolean)
+}
+
+// 技术栈标签按分类上色：同一个技术在哪个卡片里都是同一个颜色，颜色本身才承载信息。
+// 认不出的标签落到 'other'，没有对应样式规则，走 .home-project-tag 的中性底色。
+const TAG_KIND_MAP = (() => {
+  const groups = {
+    backend: ['java', 'spring', 'spring boot', 'springboot', 'spring cloud', 'mybatis', 'mybatis-plus',
+      'dubbo', 'netty', 'jvm', 'kotlin', 'scala', 'groovy', 'go', 'golang', 'rust', 'c++', 'c#', '.net',
+      'php', 'ruby', 'node', 'node.js', 'nestjs', 'python', 'django', 'flask', 'fastapi', 'tornado', 'gin'],
+    frontend: ['vue', 'vue2', 'vue3', 'vue 3', 'react', 'next.js', 'nuxt', 'svelte', 'angular', 'typescript',
+      'javascript', 'vite', 'webpack', 'rollup', 'tailwind', 'tailwindcss', 'scss', 'sass', 'less', 'css',
+      'html', 'element-plus', 'element plus', 'elementui', 'pinia', 'uni-app', 'taro', 'echarts'],
+    infra: ['redis', 'rocketmq', 'kafka', 'rabbitmq', 'activemq', 'nacos', 'zookeeper', 'consul', 'etcd',
+      'nginx', 'docker', 'kubernetes', 'k8s', 'jenkins', 'linux', 'sentinel', 'seata', 'hystrix',
+      'minio', 'prometheus', 'grafana', 'elk', 'sharding-jdbc', 'canal', 'xxl-job'],
+    data: ['mysql', 'postgresql', 'postgres', 'oracle', 'sqlserver', 'sqlite', 'mongodb', 'tidb', 'clickhouse',
+      'hive', 'hbase', 'spark', 'flink', 'hadoop', 'neo4j', 'elasticsearch', 'es', 'pgvector', 'milvus',
+      'faiss', 'chroma', 'langchain', 'llamaindex', 'rag', 'llm', 'pytorch', 'tensorflow', 'openai', 'ollama']
+  }
+  const map = new Map()
+  for (const [kind, names] of Object.entries(groups)) {
+    for (const name of names) map.set(name, kind)
+  }
+  return map
+})()
+
+function tagKind(tag) {
+  return TAG_KIND_MAP.get(String(tag || '').trim().toLowerCase()) || 'other'
 }
 
 function formatDate(v) {
