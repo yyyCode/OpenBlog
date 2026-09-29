@@ -415,6 +415,15 @@ html.homepage-scroll-snap {
   position: relative;
 }
 
+/* ===== 关于页：个人信息 / 开源贡献两屏，机制同上 ===== */
+/* AboutUsView 挂载时给 <html> 加此 class，离开移除；屏高与吸附点在各视图内定义 */
+/* 吸附力度靠 --about-snap-strictness 控制：默认 mandatory（一次下滑即到下一屏）；
+   内容高于一屏时由 JS 降为 proximity，否则屏底内容会被吸附点顶住滚不到 */
+html.about-scroll-snap {
+  scroll-snap-type: y var(--about-snap-strictness, mandatory);
+  scroll-padding-top: var(--header-h, 60px);
+}
+
 /* 第 1 屏：口号区 */
 .home-screen-slogan {
   background-color: #ffffff;
