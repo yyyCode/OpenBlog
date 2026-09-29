@@ -23,4 +23,7 @@ INSERT IGNORE INTO site_config (config_key, config_value) VALUES
 ('footer_copyright', '© 2026 OpenBlog'),
 ('hero_image_url', ''),
 ('job_intention',    '后端 / 全栈开发工程师'),
-('contact_email',    '2678785492@qq.com');
+('contact_email',    '2678785492@qq.com'),
+-- 关于页第二屏的开源贡献列表，JSON 数组字符串；在后台「站点设置 › 开源贡献」编辑
+-- （后台按行编辑、保存时序列化，这里只是首次部署的初始值；JSON 内没有单引号，无需转义）
+('about_opensource', '[{"name":"Apache Dubbo","role":"Maintainer","url":"https://github.com/apache/dubbo/pulls?q=author%3AyyyCode"},{"name":"Higress","role":"Contributor","url":"https://github.com/alibaba/higress/pulls?q=author%3AyyyCode"},{"name":"Nacos","role":"Contributor","url":"https://github.com/alibaba/nacos/pulls?q=author%3AyyyCode"},{"name":"MyBatis-Plus","role":"Contributor","url":"https://github.com/baomidou/mybatis-plus/pulls?q=author%3AyyyCode"},{"name":"Redisson","role":"Contributor","url":"https://github.com/redisson/redisson/pulls?q=author%3AyyyCode"},{"name":"Sa-Token","role":"Contributor","url":"https://github.com/dromara/Sa-Token/pulls?q=author%3AyyyCode"}]');
