@@ -56,12 +56,18 @@ public class RepeatExecuteLimitAspect {
     @Around("@annotation(repeatLimit)")
     public Object around(ProceedingJoinPoint pjp, RepeatExecuteLimit repeatLimit) throws Throwable {
         String name = repeatLimit.name();
-        List<String> keys = keyResolver.resolve(pjp, repeatLimit.keys());
-        // 防御：任一幂等 Key 为空则跳过幂等保护（记录警告），避免错误配置锁死业务
-        if (name.isBlank() || keys.isEmpty() || keys.stream().anyMatch(String::isBlank)) {
-            log.warn("[idempotent] 幂等 Key 为空，跳过幂等保护。name={}, keys={}", name, keys);
+        if (name.isBlank()) {
+            log.warn("[idempotent] 注解 name 为空，无法生成幂等 Key，跳过幂等保护。method={}",
+                    pjp.getSignature().toShortString());
             return pjp.proceed();
         }
+        // 防御：Key 缺失或任一表达式解析不出值 → **整组作废**、跳过幂等保护（fail-open）。
+        // 只丢掉解析失败的那一项会让 Key 粒度静默变粗、误伤正常请求，具体原因由 resolver 记 warn。
+        Optional<List<String>> resolvedKeys = keyResolver.resolve(pjp, repeatLimit.keys());
+        if (resolvedKeys.isEmpty()) {
+            return pjp.proceed();
+        }
+        List<String> keys = resolvedKeys.get();
 
         String lockKey = keyBuilder.lockKey(name, keys);
         String flagKey = keyBuilder.flagKey(name, keys);

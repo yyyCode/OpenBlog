@@ -91,6 +91,20 @@ class RepeatExecuteLimitAspectTest {
         public Result createNoWindow(Long articleId, Long uid, TestReq req) {
             return new Result("ok");
         }
+
+        /** keys 里故意写错一个属性名：模拟配置错误 */
+        @RepeatExecuteLimit(name = "comment_create", keys = {"#req.artcleId", "#uid", "#req.requestId"},
+                durationTime = 30, strategy = IdempotentStrategy.RETURN_SAME_RESULT)
+        public Result createWithMisspelledKey(Long articleId, Long uid, TestReq req) {
+            return new Result("ok");
+        }
+
+        /** keys 里故意写成非法 SpEL：模拟语法错误 */
+        @RepeatExecuteLimit(name = "comment_create", keys = {"#articleId +", "#uid"},
+                durationTime = 30, strategy = IdempotentStrategy.RETURN_SAME_RESULT)
+        public Result createWithMalformedKey(Long articleId, Long uid, TestReq req) {
+            return new Result("ok");
+        }
     }
 
     private static final String FLAG_CREATE = "openblog:test:repeat:flag:comment_create:42:7:r1";
@@ -350,6 +364,36 @@ class RepeatExecuteLimitAspectTest {
         assertEquals("ok", ((Result) out).text);
         verify(lockSupport, never()).tryLock(anyString());
         assertFalse(flagStore.isSuccess(FLAG_REPLY));
+    }
+
+    @Test
+    void misspelledKeyExpression_skipsIdempotency_andExecutes() throws Throwable {
+        // 一个 Key 解析不出来 → 整组作废、跳过防重。
+        // 若只是"丢掉解析失败的那一项"，Key 会退化成 (articleId, uid) 并照常防重，
+        // 同一用户 30s 内的第二条正常评论会被判为重复（返回第一条的缓存结果）。
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        stubInvocation("createWithMisspelledKey", params,
+                new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
+
+        Object out = aspect.around(pjp, annotationOf("createWithMisspelledKey", params));
+
+        assertEquals("ok", ((Result) out).text);
+        verify(lockSupport, never()).tryLock(anyString());
+        assertFalse(flagStore.isSuccess("openblog:test:repeat:flag:comment_create:42:7"));
+    }
+
+    @Test
+    void malformedKeyExpression_doesNotThrow_skipsIdempotency() throws Throwable {
+        // 非法 SpEL 抛 ParseException（非 EvaluationException）：不能让它穿透切面变成业务 500
+        Class<?>[] params = {Long.class, Long.class, TestReq.class};
+        stubInvocation("createWithMalformedKey", params,
+                new Object[]{42L, 7L, reqWith("r1")}, Result.class, new Result("ok"));
+
+        Object out = aspect.around(pjp, annotationOf("createWithMalformedKey", params));
+
+        assertEquals("ok", ((Result) out).text);
+        verify(lockSupport, never()).tryLock(anyString());
+        assertFalse(flagStore.isSuccess(FLAG_CREATE));
     }
 
     @Test
