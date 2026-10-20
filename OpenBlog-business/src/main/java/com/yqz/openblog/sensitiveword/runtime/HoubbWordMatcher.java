@@ -6,9 +6,7 @@ import com.github.houbb.sensitive.word.support.allow.WordAllows;
 import com.github.houbb.sensitive.word.support.result.WordResultHandlers;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 生产基线：直接封装 houbb DFA。
@@ -45,7 +43,11 @@ public final class HoubbWordMatcher implements WordMatcher {
 
     @Override
     public boolean contains(String text) {
-        return firstHit(text) != null;
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+        // 库内部走 FAIL_FAST，从 0 开始找到第一个命中即停，避免 findAll 扫完整段文本
+        return delegate.contains(text);
     }
 
     @Override
@@ -53,12 +55,9 @@ public final class HoubbWordMatcher implements WordMatcher {
         if (text == null || text.isEmpty()) {
             return null;
         }
-        List<IWordResult> raw = delegate.findAll(text, WordResultHandlers.raw());
-        if (raw.isEmpty()) {
-            return null;
-        }
-        IWordResult first = raw.get(0);
-        return new HitRange(first.startIndex(), first.endIndex());
+        // FAIL_FAST：只取最左侧命中，不再像 findAll 那样收集全文所有结果
+        IWordResult first = delegate.findFirst(text, WordResultHandlers.raw());
+        return first == null ? null : new HitRange(first.startIndex(), first.endIndex());
     }
 
     @Override
@@ -71,12 +70,10 @@ public final class HoubbWordMatcher implements WordMatcher {
             return FilterResult.empty(text);
         }
         List<HitRange> ranges = new ArrayList<>(raw.size());
-        Set<String> words = new LinkedHashSet<>();
         for (IWordResult r : raw) {
             ranges.add(new HitRange(r.startIndex(), r.endIndex()));
-            // 与 Trie/AC 一致：hitWords 是原文片段，不是归一化后的词典词（大小写/全角场景会不同）
-            words.add(text.substring(r.startIndex(), Math.min(r.endIndex(), text.length())));
         }
-        return new FilterResult(true, delegate.replace(text), List.copyOf(words), List.copyOf(ranges));
+        // 复用统一收敛逻辑；不再调用 delegate.replace（其内部会再跑一遍 findAll）
+        return WordMatcher.buildResult(text.toCharArray(), ranges);
     }
 }
