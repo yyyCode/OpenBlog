@@ -96,6 +96,15 @@ export function fetchSensitiveWordStatus() {
   return request(`${BASE}/status`, { method: 'GET', withAuth: true })
 }
 
+/** engine 传 null 表示清除覆盖、跟随配置默认引擎。 */
+export function switchSensitiveWordEngine(engine) {
+  return request(`${BASE}/engine`, {
+    method: 'PUT',
+    withAuth: true,
+    body: JSON.stringify({ engine })
+  })
+}
+
 export function checkSensitiveText(text) {
   return request(`${BASE}/check`, {
     method: 'POST',

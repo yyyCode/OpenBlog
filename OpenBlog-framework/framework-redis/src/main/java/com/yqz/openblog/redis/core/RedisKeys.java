@@ -50,6 +50,8 @@ public final class RedisKeys {
     private static final String CONTENT_SENSITIVE_WORD = "openblog:content:sensitive-word";
 
     public static final String CONTENT_SENSITIVE_WORD_CURRENT = CONTENT_SENSITIVE_WORD + ":current";
+    /** 运行时引擎覆盖值：houbb / trie / ac；key 不存在表示跟随配置默认引擎。 */
+    public static final String CONTENT_SENSITIVE_WORD_ENGINE_OVERRIDE = CONTENT_SENSITIVE_WORD + ":engine-override";
     public static final String CONTENT_SENSITIVE_WORD_PUBLISH_LOCK = CONTENT_SENSITIVE_WORD + ":publish-lock";
     public static final String CONTENT_SENSITIVE_WORD_NODE_PREFIX = CONTENT_SENSITIVE_WORD + ":node:";
 

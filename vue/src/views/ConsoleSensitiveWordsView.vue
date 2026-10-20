@@ -33,6 +33,10 @@
           <strong>{{ status.wordCount }}</strong>
         </div>
         <div class="sw-stat">
+          <span class="sw-stat-label">平均匹配耗时</span>
+          <strong>{{ status.avgMatchUs > 0 ? formatDuration(status.avgMatchUs) : '-' }}</strong>
+        </div>
+        <div class="sw-stat">
           <span class="sw-stat-label">待发布</span>
           <strong>{{ pendingTotal }}</strong>
         </div>
@@ -46,6 +50,24 @@
         </div>
       </div>
       <div v-else class="sw-muted">状态加载中...</div>
+      <div v-if="status" class="sw-publish-row">
+        <span class="sw-stat-label">运行引擎</span>
+        <select v-model="engineChoice" class="sw-input sw-select" :disabled="switchingEngine">
+          <option value="default">跟随配置（{{ status.configuredEngine }}）</option>
+          <option value="houbb">houbb（DFA）</option>
+          <option value="trie">trie（字典树）</option>
+          <option value="ac">ac（AC 自动机）</option>
+        </select>
+        <button
+          class="btn primary"
+          :disabled="switchingEngine || engineChoice === (status.engineOverride || 'default')"
+          @click="switchEngine"
+        >
+          {{ switchingEngine ? '切换中...' : '热切换' }}
+        </button>
+        <span v-if="engineSwitchMsg" class="sw-muted">{{ engineSwitchMsg }}</span>
+        <span v-if="engineSwitchError" class="sw-error">{{ engineSwitchError }}</span>
+      </div>
     </div>
 
     <div class="console-card console-inner-card">
@@ -160,7 +182,7 @@
             {{ checking ? '检测中...' : '检测' }}
           </button>
           <span v-if="checkResult" class="sw-muted">
-            {{ checkResult.engine }} · v{{ checkResult.version }} · {{ checkResult.costMs }}ms
+            {{ checkResult.engine }} · v{{ checkResult.version }} · 匹配耗时 {{ formatDuration(checkResult.costUs) }}
           </span>
         </div>
         <div v-if="checkResult" class="sw-check-result">
@@ -360,6 +382,7 @@ import {
   previewSensitiveWordImport,
   publishSensitiveWords,
   rollbackSensitiveWordVersion,
+  switchSensitiveWordEngine,
   syncSensitiveWordVersion,
   updateSensitiveWord
 } from '../api/sensitiveWord'
@@ -387,6 +410,11 @@ const checkText = ref('')
 const checking = ref(false)
 const checkResult = ref(null)
 
+const engineChoice = ref('default')
+const switchingEngine = ref(false)
+const engineSwitchMsg = ref('')
+const engineSwitchError = ref('')
+
 const versions = ref([])
 const diffOpen = ref(false)
 const diff = ref(null)
@@ -410,6 +438,14 @@ const importError = ref('')
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const allSelected = computed(() => items.value.length > 0 && items.value.every((it) => selectedIds.value.includes(it.id)))
 const pendingTotal = computed(() => pending.added + pending.removed + pending.updated)
+
+// 匹配通常只有几十微秒，用 ms 显示会全是 0ms，这里按量级选单位
+function formatDuration(us) {
+  const n = Number(us)
+  if (!Number.isFinite(n)) return '-'
+  if (n >= 1000) return `${(n / 1000).toFixed(2)}ms`
+  return `${n < 10 ? n.toFixed(1) : n.toFixed(0)}µs`
+}
 
 function formatTime(v) {
   if (!v) return ''
@@ -439,6 +475,10 @@ function kindLabel(kind) {
 async function loadStatus() {
   try {
     status.value = await fetchSensitiveWordStatus()
+    // 切换请求进行中不要回填下拉框，避免用户刚选的引擎被上一次状态覆盖
+    if (!switchingEngine.value) {
+      engineChoice.value = status.value?.engineOverride || 'default'
+    }
     // /status 已携带待发布差异，避免再请求 /pending 重复加载全量词表
     const data = status.value?.pending
     pending.added = data?.added || 0
@@ -447,6 +487,26 @@ async function loadStatus() {
     pending.items = data?.items || []
   } catch (e) {
     error.value = errorText(e)
+  }
+}
+
+async function switchEngine() {
+  switchingEngine.value = true
+  engineSwitchMsg.value = ''
+  engineSwitchError.value = ''
+  try {
+    const result = await switchSensitiveWordEngine(
+      engineChoice.value === 'default' ? null : engineChoice.value
+    )
+    engineSwitchMsg.value = result.applied
+      ? `已切到 ${result.engine}（${result.wordCount} 词，构建 ${result.buildMs}ms），其他节点 ${result.propagateSeconds}s 内收敛`
+      : `覆盖已记录为 ${result.engine}，词库就绪后生效`
+    checkResult.value = null
+    await loadStatus()
+  } catch (e) {
+    engineSwitchError.value = errorText(e)
+  } finally {
+    switchingEngine.value = false
   }
 }
 

@@ -105,10 +105,13 @@ public final class SensitiveWordDtos {
             Long publishedVersion,
             long localVersion,
             int wordCount,
+            double avgMatchUs,
             Instant lastPublishedAt,
             PendingResponse pending,
             NodeStatus nodes,
-            ShadowStatus shadow) {
+            ShadowStatus shadow,
+            String configuredEngine,
+            String engineOverride) {
     }
 
     public record CheckResponse(
@@ -117,7 +120,8 @@ public final class SensitiveWordDtos {
             List<String> hitWords,
             long version,
             String engine,
-            long costMs) {
+            long costMs,
+            long costUs) {
     }
 
     public record PublishResponse(
@@ -128,5 +132,19 @@ public final class SensitiveWordDtos {
     }
 
     public record RollbackResponse(Long newVersion, Long rolledBackTo, int wordCount) {
+    }
+
+    /** engine 为空 / default 表示清除覆盖、跟随配置默认引擎。 */
+    public record EngineSwitchRequest(String engine) {
+    }
+
+    public record EngineSwitchResponse(
+            String engine,
+            String engineOverride,
+            String previousEngine,
+            int wordCount,
+            long buildMs,
+            boolean applied,
+            int propagateSeconds) {
     }
 }

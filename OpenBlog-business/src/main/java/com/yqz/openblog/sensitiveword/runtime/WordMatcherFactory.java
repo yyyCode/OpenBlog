@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** 按配置创建匹配引擎。引擎只在快照构建时选择一次。 */
+/** 按配置或管理台覆盖值创建匹配引擎；快照构建和热切换都会调用。 */
 @Component
 public class WordMatcherFactory {
 

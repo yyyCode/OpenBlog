@@ -18,6 +18,7 @@ import com.yqz.openblog.sensitiveword.entity.SensitiveWordVersion;
 import com.yqz.openblog.sensitiveword.repo.SensitiveWordChangeLogMapper;
 import com.yqz.openblog.sensitiveword.repo.SensitiveWordMapper;
 import com.yqz.openblog.sensitiveword.repo.SensitiveWordVersionMapper;
+import com.yqz.openblog.sensitiveword.runtime.EngineSelection;
 import com.yqz.openblog.sensitiveword.runtime.FilterResult;
 import com.yqz.openblog.sensitiveword.runtime.SensitiveWordManager;
 import org.slf4j.Logger;
@@ -361,10 +362,54 @@ public class SensitiveWordAdminService {
         }
         long start = System.nanoTime();
         FilterResult result = manager.filter(text);
-        long costMs = (System.nanoTime() - start) / 1_000_000;
+        long costUs = (System.nanoTime() - start) / 1_000;
         return new SensitiveWordDtos.CheckResponse(
                 result.hit(), result.filteredText(), result.hitWords(),
-                manager.localVersion(), manager.engine(), costMs);
+                manager.localVersion(), manager.engine(), costUs / 1_000, costUs);
+    }
+
+    /**
+     * 热切换主匹配引擎：先写 Redis 覆盖值（多节点传播源），再本地立即重建。
+     * engine 为空 / default 表示清除覆盖、跟随配置默认引擎。
+     */
+    @AuditLog(action = "SENSITIVE_WORD_ENGINE_SWITCH", entityType = "SensitiveWord")
+    public SensitiveWordDtos.EngineSwitchResponse switchEngine(String engineName) {
+        SensitiveWordProperties.Engine target;
+        try {
+            target = EngineSelection.parseRequest(engineName);
+        } catch (IllegalArgumentException e) {
+            throw new BizException(4001, e.getMessage());
+        }
+
+        try {
+            if (target == null) {
+                redisTemplate.delete(RedisKeys.CONTENT_SENSITIVE_WORD_ENGINE_OVERRIDE);
+            } else {
+                redisTemplate.opsForValue().set(RedisKeys.CONTENT_SENSITIVE_WORD_ENGINE_OVERRIDE,
+                        EngineSelection.toWire(target));
+            }
+        } catch (Exception e) {
+            // 只切单节点会让多实例过滤行为不一致，写失败直接拒绝
+            log.error("写入敏感词引擎覆盖值失败，target={}", EngineSelection.toWire(target), e);
+            throw new BizException(5001, "引擎切换未生效：Redis 写入失败");
+        }
+
+        SensitiveWordManager.EngineSwitchOutcome outcome;
+        try {
+            outcome = manager.applyEngineOverride(target);
+        } catch (IllegalStateException e) {
+            throw new BizException(5001, e.getMessage());
+        }
+        int propagateSeconds = (int) Math.max(1,
+                Math.ceil(properties.getRefresh().getPollInterval().toMillis() / 1000.0));
+        return new SensitiveWordDtos.EngineSwitchResponse(
+                outcome.engine(),
+                manager.engineOverrideName(),
+                outcome.previousEngine(),
+                outcome.wordCount(),
+                outcome.buildMs(),
+                outcome.applied(),
+                propagateSeconds);
     }
 
     public SensitiveWordDtos.StatusResponse status() {
@@ -383,10 +428,13 @@ public class SensitiveWordAdminService {
                 latest == null ? null : latest.getId(),
                 manager.localVersion(),
                 manager.wordCount(),
+                round2(manager.primaryAvgUs()),
                 latest == null ? null : latest.getPublishedAt(),
                 pending,
                 nodeStatus(latestVersion),
-                shadow);
+                shadow,
+                manager.configuredEngineName(),
+                manager.engineOverrideName());
     }
 
     /** @param latestVersion 全局最新已发布版本；不能用本节点版本做基准，否则落后节点会把自己报成最新 */
