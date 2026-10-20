@@ -135,11 +135,39 @@ openblog:
     issuer: openblog
     access-token-expire-seconds: 7200
     refresh-token-expire-seconds: 2592000
-  # 敏感词过滤白名单：内置词库是通用表，正常词也会被误收（comment/forum 提交时 4003 拦截）。
-  # 「长期」在词库里是一条裸词（邻居是「找长期小姐」「长期出售手枪」这类垃圾短语），
-  # 正常语境（如「长期共事」）会被误伤，故豁免。新增条目依据服务日志的
-  # "敏感词命中 words=... context=..." 行判断；改此项需重启服务。
+  # 敏感词过滤：词库 = MySQL 工作集 + Redis 版本快照；改词库在控制台操作，不再重启。
+  # 首次部署把 seed-from-classpath 置 true，播种完成后改回 false。
+  # 「长期」是内置词库的裸词（邻居是「找长期小姐」这类垃圾短语），正常语境会误伤，
+  # 播种时置为 status=0；播种完成后 allow-words 可删除。
   sensitive-word:
+    enabled: true
+    strategy: REJECT
+    fail-mode: STALE
+    filter-trusted-content: false
+    seed-from-classpath: false
+    # 引擎：houbb（生产基线）| trie | ac；两套自研引擎用于基准对比，按需切换
+    engine: houbb
+    normalization: houbb-compatible
+    # 影子对比：none 关闭；开启后采样执行另一引擎，/status 暴露不一致数与耗时
+    shadow-engine: none
+    shadow-sample-rate: 0.1
+    shadow-log-mismatch: true
+    refresh:
+      poll-interval: 5s
+    snapshot:
+      ttl-days: 30
+    node:
+      id: ""
+      heartbeat-interval: 10s
+      ttl: 30s
+    publish:
+      lock-ttl: 30s
+    import:
+      max-file-size: 5MB
+      max-rows: 50000
+    validation:
+      max-word-length: 128
+    # 仅首次播种（seed-from-classpath=true）时用于停用误伤词；运行时以工作集 status=0 为准
     allow-words:
       - "长期"
   storage:

@@ -16,7 +16,7 @@ import com.yqz.openblog.forum.entity.ForumTopic;
 import com.yqz.openblog.forum.entity.ForumTopicStatus;
 import com.yqz.openblog.forum.repo.ForumCommentMapper;
 import com.yqz.openblog.forum.repo.ForumTopicMapper;
-import com.yqz.openblog.forum.filter.SensitiveWordFilter;
+import com.yqz.openblog.sensitiveword.runtime.SensitiveWordGuard;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import org.springframework.stereotype.Service;
@@ -31,14 +31,14 @@ public class ForumService {
     private final ForumTopicMapper forumTopicMapper;
     private final ForumCommentMapper forumCommentMapper;
     private final UserRepository userRepository;
-    private final SensitiveWordFilter sensitiveWordFilter;
+    private final SensitiveWordGuard sensitiveWordGuard;
 
     public ForumService(ForumTopicMapper forumTopicMapper, ForumCommentMapper forumCommentMapper,
-                        UserRepository userRepository, SensitiveWordFilter sensitiveWordFilter) {
+                        UserRepository userRepository, SensitiveWordGuard sensitiveWordGuard) {
         this.forumTopicMapper = forumTopicMapper;
         this.forumCommentMapper = forumCommentMapper;
         this.userRepository = userRepository;
-        this.sensitiveWordFilter = sensitiveWordFilter;
+        this.sensitiveWordGuard = sensitiveWordGuard;
     }
 
     /**
@@ -273,13 +273,7 @@ public class ForumService {
     }
 
     private void checkSensitive(String... texts) {
-        for (String text : texts) {
-            if (text == null || text.isBlank()) continue;
-            // 命中详情（哪个词、哪段上下文）由 SensitiveWordFilter 内部打 WARN 日志；
-            // 对外仍是通用提示，不回显命中词（那等于把词库送给用户）
-            if (sensitiveWordFilter.contains(text)) {
-                throw new BizException(4003, "内容包含敏感词，请修改后重试");
-            }
-        }
+        // 命中详情由 SensitiveWordManager 内部打 WARN；对外仍是通用提示，不回显命中词
+        sensitiveWordGuard.rejectIfHit(texts);
     }
 }

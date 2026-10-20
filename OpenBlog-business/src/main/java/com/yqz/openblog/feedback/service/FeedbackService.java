@@ -8,6 +8,7 @@ import com.yqz.openblog.feedback.entity.FeedbackEntry;
 import com.yqz.openblog.feedback.repo.FeedbackRepository;
 import com.yqz.openblog.redis.core.RedisKeys;
 import com.yqz.openblog.redis.core.RedisOps;
+import com.yqz.openblog.sensitiveword.runtime.SensitiveWordGuard;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,13 +40,16 @@ public class FeedbackService {
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
     private final RedisOps redisOps;
+    private final SensitiveWordGuard sensitiveWordGuard;
 
     public FeedbackService(FeedbackRepository feedbackRepository,
                            UserRepository userRepository,
-                           RedisOps redisOps) {
+                           RedisOps redisOps,
+                           SensitiveWordGuard sensitiveWordGuard) {
         this.feedbackRepository = feedbackRepository;
         this.userRepository = userRepository;
         this.redisOps = redisOps;
+        this.sensitiveWordGuard = sensitiveWordGuard;
     }
 
     @Transactional
@@ -72,6 +76,9 @@ public class FeedbackService {
         if (feedbackRepository.existsByUserIdAndSubmitDay(userId, today)) {
             throw new BizException(CODE_DUPLICATE, "同一账号每天只能提交一次");
         }
+
+        // 敏感词校验放在限流判定之后、落库之前：命中不消耗当天提交额度
+        sensitiveWordGuard.rejectIfHit(req.getContent());
 
         FeedbackEntry e = new FeedbackEntry();
         e.setUserId(userId);

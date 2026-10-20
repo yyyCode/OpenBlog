@@ -5,6 +5,7 @@ import com.yqz.openblog.media.service.MediaService;
 import com.yqz.openblog.security.CurrentUser;
 import com.yqz.openblog.security.JwtProperties;
 import com.yqz.openblog.security.JwtService;
+import com.yqz.openblog.sensitiveword.runtime.SensitiveWordGuard;
 import com.yqz.openblog.user.dto.AuthResponse;
 import com.yqz.openblog.user.dto.LoginRequest;
 import com.yqz.openblog.user.entity.RefreshToken;
@@ -64,6 +65,7 @@ class AuthServiceLoginEnumerationTest {
     @Mock private MediaService mediaService;
     @Mock private EmailValidator emailValidator;
     @Mock private EmailCodeService emailCodeService;
+    @Mock private SensitiveWordGuard sensitiveWordGuard;
 
     @Spy private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -73,7 +75,7 @@ class AuthServiceLoginEnumerationTest {
     void setUp() {
         authService = new AuthService(userMapper, refreshTokenMapper, passwordEncoder, jwtService,
                 jwtProperties, currentUser, loginLockoutService,
-                accountDeviceService, mediaService, emailValidator, emailCodeService);
+                accountDeviceService, mediaService, emailValidator, emailCodeService, sensitiveWordGuard);
     }
 
     // ==================== 1. 失败路径不可区分 ====================
