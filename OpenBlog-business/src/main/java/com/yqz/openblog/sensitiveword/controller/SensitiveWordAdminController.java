@@ -144,6 +144,13 @@ public class SensitiveWordAdminController {
         return ApiResponse.ok(adminService.status());
     }
 
+    /** engine=default / 空表示清除覆盖，跟随配置文件中的默认引擎。 */
+    @PutMapping("/engine")
+    public ApiResponse<SensitiveWordDtos.EngineSwitchResponse> switchEngine(
+            @RequestBody(required = false) SensitiveWordDtos.EngineSwitchRequest req) {
+        return ApiResponse.ok(adminService.switchEngine(req == null ? null : req.engine()));
+    }
+
     @PostMapping("/check")
     public ApiResponse<SensitiveWordDtos.CheckResponse> check(
             @RequestBody @Valid SensitiveWordDtos.CheckRequest req) {

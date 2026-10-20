@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
@@ -41,6 +42,7 @@ public class SensitiveWordManager {
     private static final int CONTEXT_PADDING = 12;
 
     private final RedisOps redisOps;
+    private final StringRedisTemplate redisTemplate;
     private final SensitiveWordProperties properties;
     private final SensitiveWordVersionMapper versionMapper;
     private final SensitiveWordMapper wordMapper;
@@ -53,10 +55,13 @@ public class SensitiveWordManager {
     private volatile WordMatcher shadowMatcher;
     private volatile boolean ready;
     private volatile String state = "UNAVAILABLE";
+    /** 管理台热切换的引擎覆盖值；null 表示跟随 {@code openblog.sensitive-word.engine}。 */
+    private volatile SensitiveWordProperties.Engine engineOverride;
 
     private final LongAdder shadowSamples = new LongAdder();
     private final LongAdder shadowMismatches = new LongAdder();
-    private final LongAdder primaryNanos = new LongAdder();
+    private final LongAdder matchSamples = new LongAdder();
+    private final LongAdder matchNanos = new LongAdder();
     private final LongAdder shadowNanos = new LongAdder();
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, r -> {
@@ -68,6 +73,7 @@ public class SensitiveWordManager {
     private final String instanceId;
 
     public SensitiveWordManager(RedisOps redisOps,
+                                StringRedisTemplate redisTemplate,
                                 SensitiveWordProperties properties,
                                 SensitiveWordVersionMapper versionMapper,
                                 SensitiveWordMapper wordMapper,
@@ -75,6 +81,7 @@ public class SensitiveWordManager {
                                 @Value("${spring.application.name:openblog-business}") String appName,
                                 @Value("${server.port:8082}") String port) {
         this.redisOps = redisOps;
+        this.redisTemplate = redisTemplate;
         this.properties = properties;
         this.versionMapper = versionMapper;
         this.wordMapper = wordMapper;
@@ -97,6 +104,7 @@ public class SensitiveWordManager {
     }
 
     private void loadAtStartup() {
+        refreshEngineOverrideFromRedis();
         Long redisVersion = readCurrentVersion();
         SensitiveWordVersion latest = latestPublished();
         boolean redisLoaded = redisVersion != null && redisVersion > 0 && loadFromRedis(redisVersion);
@@ -186,25 +194,30 @@ public class SensitiveWordManager {
         }
     }
 
-    private void applySnapshot(long version, List<String> words, String checksum) {
-        WordMatcher primary = matcherFactory.create(words);
-        WordMatcher shadow = buildShadow(words);
+    /**
+     * 构建并原子替换快照。与 {@link #applyEngineOverride} 互斥：
+     * 避免版本刷新和引擎切换并发替换快照时互相覆盖。
+     */
+    private synchronized void applySnapshot(long version, List<String> words, String checksum) {
+        SensitiveWordProperties.Engine engine = effectiveEngine();
+        WordMatcher primary = matcherFactory.create(words, engine);
+        WordMatcher shadow = buildShadow(words, engine);
         SensitiveWordSnapshot next = new SensitiveWordSnapshot(
-                version, words.size(), checksum, primary.engine(), primary);
+                version, words.size(), checksum, primary.engine(), words, primary);
         current.set(next);
         shadowMatcher = shadow;
         ready = true;
         state = words.isEmpty() ? "EMPTY" : "READY";
-        resetShadowStats();
+        resetMetrics();
         log.info("敏感词快照已生效：version={}, words={}, engine={}, shadow={}",
                 version, words.size(), primary.engine(), shadow == null ? "none" : shadow.engine());
     }
 
-    private WordMatcher buildShadow(List<String> words) {
+    private WordMatcher buildShadow(List<String> words, SensitiveWordProperties.Engine primaryEngine) {
         SensitiveWordProperties.Engine shadowEngine = properties.getShadowEngine();
         if (shadowEngine == null
                 || shadowEngine == SensitiveWordProperties.Engine.NONE
-                || shadowEngine == properties.getEngine()) {
+                || shadowEngine == primaryEngine) {
             return null;
         }
         try {
@@ -217,26 +230,122 @@ public class SensitiveWordManager {
 
     private void pollSafely() {
         try {
+            refreshEngineOverrideFromRedis();
             Long version = readCurrentVersion();
-            if (version == null || version <= 0) {
-                return;
-            }
-            if (version <= current.get().version()) {
-                return;
-            }
-            if (!rebuilding.compareAndSet(false, true)) {
-                return;
-            }
-            try {
-                if (loadFromRedis(version)) {
-                    log.info("敏感词已刷新到 version={}", version);
+            if (version != null && version > 0 && version > current.get().version()) {
+                if (!rebuilding.compareAndSet(false, true)) {
+                    return;
                 }
-            } finally {
-                rebuilding.set(false);
+                try {
+                    if (loadFromRedis(version)) {
+                        // applySnapshot 会按最新覆盖值构建引擎，无需再单独切换
+                        log.info("敏感词已刷新到 version={}", version);
+                    }
+                } finally {
+                    rebuilding.set(false);
+                }
+                return;
             }
+            applyEngineOverrideIfNeeded();
         } catch (Exception e) {
             log.warn("敏感词轮询失败，保留当前版本 {}", current.get().version(), e);
         }
+    }
+
+    /**
+     * 从 Redis 读取覆盖值。读失败时保留上一次值，不因 Redis 抖动把引擎切回默认。
+     * 与 {@link #applyEngineOverride} 共用监视器，避免旧值覆盖刚写入的新值。
+     */
+    private synchronized void refreshEngineOverrideFromRedis() {
+        try {
+            String raw = redisTemplate.opsForValue().get(RedisKeys.CONTENT_SENSITIVE_WORD_ENGINE_OVERRIDE);
+            if (raw == null || raw.isBlank()) {
+                engineOverride = null;
+            } else {
+                SensitiveWordProperties.Engine parsed = EngineSelection.parseOverride(raw);
+                if (parsed == null) {
+                    log.warn("敏感词引擎覆盖值非法，按未设置处理：{}", raw);
+                }
+                engineOverride = parsed;
+            }
+        } catch (Exception e) {
+            log.warn("读取敏感词引擎覆盖值失败，保留当前值 {}", EngineSelection.toWire(engineOverride), e);
+        }
+    }
+
+    /** 轮询发现覆盖值与当前快照引擎不一致时，用当前词表就地重建。 */
+    private synchronized void applyEngineOverrideIfNeeded() {
+        if (!ready) {
+            return;
+        }
+        SensitiveWordSnapshot snapshot = current.get();
+        SensitiveWordProperties.Engine target = effectiveEngine();
+        if (target == null || target == SensitiveWordProperties.Engine.NONE
+                || target.name().equalsIgnoreCase(snapshot.engine())) {
+            return;
+        }
+        try {
+            swapEngine(snapshot, target);
+        } catch (Exception e) {
+            log.error("敏感词引擎热切换失败，保留当前引擎 {}", snapshot.engine(), e);
+        }
+    }
+
+    /**
+     * 管理台热切换入口：请求已写入 Redis，这里先设置本地覆盖值并立即重建，
+     * 其他节点由轮询收敛。构建失败时保留旧快照，覆盖值留待轮询重试。
+     */
+    public synchronized EngineSwitchOutcome applyEngineOverride(SensitiveWordProperties.Engine override) {
+        SensitiveWordProperties.Engine target = override == null ? properties.getEngine() : override;
+        if (target == null || target == SensitiveWordProperties.Engine.NONE) {
+            throw new IllegalStateException("不支持把主引擎切换为 NONE，请使用 enabled 开关停用过滤");
+        }
+        SensitiveWordSnapshot snapshot = current.get();
+        String previous = snapshot.engine();
+        engineOverride = override;
+        if (!ready) {
+            log.info("敏感词引擎覆盖值已记录（词库未就绪）：{}", EngineSelection.toWire(target));
+            return new EngineSwitchOutcome(EngineSelection.toWire(target), previous, 0, 0, false);
+        }
+        long t0 = System.nanoTime();
+        try {
+            swapEngine(snapshot, target);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("引擎构建失败：" + EngineSelection.toWire(target), e);
+        }
+        long buildMs = (System.nanoTime() - t0) / 1_000_000;
+        log.info("敏感词引擎已热切换：{} -> {}，words={}，build={}ms",
+                previous, EngineSelection.toWire(target), snapshot.wordCount(), buildMs);
+        return new EngineSwitchOutcome(EngineSelection.toWire(target), previous,
+                snapshot.wordCount(), buildMs, true);
+    }
+
+    private void swapEngine(SensitiveWordSnapshot snapshot, SensitiveWordProperties.Engine target) {
+        WordMatcher matcher = matcherFactory.create(snapshot.words(), target);
+        WordMatcher shadow = buildShadow(snapshot.words(), target);
+        current.set(new SensitiveWordSnapshot(
+                snapshot.version(), snapshot.wordCount(), snapshot.checksum(),
+                matcher.engine(), snapshot.words(), matcher));
+        shadowMatcher = shadow;
+        resetMetrics();
+    }
+
+    private SensitiveWordProperties.Engine effectiveEngine() {
+        SensitiveWordProperties.Engine override = engineOverride;
+        return override == null ? properties.getEngine() : override;
+    }
+
+    public String engineOverrideName() {
+        return EngineSelection.toWire(engineOverride);
+    }
+
+    public String configuredEngineName() {
+        return EngineSelection.toWire(properties.getEngine());
+    }
+
+    /** 热切换结果；applied=false 表示词库尚未就绪，覆盖值已记录。 */
+    public record EngineSwitchOutcome(String engine, String previousEngine,
+                                      int wordCount, long buildMs, boolean applied) {
     }
 
     private void heartbeatSafely() {
@@ -305,6 +414,7 @@ public class SensitiveWordManager {
         long t0 = System.nanoTime();
         HitRange first = snapshot.matcher().firstHit(text);
         long t1 = System.nanoTime();
+        recordMatch(t1 - t0);
         boolean hit = first != null;
         if (hit) {
             logHit(text, first);
@@ -328,6 +438,7 @@ public class SensitiveWordManager {
         long t0 = System.nanoTime();
         FilterResult result = snapshot.matcher().filter(text);
         long t1 = System.nanoTime();
+        recordMatch(t1 - t0);
         compareShadow(text, result.hit(), result.filteredText(), t0, t1);
         return result;
     }
@@ -345,7 +456,6 @@ public class SensitiveWordManager {
             FilterResult shadowResult = shadow.filter(text);
             long s1 = System.nanoTime();
             shadowSamples.increment();
-            primaryNanos.add(t1 - t0);
             shadowNanos.add(s1 - s0);
             boolean mismatch = shadowResult.hit() != primaryHit
                     || (primaryFiltered != null && !primaryFiltered.equals(shadowResult.filteredText()));
@@ -375,11 +485,18 @@ public class SensitiveWordManager {
         }
     }
 
-    private void resetShadowStats() {
+    private void resetMetrics() {
         shadowSamples.reset();
         shadowMismatches.reset();
-        primaryNanos.reset();
         shadowNanos.reset();
+        matchSamples.reset();
+        matchNanos.reset();
+    }
+
+    /** 记录每次匹配耗时，供管理台展示平均耗时（LongAdder 开销可忽略）。 */
+    private void recordMatch(long nanos) {
+        matchSamples.increment();
+        matchNanos.add(nanos);
     }
 
     private static String hostname() {
@@ -428,9 +545,10 @@ public class SensitiveWordManager {
         return shadowMismatches.sum();
     }
 
+    /** 主引擎平均匹配耗时（µs），覆盖全部 contains/filter 调用，不依赖影子开关。 */
     public double primaryAvgUs() {
-        long samples = shadowSamples.sum();
-        return samples == 0 ? 0 : primaryNanos.sum() / (double) samples / 1000.0;
+        long samples = matchSamples.sum();
+        return samples == 0 ? 0 : matchNanos.sum() / (double) samples / 1000.0;
     }
 
     public double shadowAvgUs() {

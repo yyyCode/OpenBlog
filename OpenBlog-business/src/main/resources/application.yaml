@@ -145,7 +145,7 @@ openblog:
     fail-mode: STALE
     filter-trusted-content: false
     seed-from-classpath: false
-    # 引擎：houbb（生产基线）| trie | ac；两套自研引擎用于基准对比，按需切换
+    # 默认引擎：houbb（生产基线）| trie | ac；管理台可热切换，覆盖值存 Redis
     engine: houbb
     normalization: houbb-compatible
     # 影子对比：none 关闭；开启后采样执行另一引擎，/status 暴露不一致数与耗时
