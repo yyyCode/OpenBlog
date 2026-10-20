@@ -45,6 +45,14 @@ public final class RedisKeys {
 
     private static final String RATELIMIT_FEEDBACK = "openblog:ratelimit:feedback";
 
+    // ==================== content: sensitive word ====================
+
+    private static final String CONTENT_SENSITIVE_WORD = "openblog:content:sensitive-word";
+
+    public static final String CONTENT_SENSITIVE_WORD_CURRENT = CONTENT_SENSITIVE_WORD + ":current";
+    public static final String CONTENT_SENSITIVE_WORD_PUBLISH_LOCK = CONTENT_SENSITIVE_WORD + ":publish-lock";
+    public static final String CONTENT_SENSITIVE_WORD_NODE_PREFIX = CONTENT_SENSITIVE_WORD + ":node:";
+
     // ==================== builder methods ====================
 
     public static String articleBody(long articleId) {
@@ -112,5 +120,15 @@ public final class RedisKeys {
     /** 反馈限流：按登录用户 + 提交日（原按 IP 维度的 {@code feedbackIpDay} 已废弃） */
     public static String feedbackUserDay(long userId, Object day) {
         return RATELIMIT_FEEDBACK + ":u:" + userId + ":" + day;
+    }
+
+    /** 敏感词版本快照：value = checksum + "\n" + Base64(gzip(词表)) */
+    public static String sensitiveWordSnapshot(long version) {
+        return CONTENT_SENSITIVE_WORD + ":snapshot:" + version;
+    }
+
+    /** 敏感词节点心跳：value = 节点当前版本号 */
+    public static String sensitiveWordNode(String instanceId) {
+        return CONTENT_SENSITIVE_WORD_NODE_PREFIX + instanceId;
     }
 }

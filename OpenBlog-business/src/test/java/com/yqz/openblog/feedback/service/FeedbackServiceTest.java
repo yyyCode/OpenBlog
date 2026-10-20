@@ -5,6 +5,7 @@ import com.yqz.openblog.feedback.dto.FeedbackCreateRequest;
 import com.yqz.openblog.feedback.entity.FeedbackEntry;
 import com.yqz.openblog.feedback.repo.FeedbackRepository;
 import com.yqz.openblog.redis.core.RedisOps;
+import com.yqz.openblog.sensitiveword.runtime.SensitiveWordGuard;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.repo.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +38,7 @@ class FeedbackServiceTest {
     private FeedbackRepository feedbackRepository;
     private UserRepository userRepository;
     private RedisOps redisOps;
+    private SensitiveWordGuard sensitiveWordGuard;
     private FeedbackService service;
 
     @BeforeEach
@@ -44,7 +46,8 @@ class FeedbackServiceTest {
         feedbackRepository = mock(FeedbackRepository.class);
         userRepository = mock(UserRepository.class);
         redisOps = mock(RedisOps.class);
-        service = new FeedbackService(feedbackRepository, userRepository, redisOps);
+        sensitiveWordGuard = mock(SensitiveWordGuard.class);
+        service = new FeedbackService(feedbackRepository, userRepository, redisOps, sensitiveWordGuard);
     }
 
     @Test

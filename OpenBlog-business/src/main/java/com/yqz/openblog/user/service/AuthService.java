@@ -16,6 +16,7 @@ import com.yqz.openblog.user.entity.RefreshToken;
 import com.yqz.openblog.user.entity.User;
 import com.yqz.openblog.user.entity.UserRole;
 import com.yqz.openblog.media.service.MediaService;
+import com.yqz.openblog.sensitiveword.runtime.SensitiveWordGuard;
 import com.yqz.openblog.user.repo.RefreshTokenMapper;
 import com.yqz.openblog.user.repo.UserMapper;
 import com.yqz.openblog.user.validator.EmailValidator;
@@ -50,6 +51,7 @@ public class AuthService {
     private final MediaService mediaService;
     private final EmailValidator emailValidator;
     private final EmailCodeService emailCodeService;
+    private final SensitiveWordGuard sensitiveWordGuard;
 
     /**
      * 账号不存在时用来陪跑的 BCrypt 哈希（启动时由 {@link #ABSENT_ACCOUNT_SENTINEL} 生成）。
@@ -68,7 +70,8 @@ public class AuthService {
                         AccountDeviceService accountDeviceService,
                         MediaService mediaService,
                         EmailValidator emailValidator,
-                        EmailCodeService emailCodeService) {
+                        EmailCodeService emailCodeService,
+                        SensitiveWordGuard sensitiveWordGuard) {
         this.userMapper = userMapper;
         this.refreshTokenMapper = refreshTokenMapper;
         this.passwordEncoder = passwordEncoder;
@@ -80,6 +83,7 @@ public class AuthService {
         this.mediaService = mediaService;
         this.emailValidator = emailValidator;
         this.emailCodeService = emailCodeService;
+        this.sensitiveWordGuard = sensitiveWordGuard;
         // 启动时生成一次（约一次 BCrypt 的开销），此后每条「账号不存在」的登录请求复用同一个哈希
         this.absentAccountHash = passwordEncoder.encode(ABSENT_ACCOUNT_SENTINEL);
     }
@@ -277,6 +281,7 @@ public class AuthService {
         }
 
         if (req.getBio() != null) {
+            sensitiveWordGuard.rejectIfHit(req.getBio());
             user.setBio(req.getBio());
         }
 
