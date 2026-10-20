@@ -28,6 +28,7 @@ import ConsoleUsersView from '../views/ConsoleUsersView.vue'
 import ConsoleUserDetailView from '../views/ConsoleUserDetailView.vue'
 import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
 import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
+import ConsoleSensitiveWordsView from '../views/ConsoleSensitiveWordsView.vue'
 import JobNavView from '../views/JobNavView.vue'
 import JobSubView from '../views/JobSubView.vue'
 import BugCaseListView from '../views/BugCaseListView.vue'
@@ -171,6 +172,7 @@ const routes = [
       { path: 'users', name: 'consoleUsers', component: ConsoleUsersView },
       { path: 'users/:userId', name: 'consoleUserDetail', component: ConsoleUserDetailView },
       { path: 'users/pending', name: 'consolePendingUsers', component: ConsolePendingUsersView },
+      { path: 'sensitive-words', name: 'consoleSensitiveWords', component: ConsoleSensitiveWordsView },
       { path: 'site-config', name: 'consoleSiteConfig', component: ConsoleSiteConfigView },
       { path: 'system', name: 'consoleSystem', component: ConsoleSystemView }
     ]
