@@ -1,7 +1,24 @@
 <template>
   <div class="home-screens">
-    <!-- 第 1 屏：口号区（背景粒子星网：纯装饰层，hero 配图时让位不叠加） -->
-    <section class="home-screen home-screen-slogan" :style="sloganBgStyle">
+    <!-- 第 1 屏：自我介绍（独立一屏，与「关于我」页共用同一个组件） -->
+    <section class="home-screen home-screen-intro">
+      <AboutProfileCard />
+
+      <!-- 下滑提示：点它平滑滚到口号屏，和关于页第 1 屏底部同一套手感 -->
+      <a
+        class="home-intro-scroll-hint"
+        href="#home-slogan"
+        @click="onIntroScrollHintClick"
+      >
+        下滑浏览
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3.5 6l4.5 4.5L12.5 6" />
+        </svg>
+      </a>
+    </section>
+
+    <!-- 第 2 屏：口号区（背景粒子星网：纯装饰层，hero 配图时让位不叠加） -->
+    <section id="home-slogan" ref="sloganSectionRef" class="home-screen home-screen-slogan" :style="sloganBgStyle">
       <canvas v-if="showSloganFx" ref="sloganFxRef" class="home-slogan-fx" aria-hidden="true"></canvas>
       <div class="home-slogan-inner">
         <h1 class="home-slogan-title" v-html="sloganTitleHtml"></h1>
@@ -10,7 +27,7 @@
       <div class="home-slogan-scroll-hint">▼ 下滑</div>
     </section>
 
-    <!-- 第 2 屏：文章区 -->
+    <!-- 第 3 屏：文章区 -->
     <section class="home-screen home-screen-articles">
       <div class="blog-container">
         <div v-if="loading" class="card">
@@ -71,7 +88,7 @@
       </div>
     </section>
 
-    <!-- 第 3 屏：项目推荐（横向无限流水；项目少于 4 个填不满一屏，退回静态网格） -->
+    <!-- 第 4 屏：项目推荐（横向无限流水；项目少于 4 个填不满一屏，退回静态网格） -->
     <section class="home-screen home-screen-projects" :style="railStyle">
       <div class="home-projects">
         <div class="home-projects-head">
@@ -161,7 +178,7 @@
       </div>
     </section>
 
-    <!-- 第 4 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐的横向流水） -->
+    <!-- 第 5 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐的横向流水） -->
     <section class="home-screen home-screen-companies">
       <div class="home-companies">
         <div class="home-companies-copy">
@@ -195,7 +212,7 @@
       </div>
     </section>
 
-    <!-- 第 5 屏：网站时间线 -->
+    <!-- 第 6 屏：网站时间线 -->
     <section class="home-screen home-screen-timeline">
       <div class="home-timeline">
         <h2 class="home-timeline-title">网站历程</h2>
@@ -216,7 +233,7 @@
       </div>
     </section>
 
-    <!-- 第 6 屏：论坛入口（极光渐变 + 毛玻璃，区别于终端/榜单/bento 三种旧入口） -->
+    <!-- 第 7 屏：论坛入口（极光渐变 + 毛玻璃，区别于终端/榜单/bento 三种旧入口） -->
     <section class="home-screen home-screen-forum">
       <div class="home-forum-orb home-forum-orb--a" aria-hidden="true"></div>
       <div class="home-forum-orb home-forum-orb--b" aria-hidden="true"></div>
@@ -244,7 +261,7 @@
       </div>
     </section>
 
-    <!-- 第 7 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
+    <!-- 第 8 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
     <section class="home-screen home-screen-bugs">
       <div class="home-bugs">
         <div class="home-bugs-head">
@@ -297,11 +314,24 @@ import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from
 import { fetchProjects } from '../api/project'
 import { fetchSmallCompanies, formatScale, logoUrl } from '../api/smallCompany'
 import { fetchForumTopics } from '../api/forum'
+import AboutProfileCard from '../components/AboutProfileCard.vue'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
 
-// ---- 第 1 屏：口号 ----
+// ---- 第 1 屏底部的下滑提示：平滑滚到口号屏（href 留作无 JS 时的兜底） ----
+const sloganSectionRef = ref(null)
+
+function onIntroScrollHintClick(e) {
+  const el = sloganSectionRef.value
+  if (!el) return
+  e.preventDefault()
+  const reduced =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+}
+
+// ---- 第 2 屏：口号 ----
 const heroImageUrl = computed(() =>
   (siteConfig && siteConfig.value && siteConfig.value.hero_image_url) || ''
 )
@@ -329,7 +359,7 @@ const sloganTitleHtml = computed(() => {
 })
 const heroSubtitleHtml = computed(() => heroSubtitle.value.replace(/\n/g, '<br />'))
 
-// ---- 第 1 屏背景动画：粒子星网（缓慢漂移的点，邻近自动牵线） ----
+// ---- 第 2 屏背景动画：粒子星网（缓慢漂移的点，邻近自动牵线） ----
 // 纯装饰：canvas 层 pointer-events:none，位于文字之下，不改动任何文案/字体/配色
 const sloganFxRef = ref(null)
 // hero 配了整屏大图时不叠加动画（会和图片打架），纯色底才启用
@@ -521,7 +551,7 @@ function startSloganFx() {
     return
   }
 
-  // 只在第 1 屏进入视口时绘制，滚走后空转（不浪费 CPU）
+  // 只在口号屏进入视口时绘制，滚走后空转（不浪费 CPU）
   sloganFxObserver = new IntersectionObserver(
     entries => {
       sloganFxOnScreen = entries.some(e => e.isIntersecting)
@@ -861,6 +891,59 @@ function formatDate(v) {
 </script>
 
 <style scoped>
+/* 第 1 屏：自我介绍（卡片自身的排版在 AboutProfileCard 内，这里只做整屏居中） */
+.home-screen-intro {
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 底部留白给下滑提示让位，避免长屏时压到联系方式 */
+  padding: 56px var(--page-pad) 88px;
+}
+
+/* 第 1 屏底部的下滑提示：与关于页同一个做法，只让箭头浮动，文字不动 */
+.home-intro-scroll-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform: translateX(-50%);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+.home-intro-scroll-hint:hover {
+  color: var(--accent);
+}
+
+.home-intro-scroll-hint svg {
+  animation: home-intro-hint-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes home-intro-hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-intro-scroll-hint svg {
+    animation: none;
+  }
+}
+
 /* 第 4 屏：小而美公司 —— 编辑式榜单（左衬线宣言 + 右序号榜单），
    暖色点缀背景区别于项目推荐的蓝色 bento 网格 */
 .home-screen-companies {
