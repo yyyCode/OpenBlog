@@ -27,7 +27,48 @@
       <div class="home-slogan-scroll-hint">▼ 下滑</div>
     </section>
 
-    <!-- 第 3 屏：文章区 -->
+    <!-- 第 3 屏：开源贡献入口（把「我在写代码」从口号落成可点的证据，点进去看完整 PR 清单） -->
+    <section class="home-screen home-screen-oss">
+      <!-- 缓慢飘移的主题色光晕：纯装饰层 -->
+      <div class="home-oss-glow" aria-hidden="true"></div>
+
+      <div class="home-oss-inner">
+        <span class="home-oss-kicker">OPEN SOURCE · PULL REQUESTS</span>
+        <h2 class="home-oss-title">
+          写博客之外，<br />
+          也在给这些项目<span class="hl">提 PR</span>
+        </h2>
+
+        <ul v-if="ossProjects.length" class="home-oss-chips">
+          <!-- 有 PR 列表地址的标签直接跳 GitHub；没填地址的降级成纯文本标签 -->
+          <li v-for="(item, i) in ossProjects" :key="i">
+            <component
+              :is="item.url ? 'a' : 'span'"
+              class="home-oss-chip"
+              :class="{ 'is-plain': !item.url }"
+              :href="item.url || undefined"
+              :target="item.url ? '_blank' : undefined"
+              :rel="item.url ? 'noreferrer' : undefined"
+            >
+              {{ item.name }}
+              <span v-if="item.role === 'Maintainer'" class="home-oss-chip-role">Maintainer</span>
+            </component>
+          </li>
+        </ul>
+
+        <router-link
+          class="home-oss-cta"
+          :to="{ path: '/about-us', hash: '#about-opensource' }"
+        >
+          查看我的 PR 贡献
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 8h10M9 4l4 4-4 4" />
+          </svg>
+        </router-link>
+      </div>
+    </section>
+
+    <!-- 第 4 屏：文章区 -->
     <section class="home-screen home-screen-articles">
       <div class="blog-container">
         <div v-if="loading" class="card">
@@ -88,7 +129,7 @@
       </div>
     </section>
 
-    <!-- 第 4 屏：项目推荐（横向无限流水；项目少于 4 个填不满一屏，退回静态网格） -->
+    <!-- 第 5 屏：项目推荐（横向无限流水；项目少于 4 个填不满一屏，退回静态网格） -->
     <section class="home-screen home-screen-projects" :style="railStyle">
       <div class="home-projects">
         <div class="home-projects-head">
@@ -178,7 +219,7 @@
       </div>
     </section>
 
-    <!-- 第 5 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐的横向流水） -->
+    <!-- 第 6 屏：小而美公司（编辑式榜单，左宣言 + 右排名，区别于项目推荐的横向流水） -->
     <section class="home-screen home-screen-companies">
       <div class="home-companies">
         <div class="home-companies-copy">
@@ -212,7 +253,7 @@
       </div>
     </section>
 
-    <!-- 第 6 屏：网站时间线 -->
+    <!-- 第 7 屏：网站时间线 -->
     <section class="home-screen home-screen-timeline">
       <div class="home-timeline">
         <h2 class="home-timeline-title">网站历程</h2>
@@ -233,7 +274,7 @@
       </div>
     </section>
 
-    <!-- 第 7 屏：论坛入口（极光渐变 + 毛玻璃，区别于终端/榜单/bento 三种旧入口） -->
+    <!-- 第 8 屏：论坛入口（极光渐变 + 毛玻璃，区别于终端/榜单/bento 三种旧入口） -->
     <section class="home-screen home-screen-forum">
       <div class="home-forum-orb home-forum-orb--a" aria-hidden="true"></div>
       <div class="home-forum-orb home-forum-orb--b" aria-hidden="true"></div>
@@ -261,7 +302,7 @@
       </div>
     </section>
 
-    <!-- 第 8 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
+    <!-- 第 9 屏：Bug 案例（明确入口标题 + 整块大终端日志） -->
     <section class="home-screen home-screen-bugs">
       <div class="home-bugs">
         <div class="home-bugs-head">
@@ -315,6 +356,7 @@ import { fetchProjects } from '../api/project'
 import { fetchSmallCompanies, formatScale, logoUrl } from '../api/smallCompany'
 import { fetchForumTopics } from '../api/forum'
 import AboutProfileCard from '../components/AboutProfileCard.vue'
+import { resolveOpenSourceContributions } from '../utils/openSourceContributions'
 
 const router = useRouter()
 const siteConfig = inject('siteConfig')
@@ -330,6 +372,9 @@ function onIntroScrollHintClick(e) {
     window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
 }
+
+// ---- 第 3 屏：开源贡献入口（与「关于我」页共用同一份配置解析） ----
+const ossProjects = computed(() => resolveOpenSourceContributions(siteConfig.value))
 
 // ---- 第 2 屏：口号 ----
 const heroImageUrl = computed(() =>
@@ -642,7 +687,7 @@ function stopSloganFx() {
   sloganFxOnScreen = true
 }
 
-// ---- 第 3 屏：网站时间线（静态内置关键节点） ----
+// ---- 第 7 屏：网站时间线（静态内置关键节点） ----
 const milestones = [
   { date: '2026-03', name: '网站上线', desc: 'OpenBlog 博客正式上线' },
   { date: '2026-05', name: '基础功能完善', desc: '后台管理、SEO、对象存储、文章导入导出' },
@@ -651,12 +696,12 @@ const milestones = [
   { date: '2026-08', name: '首页改版 · 全屏滚动', desc: '口号区 + 精选文章区全屏滚动' }
 ]
 
-// ---- 第 2 屏：文章 ----
+// ---- 第 4 屏：文章 ----
 const loading = ref(true)
 const featuredArticle = ref({})
 const latestArticles = ref([])
 
-// ---- 第 3 屏：项目推荐（横向无限流水） ----
+// ---- 第 5 屏：项目推荐（横向无限流水） ----
 const latestProjects = ref([])
 
 // 少于这个数，一份卡片组填不满一屏，循环会露出空白 —— 这时退回静态网格
@@ -710,7 +755,7 @@ function observeRail() {
 // 项目到位后才量得出一份的真实宽度（图片未加载时会偏小），所以等 DOM 更新后再量
 watch(useRail, observeRail, { flush: 'post' })
 
-// ---- 第 4 屏：小而美公司（预览前 6 家，跳转 /jobs/companies 看全部） ----
+// ---- 第 6 屏：小而美公司（预览前 6 家，跳转 /jobs/companies 看全部） ----
 const previewCompanies = ref([])
 
 async function loadCompanies() {
@@ -752,7 +797,7 @@ async function loadProjects() {
   }
 }
 
-// ---- 第 5 屏：Bug 案例（只取最新一篇） ----
+// ---- 第 9 屏：Bug 案例（只取最新一篇） ----
 const latestBug = ref(null)
 
 async function loadLatestBug() {
@@ -765,7 +810,7 @@ async function loadLatestBug() {
   }
 }
 
-// ---- 第 6 屏：论坛入口（实时取最新 3 条讨论做预览，为空/失败时自动隐藏该块） ----
+// ---- 第 8 屏：论坛入口（实时取最新 3 条讨论做预览，为空/失败时自动隐藏该块） ----
 const latestTopics = ref([])
 
 async function loadLatestForumTopics() {
@@ -944,7 +989,163 @@ function formatDate(v) {
   }
 }
 
-/* 第 4 屏：小而美公司 —— 编辑式榜单（左衬线宣言 + 右序号榜单），
+/* 第 3 屏：开源贡献入口 —— 主题色光晕 + 仓库标签墙，把口号落成可点的证据 */
+.home-screen-oss {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px var(--page-pad);
+}
+
+/* 缓慢飘移的主题色光晕：纯装饰，不接收鼠标事件 */
+.home-oss-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(900px, 125vw);
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(51, 112, 255, 0.14), transparent 62%);
+  animation: home-oss-glow-drift 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes home-oss-glow-drift {
+  from {
+    transform: translate(-50%, -50%) scale(0.94);
+    opacity: 0.7;
+  }
+  to {
+    transform: translate(-45%, -55%) scale(1.1);
+    opacity: 1;
+  }
+}
+
+.home-oss-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 860px;
+}
+
+.home-oss-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+.home-oss-title {
+  margin: 18px 0 0;
+  font-family: 'Songti SC', 'SimSun', 'Noto Serif SC', serif;
+  font-size: clamp(28px, 4vw, 46px);
+  font-weight: 700;
+  line-height: 1.32;
+  letter-spacing: 0.03em;
+  color: var(--text);
+}
+
+.home-oss-title .hl {
+  color: var(--accent);
+}
+
+/* 仓库标签墙：有 PR 列表地址的可点，后台没填地址的降级成纯标签 */
+.home-oss-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 38px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-oss-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 17px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+/* 只有真链接才给「可点」的抬升反馈 */
+.home-oss-chip:not(.is-plain):hover {
+  transform: translateY(-3px);
+  color: var(--accent);
+  background: rgba(51, 112, 255, 0.1);
+  box-shadow: 0 8px 20px rgba(51, 112, 255, 0.18);
+}
+
+.home-oss-chip-role {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(51, 112, 255, 0.14);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.home-oss-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 46px;
+  padding: 15px 30px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 12px 30px rgba(51, 112, 255, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.home-oss-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(51, 112, 255, 0.34);
+}
+
+/* 箭头随 hover 右移，指路感更明确 */
+.home-oss-cta svg {
+  transition: transform 0.18s ease;
+}
+
+.home-oss-cta:hover svg {
+  transform: translateX(4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-oss-glow {
+    animation: none;
+  }
+
+  .home-oss-chip,
+  .home-oss-cta,
+  .home-oss-cta svg {
+    transition: none;
+  }
+
+  .home-oss-chip:not(.is-plain):hover,
+  .home-oss-cta:hover,
+  .home-oss-cta:hover svg {
+    transform: none;
+  }
+}
+
+/* 第 6 屏：小而美公司 —— 编辑式榜单（左衬线宣言 + 右序号榜单），
    暖色点缀背景区别于项目推荐的蓝色 bento 网格 */
 .home-screen-companies {
   background:
