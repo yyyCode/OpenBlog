@@ -50,20 +50,11 @@ OpenBlog 是一个用于学习与实践的个人博客系统，覆盖「写作 �
 
 ## 🏗️ 架构
 
-```text
-浏览器 ─ HTTP ─▶ Nginx（托管 vue/dist，/api 反代）
-                  │
-                  ▼
-             gateway :8090 ── JWT · 设备指纹 · 限流 · traceId
-                  │ HTTP
-                  ▼
-             business :8082 ── 文章 / 评论 / 论坛 / 用户 / 认证 / SEO / 媒体
-                  │  │
-                  │  └──▶ MySQL 8 · Redis · MinIO
-                  │ Dubbo RPC（Nacos 注册发现）
-                  ▼
-             message :8083 ── 邮件（阿里云 DirectMail）/ 通知抽象层
-```
+![OpenBlog 系统架构图](docs/architecture/overview-system.png)
+
+浏览器 → Nginx（托管 `vue/dist`，`/api` 反代）→ gateway :8090（JWT · 设备指纹 · 限流 · traceId）→ business :8082；business 与 message :8083 通过 **Nacos** 注册发现、以 **Dubbo** 互通，邮件、验证码等耗时链路都从主业务链路里摘了出去。数据层为 MySQL 8 · Redis · MinIO · Elasticsearch（可选）。
+
+更多设计图见 [`docs/architecture/`](docs/architecture/)。
 
 ## 🚀 快速开始
 
