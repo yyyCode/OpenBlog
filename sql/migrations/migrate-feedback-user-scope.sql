@@ -1,5 +1,5 @@
 -- 迁移：反馈限额从「按 IP 每天一次」改为「按登录用户每天一次」
--- 前置：库中已有旧结构 feedback_entries（执行过旧版 sql/feedback.sql）
+-- 前置：库中已有旧结构 feedback_entries（执行过旧版 sql/schema/feedback.sql）
 --
 -- 说明：
 -- 1) MySQL 8 不支持 ADD COLUMN IF NOT EXISTS / DROP INDEX IF EXISTS，本脚本为一次性迁移，

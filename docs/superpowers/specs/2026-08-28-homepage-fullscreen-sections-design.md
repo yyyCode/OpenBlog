@@ -72,7 +72,7 @@
 |---|---|
 | `vue/src/views/HomeView.vue` | **重写**：两屏结构（口号区 + 文章区），数据加载逻辑保留（featured/latest 拉取、loading、点击进详情） |
 | `vue/src/assets/blog.css` | 新增全屏区块 / 吸附 / 口号字体 / 蓝色高亮 `.hl` 的全局样式；定义 `--header-h` |
-| `sql/site-config.sql` | `hero_title` 默认值改为「热爱技术 持续生长」 |
+| `sql/schema/site-config.sql` | `hero_title` 默认值改为「热爱技术 持续生长」 |
 
 **不动**：BlogHeader / App.vue / 路由 / 其它页面 / 后端。首页其它区块（项目推荐、关于我）不加入。
 

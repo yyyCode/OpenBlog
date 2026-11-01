@@ -26,7 +26,7 @@
 |----|------|---------|
 | 1 | 消费端关闭默认重试：`@DubboReference(retries=0, timeout=5000)` | `EmailCodeService.java` |
 | 2 | **provider 幂等去重**：按 `idempotencyKey` 查 `email_records`，命中直接返回已有记录、不重发 | `EmailService.send()` |
-| 3 | `email_records.idempotency_key` **唯一索引**硬兜底：并发双插 / 进程崩溃 / 时间重放都不重发 | `sql/migrate-email-records-idempotency-key.sql` |
+| 3 | `email_records.idempotency_key` **唯一索引**硬兜底：并发双插 / 进程崩溃 / 时间重放都不重发 | `sql/migrations/migrate-email-records-idempotency-key.sql` |
 
 - 调用方（business）：一次 `sendCode` 生成一个 **UUID 幂等键**随 RPC 传入；复用 Redis 里未过期的验证码，避免重发作废旧邮件。
 - 部署顺序：先执行迁移 SQL 加唯一索引 → 再部署 email 服务 → 最后部署 business。
