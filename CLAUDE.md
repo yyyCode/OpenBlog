@@ -101,7 +101,7 @@ cd vue && npm run build    # 构建验证（dist/ 生成即通过）
 
 - **三服务强耦合**：business↔message 通过 Dubbo 接口（改签名需两端同部署）；business↔gateway 共用 JWT 密钥（改密钥需两端同部署）。涉及任一耦合的变更，部署必须三服务同步
 - **幂等框架**：`@RepeatExecuteLimit` 注解 + AOP（framework-idempotent），fail-open 契约（Redis/Redisson 故障降级放行、绝不 500）。已有"业务 + Redis"冒烟测试门禁：验证现有缓存/限流、双击去重、Redis 宕机降级
-- 数据库迁移脚本放 `sql/`，部署顺序遵守迁移文档
+- 数据库脚本分层：建表与初始数据放 `sql/schema/`，一次性迁移放 `sql/migrations/`，演示数据放 `sql/seeds/`；执行顺序见 `sql/README.md`
 
 ## 已知坑位
 

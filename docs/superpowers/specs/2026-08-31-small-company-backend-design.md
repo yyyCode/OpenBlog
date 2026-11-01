@@ -44,7 +44,7 @@
 - `repo/SmallCompanyRepository.java` — `JpaRepository` + `findByStatusOrderBySortOrderAscPublishedAtDesc`
 - `service/SmallCompanyService.java` — 分页防御夹取、`@Transactional` 写操作、DTO 映射
 - `controller/SmallCompanyController.java` — `@RequestMapping("/api/v1/small-companies")`，公开+管理同文件
-- `sql/small_companies.sql` — `CREATE TABLE IF NOT EXISTS` + 中文 COMMENT + utf8mb4
+- `sql/schema/small_companies.sql` — `CREATE TABLE IF NOT EXISTS` + 中文 COMMENT + utf8mb4
 
 ## 接口
 
@@ -74,7 +74,7 @@
 
 ## 验收标准
 
-1. `sql/small_companies.sql` 可执行建表；JPA `ddl-auto` 亦能自动建表（二者字段一致）
+1. `sql/schema/small_companies.sql` 可执行建表；JPA `ddl-auto` 亦能自动建表（二者字段一致）
 2. `mvn -pl OpenBlog-business -am package` 通过（含既有测试）
 3. 匿名 `GET /api/v1/small-companies` 与 `/{id}` 返回 200；草稿对匿名 4041
 4. 非 ADMIN 调管理接口返回 403；ADMIN 可 CRUD，发布/草稿切换正确

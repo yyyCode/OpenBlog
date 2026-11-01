@@ -165,7 +165,7 @@
 
 ### 4.1 MySQL
 
-新增脚本 `sql/sensitive-word.sql`，遵循现有 `CREATE TABLE IF NOT EXISTS`、显式 `COMMENT`、`utf8mb4` 约定。
+新增脚本 `sql/schema/sensitive-word.sql`，遵循现有 `CREATE TABLE IF NOT EXISTS`、显式 `COMMENT`、`utf8mb4` 约定。
 
 #### 4.1.1 词条工作集
 
@@ -1610,7 +1610,7 @@ mvn -pl OpenBlog-business -am test \
 
 项目没有 Testcontainers，集成验证以「Mock Redis + 真实 MySQL（本地）」或手工冒烟为主：
 
-1. 执行 `sql/sensitive-word.sql`。
+1. 执行 `sql/schema/sensitive-word.sql`。
 2. 开启 `seed-from-classpath=true` 启动 business，确认 v1 生成、Redis 有 `current` / `snapshot`。
 3. 新增一个词 → 发布 → 10s 内 `/status` 的 `localVersion` 追上 `publishedVersion`。
 4. 评论 / 论坛提交命中词 → `4003`；停用该词 → 发布 → 不再命中。
@@ -1655,7 +1655,7 @@ cd vue && npm run build
 
 ### 10.2 首次上线步骤
 
-1. 执行 `sql/sensitive-word.sql` 建表。
+1. 执行 `sql/schema/sensitive-word.sql` 建表。
 2. 部署 business，设置 `openblog.sensitive-word.seed-from-classpath=true`（或环境变量映射）。
 3. `SensitiveWordSeedRunner`（`ApplicationRunner`）在 `ApplicationReadyEvent` 之前执行：
    - 条件：开关为 true **且** `sensitive_word` 为空；
@@ -1715,7 +1715,7 @@ cd vue && npm run build
 
 ### 11.1 后端
 
-- [ ] `sql/sensitive-word.sql`：三张表
+- [ ] `sql/schema/sensitive-word.sql`：三张表
 - [ ] `RedisKeys` 新增敏感词 Key 构建方法
 - [ ] `SensitiveWordProperties` 扩展配置（engine / normalization / shadow / refresh / node / publish / import）；`allow-words` 标记为迁移期字段
 - [ ] 实体 + Mapper（MyBatis-Plus）：`SensitiveWord`、`SensitiveWordVersion`、`SensitiveWordChangeLog`
