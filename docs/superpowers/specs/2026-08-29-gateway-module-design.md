@@ -2,7 +2,7 @@
 
 > 更新日期：2026-08-29
 > 关联文档：`docs/designs/api-gateway-security-ha.md`（阶段 1：按需引入 SCG）、
-> `docs/designs/gateway/网关模块整体设计总结.md` 与 `docs/designs/gateway/网关参数安全-非对称加密与签名验证-设计文档.md`（参考项目「大麦」能力参考，本设计取其**子集**）
+> `docs/reference/gateway-module-overview.md` 与 `docs/reference/gateway-param-security.md`（参考项目「大麦」能力参考，本设计取其**子集**）
 > 开发分支：`feat/gateway-module`（合入 master 走 PR，项目既有约定）
 
 ---
@@ -230,6 +230,6 @@ public class GatewayApplication { ... }
 
 ## 10. 后续（非本次范围，供参考）
 
-- 参数加密 + 签名（`docs/designs/gateway/网关参数安全-...`）：当需要防抓包篡改/重放时，在网关叠加 RSA + 验签 + 渠道密钥，需配套前端 jsrsasign 改造。
+- 参数加密 + 签名（`docs/reference/gateway-param-security.md`）：当需要防抓包篡改/重放时，在网关叠加 RSA + 验签 + 渠道密钥，需配套前端 jsrsasign 改造。
 - `lb://` 服务发现：business 扩容多实例后，给 gateway 引入 `spring-cloud-starter-alibaba-nacos-discovery` 并让业务服务注册 Spring Cloud 实例。
 - Sentinel 流控 / 灰度 / knife4j 聚合：按需从参考文档移植。
