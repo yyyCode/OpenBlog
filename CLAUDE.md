@@ -66,7 +66,7 @@ cd vue && npm run build    # 构建验证（dist/ 生成即通过）
   - 前端：只要改过 `vue/` 下的文件，必跑 `cd vue && npm run build`（`dist/` 生成即通过）
   - 没改过的模块不必重复跑构建，但被依赖链波及的核心模块（如 OpenBlog-common）改了需连带验证上游模块
 - 构建/测试不过关不允许提交；`git status` 确认无意外文件
-- **不触碰未跟踪的设计文档**（`docs/designs/gateway/`、`docs/designs/幂等组件设计-防重复执行详解.md`、`docs/evolution/设备指纹限流优化.md`），不将其加入提交
+- **不顺手提交与任务无关的文档**（`docs/reference/`、`docs/superpowers/`、`docs/evolution/` 下的参考/流程/经验文档），保持提交单一
 
 ## 代码与提交约定
 

@@ -96,6 +96,7 @@ mvn -pl OpenBlog-gateway  -am package -DskipTests   # :8090
 ## 文档
 
 - [CLAUDE.md](CLAUDE.md) — 开发规范、常用命令、提交 / PR 规则
+- [文档索引](docs/README.md) — 按「现行设计 / 外部参考 / 演进记录 / 流程产物」分类导航
 - [ROADMAP](docs/ROADMAP.md) — 规划与进度
 - [踩坑记录](docs/evolution/dev-experiences.md) · [安全加固](docs/evolution/security-hardening.md) · [设备指纹](docs/evolution/设备指纹合法性-网关侧校验与防构造.md) · [网关设计](docs/designs/api-gateway-security-ha.md) · [幂等框架](docs/superpowers/specs/2026-08-29-idempotent-framework-design.md)
 

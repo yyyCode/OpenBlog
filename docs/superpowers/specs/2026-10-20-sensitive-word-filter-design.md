@@ -1,7 +1,7 @@
 # OpenBlog 敏感词过滤系统设计（AC + 字典树双引擎版）
 
 > 日期：2026-10-20
-> 参考来源：`docs/sensitive-word-filter-design.md`（通用方案：版本化快照 + 本地不可变匹配器 + 原子替换）
+> 参考来源：`docs/reference/sensitive-word-universal.md`（通用方案：版本化快照 + 本地不可变匹配器 + 原子替换）
 > 目标：把 OpenBlog 的敏感词能力从「启动时固定词库 + 改配置重启」升级为「MySQL 词库 + 版本化快照 + Redis 分发 + 管理后台」，并同时实现 **字典树（Trie）** 与 **AC 自动机** 两套匹配引擎，保留现有 houbb 作为生产基线，便于后续用统一基准测试比较性能差距。
 > 范围：`OpenBlog-business`（运行时 + 管理接口 + 基准测试）+ `vue/`（控制台页面）。`OpenBlog-message`、`OpenBlog-gateway` 不改，**不涉及三服务同步部署**。
 
