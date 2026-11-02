@@ -41,7 +41,7 @@
               {{ f.submitterName || '匿名' }}
             </div>
             <div style="color: var(--console-muted, var(--muted)); font-size: 12px; white-space: nowrap">
-              {{ formatDateTime(f.createdAt) }}
+              {{ formatDateTime(f.createdAt, { seconds: true }) }}
             </div>
           </div>
           <div style="margin-top: 10px; white-space: pre-wrap; line-height: 1.7">{{ f.content }}</div>
@@ -59,20 +59,13 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { fetchPendingFeedback } from '../api/feedback-admin'
+import { formatDateTime } from '../utils/date'
 
 const loading = ref(false)
 const items = ref([])
 const error = ref('')
 const keyword = ref('')
 const statusFilter = ref('ALL')
-
-function formatDateTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  return new Date(t).toISOString().replace('T', ' ').slice(0, 19)
-}
-
 function statusLabel(s) {
   if (s === 'PENDING') return '待处理'
   if (s === 'DONE') return '已处理'

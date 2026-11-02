@@ -130,6 +130,7 @@ import { onMounted, ref } from 'vue'
 import { fetchAdminProjects, fetchAdminProjectDetail, createProject, updateProject, deleteProject } from '../api/project'
 import { uploadMedia } from '../api/media'
 import { showMessage } from '../utils/message'
+import { formatDate } from '../utils/date'
 import ImageUploadField from '../components/ImageUploadField.vue'
 
 const loading = ref(true)
@@ -314,17 +315,7 @@ async function remove(id) {
 
 function statusClass(s) {
   return s === 'PUBLISHED' ? 'tag-status-active' : 'tag-status-pending'
-}
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+}</script>
 
 <style scoped>
 .admin-article-table {

@@ -156,6 +156,7 @@ import {
   formatScale
 } from '../api/smallCompany'
 import { showMessage } from '../utils/message'
+import { formatDate } from '../utils/date'
 import ImageUploadField from '../components/ImageUploadField.vue'
 
 const loading = ref(true)
@@ -286,17 +287,7 @@ function statusClass(s) {
 
 function scaleText(c) {
   return formatScale(c)
-}
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+}</script>
 
 <style scoped>
 .admin-article-table {

@@ -12,7 +12,7 @@
           <div class="forum-topic-detail-meta">
             <span class="forum-topic-detail-author">{{ topic.authorName || '匿名' }}</span>
             <span class="forum-topic-card-sep">·</span>
-            <span>{{ formatTime(topic.createdAt) }}</span>
+            <span>{{ formatRelativeTime(topic.createdAt) }}</span>
             <span class="forum-topic-card-sep">·</span>
             <span>{{ topic.viewCount }} 浏览</span>
           </div>
@@ -56,7 +56,7 @@
               <div class="forum-comment-body">
                 <div class="forum-comment-header">
                   <span class="forum-comment-author">{{ c.authorName || '匿名' }}</span>
-                  <span class="forum-comment-time">{{ formatTime(c.createdAt) }}</span>
+                  <span class="forum-comment-time">{{ formatRelativeTime(c.createdAt) }}</span>
                 </div>
                 <p class="forum-comment-content">{{ c.content }}</p>
                 <div class="forum-comment-actions">
@@ -87,6 +87,7 @@ import { useRoute, useRouter } from 'vue-router'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { fetchForumTopicDetail, fetchForumComments, createForumComment, deleteForumComment } from '../api/forum'
+import { formatRelativeTime } from '../utils/date'
 import { fetchMe } from '../api/admin'
 
 const route = useRoute()
@@ -143,18 +144,6 @@ const renderedContent = computed(() => {
     return DOMPurify.sanitize(topic.value.content)
   }
 })
-
-function formatTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  const d = new Date(t)
-  const now = new Date()
-  const diff = now - d
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  return d.toISOString().replace('T', ' ').slice(0, 10)
-}
 
 async function loadMe() {
   try {

@@ -62,7 +62,7 @@
                 <div class="att-card-meta">
                   <span>{{ formatSize(m.size) }}</span>
                   <span class="att-card-meta-sep">&middot;</span>
-                  <span>{{ formatDate(m.createdAt) }}</span>
+                  <span>{{ formatDateTime(m.createdAt) }}</span>
                 </div>
                 <div class="att-card-actions">
                   <button class="att-btn" @click="copyUrl(m.url)">复制URL</button>
@@ -112,6 +112,7 @@
 import { onMounted, ref } from 'vue'
 import { uploadMedia, fetchMediaList, deleteMedia } from '../api/media'
 import { fetchFolderTree, createFolder as apiCreateFolder, updateFolder, deleteFolder as apiDeleteFolder } from '../api/mediaFolder'
+import { formatDateTime } from '../utils/date'
 import MediaTreeSidebar from '../components/MediaTreeSidebar.vue'
 
 const fileInput = ref(null)
@@ -259,14 +260,6 @@ function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-function formatDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 onMounted(() => {
