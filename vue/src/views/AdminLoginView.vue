@@ -36,6 +36,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login } from '../api/admin'
+import { saveAuth } from '../auth/session'
 
 const router = useRouter()
 const route = useRoute()
@@ -47,8 +48,7 @@ async function doLogin() {
   error.value = ''
   try {
     const resp = await login(account.value, password.value)
-    localStorage.setItem('accessToken', resp.accessToken)
-    localStorage.setItem('refreshToken', resp.refreshToken)
+    saveAuth(resp.accessToken, resp.refreshToken)
     const r = route.query.redirect
     const target =
       typeof r === 'string' && r.startsWith('/') && !r.startsWith('//') ? r : '/console'

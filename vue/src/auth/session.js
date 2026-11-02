@@ -37,6 +37,16 @@ export function isJwtExpired(token) {
   return Date.now() >= payload.exp * 1000
 }
 
+/** 登录成功后统一写入令牌，避免各登录入口各写一份 localStorage。 */
+export function saveAuth(accessToken, refreshToken) {
+  localStorage.setItem('accessToken', accessToken)
+  if (refreshToken) {
+    localStorage.setItem('refreshToken', refreshToken)
+  } else {
+    localStorage.removeItem('refreshToken')
+  }
+}
+
 export function clearAuth() {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
