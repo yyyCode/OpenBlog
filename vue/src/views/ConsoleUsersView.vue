@@ -81,7 +81,7 @@
                     {{ statusLabel(u.status) }}
                   </span>
                 </td>
-                <td class="admin-user-cell-muted">{{ formatTime(u.createdAt) }}</td>
+                <td class="admin-user-cell-muted">{{ formatDateTime(u.createdAt, { seconds: true }) }}</td>
                 <td v-if="isAdmin">
                   <div class="admin-user-actions">
                     <select
@@ -121,6 +121,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { fetchMe } from '../api/admin'
 import { fetchAdminUsers, changeUserStatus, changeUserRole } from '../api/userAdmin'
+import { formatDateTime } from '../utils/date'
 
 const PAGE_SIZE = 24
 
@@ -148,11 +149,6 @@ const canAccess = computed(() => {
 const isAdmin = computed(() => me.value?.role === 'ADMIN')
 
 const hasMore = computed(() => users.value.length < total.value)
-
-function formatTime(iso) {
-  if (!iso) return ''
-  try { return new Date(iso).toLocaleString('zh-CN') } catch { return '' }
-}
 
 function roleLabel(role) {
   if (role === 'ADMIN') return '管理员'

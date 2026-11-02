@@ -20,7 +20,7 @@
             <div class="forum-topic-card-meta">
               <span class="forum-topic-card-author">{{ t.authorName || '匿名' }}</span>
               <span class="forum-topic-card-sep">·</span>
-              <span>{{ formatTime(t.createdAt) }}</span>
+              <span>{{ formatRelativeTime(t.createdAt) }}</span>
               <span class="forum-topic-card-sep">·</span>
               <span>{{ t.viewCount }} 浏览</span>
               <span class="forum-topic-card-sep">·</span>
@@ -43,6 +43,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchForumTopics } from '../api/forum'
+import { formatRelativeTime } from '../utils/date'
 
 const router = useRouter()
 
@@ -58,18 +59,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size)))
 function excerpt(content) {
   if (!content) return ''
   return content.replace(/#{1,6}\s|[*_~`>]|!?\[.*?\]\(.*?\)/g, '').slice(0, 150) + (content.length > 150 ? '...' : '')
-}
-
-function formatTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  const d = new Date(t)
-  const now = new Date()
-  const diff = now - d
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  return d.toISOString().replace('T', ' ').slice(0, 10)
 }
 
 function goTopic(id) {

@@ -355,6 +355,7 @@ import { fetchArticles, fetchArticleDetail, fetchArticlesByType, coverUrl } from
 import { fetchProjects } from '../api/project'
 import { fetchSmallCompanies, formatScale, logoUrl } from '../api/smallCompany'
 import { fetchForumTopics } from '../api/forum'
+import { formatDate } from '../utils/date'
 import AboutProfileCard from '../components/AboutProfileCard.vue'
 import { resolveOpenSourceContributions } from '../utils/openSourceContributions'
 
@@ -923,17 +924,7 @@ const TAG_KIND_MAP = (() => {
 
 function tagKind(tag) {
   return TAG_KIND_MAP.get(String(tag || '').trim().toLowerCase()) || 'other'
-}
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+}</script>
 
 <style scoped>
 /* 第 1 屏：自我介绍（卡片自身的排版在 AboutProfileCard 内，这里只做整屏居中） */

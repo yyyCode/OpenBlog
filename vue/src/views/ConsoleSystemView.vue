@@ -45,6 +45,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { fetchSiteStats, fetchSiteVersion } from '../api/site'
 import { fetchMe } from '../api/admin'
+import { formatDateTime } from '../utils/date'
 
 const loading = ref(true)
 const stats = ref(null)
@@ -65,11 +66,7 @@ const versionLabel = computed(() => {
 const lastActivityText = computed(() => {
   const t = stats.value?.lastActivityAt
   if (!t) return '—'
-  try {
-    return new Date(t).toLocaleString('zh-CN')
-  } catch {
-    return '—'
-  }
+  return formatDateTime(t, { seconds: true }) || '—'
 })
 
 function fmt(v) {

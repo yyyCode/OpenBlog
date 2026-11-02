@@ -49,6 +49,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { deleteMyArticle, fetchMyArticles, publishArticle, unpublishArticle } from '../api/admin'
+import { formatDate } from '../utils/date'
 
 const router = useRouter()
 
@@ -58,16 +59,6 @@ const keyword = ref('')
 
 const articleError = ref('')
 const articleSuccess = ref('')
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-
 function statusLabel(s) {
   const map = { DRAFT: '草稿', SCHEDULED: '已预约', PUBLISHED: '已发布', HIDDEN: '已隐藏' }
   return map[s] || s

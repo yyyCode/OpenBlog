@@ -26,6 +26,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { coverUrl } from '../api/article'
+import { formatDate } from '../utils/date'
 
 const props = defineProps({
   article: {
@@ -38,16 +39,6 @@ const router = useRouter()
 
 function goDetail() {
   router.push(`/article/${props.article.id}`)
-}
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    const d = new Date(v)
-    return d.toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
 }
 </script>
 

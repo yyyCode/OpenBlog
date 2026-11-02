@@ -24,7 +24,7 @@
               <div style="font-weight: 850">{{ u.username }}</div>
               <div style="font-size: 12px; color: var(--console-muted, var(--muted))">
                 {{ u.email }}
-                <span v-if="u.createdAt"> · {{ formatTime(u.createdAt) }}</span>
+                <span v-if="u.createdAt"> · {{ formatDateTime(u.createdAt, { seconds: true }) }}</span>
               </div>
             </div>
             <button type="button" class="btn primary" :disabled="approvingId === u.userId" @click="approve(u.userId)">
@@ -43,6 +43,7 @@ import { computed, onMounted, ref } from 'vue'
 import { fetchMe } from '../api/admin'
 import { fetchPendingReaders, approveReader } from '../api/userAdmin'
 import { showMessage } from '../utils/message'
+import { formatDateTime } from '../utils/date'
 
 const loading = ref(true)
 const me = ref(null)
@@ -54,16 +55,6 @@ const canAccess = computed(() => {
   const r = me.value?.role
   return r === 'ADMIN' || r === 'AUTHOR'
 })
-
-function formatTime(iso) {
-  if (!iso) return ''
-  try {
-    return new Date(iso).toLocaleString('zh-CN')
-  } catch {
-    return ''
-  }
-}
-
 async function loadList() {
   error.value = ''
   if (!canAccess.value) {

@@ -37,6 +37,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { fetchChangelogList } from '../api/changelog'
+import { formatDate } from '../utils/date'
 
 const loading = ref(true)
 const items = ref([])
@@ -49,17 +50,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+})</script>
 
 <style scoped>
 .changelog-list {
