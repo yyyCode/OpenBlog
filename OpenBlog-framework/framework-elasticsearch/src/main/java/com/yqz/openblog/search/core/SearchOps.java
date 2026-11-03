@@ -1,13 +1,19 @@
 package com.yqz.openblog.search.core;
 
-import java.util.List;
+import com.yqz.openblog.search.index.SearchIndex;
+import org.springframework.data.elasticsearch.core.query.Query;
+
+import java.util.Map;
 
 /**
- * Elasticsearch 操作封装接口 — 内置容错，调用方无需关心 ES 连接异常。
+ * Elasticsearch 操作封装 — 内置容错，调用方无需关心 ES 连接异常。
+ *
  * <ul>
- *   <li>写操作返回 boolean，失败时返回 false</li>
- *   <li>读操作（search）失败或 ES 不可用时返回 {@link SearchResult#empty(int, int)}</li>
- *   <li>布尔操作（indexExists）失败返回 false（fail-safe）</li>
+ *   <li>写操作返回 boolean，失败时返回 false，不抛异常；</li>
+ *   <li>搜索失败返回 {@link SearchResult#degraded(int, int)}，正常无结果返回
+ *       {@link SearchResult#empty(int, int)}；</li>
+ *   <li>参数错误（如有关键词却没声明字段）属于编程错误，直接抛
+ *       {@link IllegalArgumentException}，不与 ES 故障混淆。</li>
  * </ul>
  */
 public interface SearchOps {
@@ -15,39 +21,44 @@ public interface SearchOps {
     /**
      * 索引一篇文档。失败时静默返回 false。
      *
-     * @param indexName 索引名
-     * @param id        文档 ID
-     * @param document  文档对象
+     * @param index    索引定义
+     * @param id       文档 ID（业务主键）
+     * @param document 文档对象
      * @return true 表示索引成功
      */
-    boolean index(String indexName, String id, Object document);
+    <T> boolean index(SearchIndex index, String id, T document);
 
     /**
-     * 全文搜索。ES 不可用时返回空结果。
+     * 批量索引文档。失败时静默返回 false。
      *
-     * @param indexName 索引名
-     * @param keyword   搜索关键词
-     * @param fields    搜索字段列表（支持加权，如 "title^3"）
-     * @param page      页码（从 0 开始）
-     * @param size      每页条数
-     * @return 搜索结果（hits + 总数），失败时返回空
+     * @param index          索引定义
+     * @param documentsById  ID → 文档
+     * @return true 表示全部写入成功
      */
-    SearchResult search(String indexName, String keyword, List<String> fields, int page, int size);
+    <T> boolean indexBatch(SearchIndex index, Map<String, T> documentsById);
 
     /**
-     * 删除一篇文档。失败时静默返回 false。
-     *
-     * @param indexName 索引名
-     * @param id        文档 ID
-     * @return true 表示删除成功
+     * 删除一篇文档。失败时静默返回 false（含文档不存在）。
      */
-    boolean delete(String indexName, String id);
+    boolean delete(SearchIndex index, String id);
 
     /**
-     * 检查索引是否存在。ES 不可用时返回 false。
+     * 声明式全文搜索。
      *
-     * @param indexName 索引名
-     * @return true 表示索引存在
+     * @param index   索引定义
+     * @param request 搜索请求
+     * @param type    文档类型
+     * @return 搜索结果；ES 不可用时 {@code degraded=true}
      */
-    boolean indexExists(String indexName);
+    <T> SearchResult<T> search(SearchIndex index, SearchRequest request, Class<T> type);
+
+    /**
+     * 自定义查询扩展：传 Spring Data {@code Query}（通常是 {@code NativeQuery}）。
+     *
+     * @param index 索引定义
+     * @param query 自定义查询，需自带分页
+     * @param type  文档类型
+     * @return 搜索结果；ES 不可用时 {@code degraded=true}
+     */
+    <T> SearchResult<T> search(SearchIndex index, Query query, Class<T> type);
 }
