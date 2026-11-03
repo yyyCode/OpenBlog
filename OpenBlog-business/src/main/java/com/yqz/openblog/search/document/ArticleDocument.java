@@ -1,13 +1,18 @@
-package com.yqz.openblog.search.model;
+package com.yqz.openblog.search.document;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import java.time.Instant;
+
 /**
- * 文章索引文档模型。
- * 索引名由配置前缀 + 业务名拼接，实际运行时由调用方传入。
+ * 文章索引文档。
+ *
+ * <p>实际读写的索引名由 {@code ArticleSearchIndexConfig} 中的 {@code SearchIndex} 决定
+ * （{@code index-prefix + articles}）；这里的 {@code indexName} 仅用于生成 mapping。</p>
  */
 @Document(indexName = "openblog_articles")
 public class ArticleDocument {
@@ -27,7 +32,7 @@ public class ArticleDocument {
     @Field(type = FieldType.Text, analyzer = "ik_max_word", searchAnalyzer = "ik_smart")
     private String contentMarkdown;
 
-    /** 分类名（精确匹配，用于过滤） */
+    /** 分类名（精确匹配，用于展示与过滤） */
     @Field(type = FieldType.Keyword)
     private String categoryName;
 
@@ -43,15 +48,17 @@ public class ArticleDocument {
     @Field(type = FieldType.Keyword)
     private String authorName;
 
+    /** 文章状态；只有 PUBLISHED 会被写入索引，保留该字段便于过滤与排查 */
+    @Field(type = FieldType.Keyword)
+    private String status;
+
     /** 发布时间 */
-    @Field(type = FieldType.Date)
-    private String publishedAt;
+    @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
+    private Instant publishedAt;
 
     /** 浏览量 */
     @Field(type = FieldType.Long)
     private Long viewCount;
-
-    // --- getters and setters ---
 
     public Long getId() {
         return id;
@@ -117,11 +124,19 @@ public class ArticleDocument {
         this.authorName = authorName;
     }
 
-    public String getPublishedAt() {
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Instant getPublishedAt() {
         return publishedAt;
     }
 
-    public void setPublishedAt(String publishedAt) {
+    public void setPublishedAt(Instant publishedAt) {
         this.publishedAt = publishedAt;
     }
 

@@ -16,10 +16,13 @@ openblog:
     article-published-ttl-minutes: 30
   search:
     enabled: false
-    uris: "http://localhost:9200"
-    # username: elastic
-    # password: changeme
     index-prefix: "openblog_"
+    auto-create-index: true
+  # ES 连接信息走 Spring Boot 官方配置：
+  # elasticsearch:
+  #   uris: http://localhost:9200
+  #   username: elastic
+  #   password: changeme
   auth-security:
     slider:
       enabled: false
