@@ -93,6 +93,7 @@ import {
   updateChangelog,
   deleteChangelog
 } from '../api/changelog'
+import { formatDate } from '../utils/date'
 
 const loadingChangelog = ref(false)
 const loadingChangelogDetail = ref(false)
@@ -106,16 +107,6 @@ const changelogForm = ref({
 })
 const changelogError = ref('')
 const changelogSuccess = ref('')
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-
 function toLocalDatetimeInput(iso) {
   if (!iso) return ''
   try {

@@ -108,6 +108,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { fetchMe } from '../api/admin'
 import { fetchUserDetail, changeUserStatus, changeUserRole } from '../api/userAdmin'
+import { formatDateTime } from '../utils/date'
 
 const route = useRoute()
 
@@ -135,8 +136,7 @@ function statusLabel(status) {
 }
 
 function fmtDate(iso) {
-  if (!iso) return '—'
-  try { return new Date(iso).toLocaleString('zh-CN') } catch { return '—' }
+  return formatDateTime(iso, { seconds: true }) || '—'
 }
 
 async function loadDetail() {

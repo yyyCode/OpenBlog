@@ -1,5 +1,4 @@
-import { API_BASE, downloadWithAuth, request } from './http'
-import { getStoredAccessToken } from '../auth/session'
+import { downloadWithAuth, request } from './http'
 
 export function login(account, password) {
   return request('/api/v1/auth/login', {
@@ -108,45 +107,17 @@ export function unpublishArticle(id) {
 }
 
 export function importArticleMd(file, { mode = 'create', articleId } = {}) {
-  const token = getStoredAccessToken()
-  if (!token) {
-    const err = new Error('未登录')
-    err.httpStatus = 401
-    throw err
-  }
   const form = new FormData()
   form.append('file', file)
   form.append('mode', mode)
   if (articleId != null) {
     form.append('articleId', String(articleId))
   }
-  const base = API_BASE
-  const url = `${base}/api/v1/articles/import`
-  return fetch(url, {
+  // request 会自动跳过 FormData 的 Content-Type，并统一处理鉴权/错误码/401
+  return request('/api/v1/articles/import', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    withAuth: true,
     body: form
-  }).then(async (res) => {
-    const text = await res.text()
-    let json = null
-    try {
-      json = text ? JSON.parse(text) : null
-    } catch {
-      // ignore
-    }
-    if (json && typeof json.code === 'number' && json.code !== 0) {
-      const err = new Error(json.message || '导入失败')
-      err.code = json.code
-      err.httpStatus = res.status
-      err.traceId = json.traceId
-      throw err
-    }
-    if (!res.ok) {
-      const err = new Error(`HTTP ${res.status}`)
-      err.httpStatus = res.status
-      throw err
-    }
-    return json?.data ?? json
   })
 }
 

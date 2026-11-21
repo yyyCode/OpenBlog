@@ -43,7 +43,7 @@
             <td>
               <span class="cmt-tag" :class="'cmt-tag-' + (c.status || '').toLowerCase()">{{ statusLabel(c.status) }}</span>
             </td>
-            <td>{{ formatTime(c.createdAt) }}</td>
+            <td>{{ formatDateTime(c.createdAt) }}</td>
           </tr>
         </tbody>
       </table>
@@ -60,6 +60,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { fetchAllComments } from '../api/comment-admin'
+import { formatDateTime } from '../utils/date'
 
 const loading = ref(false)
 const items = ref([])
@@ -76,13 +77,6 @@ function statusLabel(s) {
   if (s === 'PENDING') return '待审核'
   if (s === 'DELETED') return '已删除'
   return s || ''
-}
-
-function formatTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  return new Date(t).toISOString().replace('T', ' ').slice(0, 16)
 }
 
 async function load() {

@@ -33,6 +33,7 @@ import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 
 import { fetchChangelogDetail } from '../api/changelog'
+import { formatDate } from '../utils/date'
 
 const route = useRoute()
 const loading = ref(true)
@@ -61,14 +62,4 @@ const html = computed(() => {
   const md = entry.value?.contentMarkdown || ''
   const raw = marked.parse(md)
   return DOMPurify.sanitize(raw)
-})
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+})</script>

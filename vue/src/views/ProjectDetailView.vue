@@ -76,6 +76,7 @@ import { useRoute } from 'vue-router'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import { fetchProjectDetail, coverUrl } from '../api/project'
+import { formatDate } from '../utils/date'
 
 const route = useRoute()
 const loading = ref(true)
@@ -105,16 +106,6 @@ const html = computed(() => {
   const raw = marked.parse(md)
   return DOMPurify.sanitize(raw)
 })
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-
 function splitTags(v) {
   if (!v) return []
   return v.split(',').map(s => s.trim()).filter(Boolean)

@@ -35,6 +35,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { newRequestId } from '../utils/uuid'
+import { formatRelativeTime } from '../utils/date'
 
 const props = defineProps({
   comment: { type: Object, required: true },
@@ -61,7 +62,7 @@ const avatarSrc = computed(() => {
   return props.comment?.user?.avatarUrl || 'https://www.gravatar.com/avatar/?d=mp&s=96'
 })
 
-const timeLabel = computed(() => formatTime(props.comment?.createdAt))
+const timeLabel = computed(() => formatRelativeTime(props.comment?.createdAt))
 
 const canDelete = computed(() => {
   const uid = props.comment?.user?.id
@@ -69,21 +70,6 @@ const canDelete = computed(() => {
   const isAdmin = props.me?.role === 'ADMIN'
   return Boolean((meId && uid && meId === uid) || isAdmin)
 })
-
-function formatTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  const diff = Date.now() - t
-  if (diff < 60_000) return '刚刚'
-  const m = Math.floor(diff / 60_000)
-  if (m < 60) return `${m} 分钟前`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h} 小时前`
-  const d = Math.floor(h / 24)
-  if (d < 7) return `${d} 天前`
-  return new Date(t).toISOString().slice(0, 10)
-}
 
 function cancelReply() {
   replying.value = false

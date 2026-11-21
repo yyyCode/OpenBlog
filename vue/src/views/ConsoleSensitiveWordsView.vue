@@ -130,7 +130,7 @@
                 </span>
               </td>
               <td class="sw-ellipsis" :title="item.remark || ''">{{ item.remark || '-' }}</td>
-              <td class="sw-muted">{{ formatTime(item.updatedAt) }}</td>
+              <td class="sw-muted">{{ formatDateTime(item.updatedAt, { seconds: true }) }}</td>
               <td class="sw-actions">
                 <button class="sw-link" @click="openEdit(item)">编辑</button>
                 <button class="sw-link danger" @click="removeOne(item)">删除</button>
@@ -225,7 +225,7 @@
               <td><span :class="['sw-badge', v.status === 'PUBLISHED' ? 'ok' : 'off']">{{ v.status }}</span></td>
               <td>{{ v.wordCount }}</td>
               <td class="sw-ellipsis" :title="v.changeSummary || ''">{{ v.changeSummary || v.remark || '-' }}</td>
-              <td class="sw-muted">{{ formatTime(v.publishedAt) }}</td>
+              <td class="sw-muted">{{ formatDateTime(v.publishedAt, { seconds: true }) }}</td>
               <td class="sw-actions">
                 <button class="sw-link" @click="showDiff(v.version)">差异</button>
                 <button class="sw-link" @click="syncVersion(v.version)">同步</button>
@@ -386,6 +386,7 @@ import {
   syncSensitiveWordVersion,
   updateSensitiveWord
 } from '../api/sensitiveWord'
+import { formatDateTime } from '../utils/date'
 
 const PAGE_SIZE = 20
 
@@ -445,13 +446,6 @@ function formatDuration(us) {
   if (!Number.isFinite(n)) return '-'
   if (n >= 1000) return `${(n / 1000).toFixed(2)}ms`
   return `${n < 10 ? n.toFixed(1) : n.toFixed(0)}µs`
-}
-
-function formatTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  return new Date(t).toISOString().replace('T', ' ').slice(0, 19).replace(' ', ' ')
 }
 
 function errorText(e) {

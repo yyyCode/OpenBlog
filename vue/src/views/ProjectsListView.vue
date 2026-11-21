@@ -59,6 +59,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchProjects, coverUrl } from '../api/project'
+import { formatDate } from '../utils/date'
 
 const router = useRouter()
 const loading = ref(true)
@@ -81,17 +82,7 @@ function go(id) {
 function splitTags(v) {
   if (!v) return []
   return v.split(',').map(s => s.trim()).filter(Boolean)
-}
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+}</script>
 
 <style scoped>
 .projects-page {

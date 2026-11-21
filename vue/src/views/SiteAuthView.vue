@@ -219,7 +219,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { login, register, changePassword, sendEmailCode } from '../api/admin'
 import SliderCaptcha from '../components/SliderCaptcha.vue'
-import { getAccessTokenRole } from '../auth/session'
+import { getAccessTokenRole, saveAuth } from '../auth/session'
 import { ALLOWED_EMAIL_MESSAGE, isAllowedMailboxEmail } from '../utils/allowedEmail'
 
 const router = useRouter()
@@ -396,16 +396,11 @@ function safeSiteRedirect(raw) {
   return t
 }
 
-function storeSession(accessToken, refreshToken) {
-  localStorage.setItem('accessToken', accessToken)
-  localStorage.setItem('refreshToken', refreshToken)
-}
-
 async function doLogin() {
   loginError.value = ''
   try {
     const resp = await login(account.value, password.value)
-    storeSession(resp.accessToken, resp.refreshToken)
+    saveAuth(resp.accessToken, resp.refreshToken)
     const r = route.query.redirect
     const target = safeSiteRedirect(typeof r === 'string' ? r : '')
     router.push(target)
@@ -447,7 +442,7 @@ async function doRegister() {
   busy.value = true
   try {
     const resp = await register({ username: u, email: em, password: pw, code })
-    storeSession(resp.accessToken, resp.refreshToken)
+    saveAuth(resp.accessToken, resp.refreshToken)
     regPassword.value = ''
     emailCode.value = ''
     codeSent.value = false

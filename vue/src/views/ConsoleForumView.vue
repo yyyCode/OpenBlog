@@ -42,7 +42,7 @@
               <span class="cmt-tag" :class="'cmt-tag-' + (t.status || '').toLowerCase()">{{ statusLabel(t.status) }}</span>
             </td>
             <td>{{ t.commentCount }}</td>
-            <td>{{ formatTime(t.createdAt) }}</td>
+            <td>{{ formatDateTime(t.createdAt) }}</td>
             <td>
               <button
                 v-if="t.status === 'PUBLISHED'"
@@ -73,6 +73,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { fetchAdminForumTopics, hideForumTopic, publishForumTopic } from '../api/forum'
+import { formatDateTime } from '../utils/date'
 
 const loading = ref(false)
 const items = ref([])
@@ -88,13 +89,6 @@ function statusLabel(s) {
   if (s === 'PUBLISHED') return '已发布'
   if (s === 'HIDDEN') return '已隐藏'
   return s || ''
-}
-
-function formatTime(v) {
-  if (!v) return ''
-  const t = new Date(v).getTime()
-  if (Number.isNaN(t)) return ''
-  return new Date(t).toISOString().replace('T', ' ').slice(0, 16)
 }
 
 async function load() {

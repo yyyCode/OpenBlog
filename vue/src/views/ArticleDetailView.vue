@@ -105,6 +105,7 @@ import { marked } from 'marked'
 
 import { fetchArticles, fetchArticleDetail, coverUrl } from '../api/article'
 import { fetchCategoryTree } from '../api/category'
+import { formatDate } from '../utils/date'
 import ArticleTreeSidebar from '../components/ArticleTreeSidebar.vue'
 import CommentSection from '../components/CommentSection.vue'
 import { buildTocAndInjectIds, jumpToHeading } from '../utils/toc'
@@ -225,14 +226,4 @@ function formatCategoryLabel(a) {
   const path = a?.categoryPath
   if (Array.isArray(path) && path.length > 0) return path.join(' / ')
   return a?.categoryName || a?.categoryLabel || ''
-}
-
-function formatDate(v) {
-  if (!v) return ''
-  try {
-    return new Date(v).toISOString().slice(0, 10)
-  } catch {
-    return ''
-  }
-}
-</script>
+}</script>

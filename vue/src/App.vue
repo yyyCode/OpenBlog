@@ -15,12 +15,9 @@ const siteConfig = ref({})
 // 提供 siteConfig 给所有子组件
 provide('siteConfig', siteConfig)
 
-onMounted(() => {
-  postSiteVisit().catch(() => {})
-})
-
 onMounted(async () => {
-  // 加载站点配置
+  postSiteVisit().catch(() => {})
+  // 加载站点配置（失败时保持空对象，各组件用内置默认值兜底）
   try {
     siteConfig.value = await fetchSiteConfig()
   } catch {

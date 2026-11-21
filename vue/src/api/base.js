@@ -17,10 +17,8 @@ function resolveApiBase() {
 
 export const API_BASE = resolveApiBase()
 
-const baseUrl = API_BASE
-
 export function buildUrl(path) {
   // 后端统一是 /api/v1 前缀
   if (path.startsWith('http://') || path.startsWith('https://')) return path
-  return `${baseUrl}${path}`
+  return `${API_BASE}${path}`
 }

@@ -49,8 +49,8 @@ export async function request(path, options = {}) {
     ...(options.headers || {})
   }
 
-  await attachFingerprint(headers)
-  await attachToken(headers)
+  // 两个请求头互不依赖，并行获取，避免首次请求串行等待两次超时窗口
+  await Promise.all([attachFingerprint(headers), attachToken(headers)])
 
   if (options.withAuth) {
     const token = getStoredAccessToken()
@@ -118,8 +118,7 @@ export async function downloadWithAuth(path) {
   }
 
   const headers = { Authorization: `Bearer ${token}` }
-  await attachFingerprint(headers)
-  await attachToken(headers)
+  await Promise.all([attachFingerprint(headers), attachToken(headers)])
 
   const res = await fetch(buildUrl(path), {
     method: 'GET',

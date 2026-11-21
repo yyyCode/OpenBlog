@@ -2,47 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { clearAuth, isConsoleSessionValid, canAccessConsole } from '../auth/session'
 
+// 首页保持同步加载（首屏直出）；其余路由按需加载，避免一个入口包塞进全部页面
 import HomeView from '../views/HomeView.vue'
-import ArticleDetailView from '../views/ArticleDetailView.vue'
-import AllArticlesView from '../views/AllArticlesView.vue'
-import AdminLoginView from '../views/AdminLoginView.vue'
-import ChangelogListView from '../views/ChangelogListView.vue'
-import ChangelogDetailView from '../views/ChangelogDetailView.vue'
-import AboutView from '../views/AboutView.vue'
-import AboutUsView from '../views/AboutUsView.vue'
-import FeedbackView from '../views/FeedbackView.vue'
-import SearchResultsView from '../views/SearchResultsView.vue'
-import SiteAuthView from '../views/SiteAuthView.vue'
-import ConsoleLayout from '../layouts/ConsoleLayout.vue'
-import ConsoleDashboardView from '../views/ConsoleDashboardView.vue'
-import ConsoleProfileView from '../views/ConsoleProfileView.vue'
-import ConsoleArticleManageView from '../views/ConsoleArticleManageView.vue'
-import ConsoleArticleComposeView from '../views/ConsoleArticleComposeView.vue'
-import ConsoleCategoriesView from '../views/ConsoleCategoriesView.vue'
-import ConsoleChangelogView from '../views/ConsoleChangelogView.vue'
-import ConsoleAttachmentsView from '../views/ConsoleAttachmentsView.vue'
-import ConsoleCommentsView from '../views/ConsoleCommentsView.vue'
-import ConsoleSystemView from '../views/ConsoleSystemView.vue'
-import ConsolePendingUsersView from '../views/ConsolePendingUsersView.vue'
-import ConsoleUsersView from '../views/ConsoleUsersView.vue'
-import ConsoleUserDetailView from '../views/ConsoleUserDetailView.vue'
-import ConsoleFeedbackView from '../views/ConsoleFeedbackView.vue'
-import ConsoleSiteConfigView from '../views/ConsoleSiteConfigView.vue'
-import ConsoleSensitiveWordsView from '../views/ConsoleSensitiveWordsView.vue'
-import JobNavView from '../views/JobNavView.vue'
-import JobSubView from '../views/JobSubView.vue'
-import BugCaseListView from '../views/BugCaseListView.vue'
-import CompaniesRecommendView from '../views/CompaniesRecommendView.vue'
-import CompanyDetailView from '../views/CompanyDetailView.vue'
-import ProjectsListView from '../views/ProjectsListView.vue'
-import ProjectDetailView from '../views/ProjectDetailView.vue'
-import ConsoleProjectsView from '../views/ConsoleProjectsView.vue'
-import ConsoleCompaniesView from '../views/ConsoleCompaniesView.vue'
-import ForumListView from '../views/ForumListView.vue'
-import ProfileView from '../views/ProfileView.vue'
-import ForumTopicView from '../views/ForumTopicView.vue'
-import ForumComposeView from '../views/ForumComposeView.vue'
-import ConsoleForumView from '../views/ConsoleForumView.vue'
 
 const routes = [
   {
@@ -53,91 +14,91 @@ const routes = [
   {
     path: '/all',
     name: 'allArticles',
-    component: AllArticlesView
+    component: () => import('../views/AllArticlesView.vue')
   },
   {
     path: '/about',
     name: 'about',
-    component: AboutView
+    component: () => import('../views/AboutView.vue')
   },
   {
     path: '/about-us',
     name: 'aboutUs',
-    component: AboutUsView
+    component: () => import('../views/AboutUsView.vue')
   },
   {
     path: '/search',
     name: 'search',
-    component: SearchResultsView
+    component: () => import('../views/SearchResultsView.vue')
   },
   {
     path: '/jobs',
     name: 'jobNav',
-    component: JobNavView
+    component: () => import('../views/JobNavView.vue')
   },
   {
     path: '/jobs/interview',
     name: 'jobInterviewTips',
-    component: JobSubView,
+    component: () => import('../views/JobSubView.vue'),
     props: { title: '面试技巧' }
   },
   {
     path: '/jobs/companies',
     name: 'jobSmallCompanies',
-    component: CompaniesRecommendView
+    component: () => import('../views/CompaniesRecommendView.vue')
   },
   {
     path: '/jobs/companies/:id',
     name: 'jobSmallCompanyDetail',
-    component: CompanyDetailView,
+    component: () => import('../views/CompanyDetailView.vue'),
     props: true
   },
   {
     path: '/projects',
     name: 'projectsList',
-    component: ProjectsListView
+    component: () => import('../views/ProjectsListView.vue')
   },
   {
     path: '/project/:id',
     name: 'projectDetail',
-    component: ProjectDetailView,
+    component: () => import('../views/ProjectDetailView.vue'),
     props: true
   },
   {
     path: '/feedback',
     name: 'feedback',
-    component: FeedbackView
+    component: () => import('../views/FeedbackView.vue')
   },
   {
     path: '/bugs',
     name: 'bugCaseList',
-    component: BugCaseListView
+    component: () => import('../views/BugCaseListView.vue')
   },
   {
     path: '/forum',
     name: 'forumList',
-    component: ForumListView
+    component: () => import('../views/ForumListView.vue')
   },
   {
     path: '/forum/new',
     name: 'forumCompose',
-    component: ForumComposeView
+    component: () => import('../views/ForumComposeView.vue')
   },
   {
     path: '/forum/topic/:id',
     name: 'forumTopic',
-    component: ForumTopicView,
+    component: () => import('../views/ForumTopicView.vue'),
     props: true
   },
   {
     path: '/login',
     name: 'siteAuth',
-    component: SiteAuthView
+    component: () => import('../views/SiteAuthView.vue')
   },
   {
     path: '/profile',
     name: 'profile',
-    component: ProfileView
+    component: () => import('../views/ProfileView.vue')
   },
   {
     path: '/register',
@@ -150,31 +111,31 @@ const routes = [
   {
     path: '/console/login',
     name: 'consoleLogin',
-    component: AdminLoginView
+    component: () => import('../views/AdminLoginView.vue')
   },
   {
     path: '/console',
-    component: ConsoleLayout,
+    component: () => import('../layouts/ConsoleLayout.vue'),
     children: [
-      { path: '', name: 'consoleDashboard', component: ConsoleDashboardView },
-      { path: 'profile', name: 'consoleProfile', component: ConsoleProfileView },
+      { path: '', name: 'consoleDashboard', component: () => import('../views/ConsoleDashboardView.vue') },
+      { path: 'profile', name: 'consoleProfile', component: () => import('../views/ConsoleProfileView.vue') },
       { path: 'articles', redirect: '/console/articles/manage' },
-      { path: 'articles/manage', name: 'consoleArticleManage', component: ConsoleArticleManageView },
-      { path: 'articles/new', name: 'consoleArticleCompose', component: ConsoleArticleComposeView },
-      { path: 'categories', name: 'consoleCategories', component: ConsoleCategoriesView },
-      { path: 'changelog', name: 'consoleChangelog', component: ConsoleChangelogView },
-      { path: 'projects', name: 'consoleProjects', component: ConsoleProjectsView },
-      { path: 'companies', name: 'consoleCompanies', component: ConsoleCompaniesView },
-      { path: 'feedback', name: 'consoleFeedback', component: ConsoleFeedbackView },
-      { path: 'attachments', name: 'consoleAttachments', component: ConsoleAttachmentsView },
-      { path: 'comments', name: 'consoleComments', component: ConsoleCommentsView },
-      { path: 'forum', name: 'consoleForum', component: ConsoleForumView },
-      { path: 'users', name: 'consoleUsers', component: ConsoleUsersView },
-      { path: 'users/:userId', name: 'consoleUserDetail', component: ConsoleUserDetailView },
-      { path: 'users/pending', name: 'consolePendingUsers', component: ConsolePendingUsersView },
-      { path: 'sensitive-words', name: 'consoleSensitiveWords', component: ConsoleSensitiveWordsView },
-      { path: 'site-config', name: 'consoleSiteConfig', component: ConsoleSiteConfigView },
-      { path: 'system', name: 'consoleSystem', component: ConsoleSystemView }
+      { path: 'articles/manage', name: 'consoleArticleManage', component: () => import('../views/ConsoleArticleManageView.vue') },
+      { path: 'articles/new', name: 'consoleArticleCompose', component: () => import('../views/ConsoleArticleComposeView.vue') },
+      { path: 'categories', name: 'consoleCategories', component: () => import('../views/ConsoleCategoriesView.vue') },
+      { path: 'changelog', name: 'consoleChangelog', component: () => import('../views/ConsoleChangelogView.vue') },
+      { path: 'projects', name: 'consoleProjects', component: () => import('../views/ConsoleProjectsView.vue') },
+      { path: 'companies', name: 'consoleCompanies', component: () => import('../views/ConsoleCompaniesView.vue') },
+      { path: 'feedback', name: 'consoleFeedback', component: () => import('../views/ConsoleFeedbackView.vue') },
+      { path: 'attachments', name: 'consoleAttachments', component: () => import('../views/ConsoleAttachmentsView.vue') },
+      { path: 'comments', name: 'consoleComments', component: () => import('../views/ConsoleCommentsView.vue') },
+      { path: 'forum', name: 'consoleForum', component: () => import('../views/ConsoleForumView.vue') },
+      { path: 'users', name: 'consoleUsers', component: () => import('../views/ConsoleUsersView.vue') },
+      { path: 'users/:userId', name: 'consoleUserDetail', component: () => import('../views/ConsoleUserDetailView.vue') },
+      { path: 'users/pending', name: 'consolePendingUsers', component: () => import('../views/ConsolePendingUsersView.vue') },
+      { path: 'sensitive-words', name: 'consoleSensitiveWords', component: () => import('../views/ConsoleSensitiveWordsView.vue') },
+      { path: 'site-config', name: 'consoleSiteConfig', component: () => import('../views/ConsoleSiteConfigView.vue') },
+      { path: 'system', name: 'consoleSystem', component: () => import('../views/ConsoleSystemView.vue') }
     ]
   },
   {
@@ -188,18 +149,18 @@ const routes = [
   {
     path: '/article/:id',
     name: 'articleDetail',
-    component: ArticleDetailView,
+    component: () => import('../views/ArticleDetailView.vue'),
     props: true
   },
   {
     path: '/changelog',
     name: 'changelogList',
-    component: ChangelogListView
+    component: () => import('../views/ChangelogListView.vue')
   },
   {
     path: '/changelog/:id',
     name: 'changelogDetail',
-    component: ChangelogDetailView,
+    component: () => import('../views/ChangelogDetailView.vue'),
     props: true
   }
 ]
