@@ -24,9 +24,6 @@ openblog:
   #   username: elastic
   #   password: changeme
   auth-security:
-    slider:
-      enabled: false
-      ttl-seconds: 300
     login-lockout:
       enabled: false
     email-code:

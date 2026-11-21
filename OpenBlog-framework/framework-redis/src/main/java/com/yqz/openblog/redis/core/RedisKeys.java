@@ -7,7 +7,7 @@ package com.yqz.openblog.redis.core;
  * <ul>
  *   <li>{@code content}  — 内容缓存（文章正文、列表）</li>
  *   <li>{@code counter}  — 计数去重（阅读量、访问量）</li>
- *   <li>{@code security} — 安全相关（登录锁定、滑块验证）</li>
+ *   <li>{@code security} — 安全相关（登录锁定、验证码）</li>
  *   <li>{@code ratelimit}— 业务限流（反馈提交）</li>
  * </ul>
  */
@@ -35,8 +35,6 @@ public final class RedisKeys {
     private static final String SECURITY_DEVICE_FAIL = "openblog:security:device:fail";
     private static final String SECURITY_DEVICE_LOCK = "openblog:security:device:lock";
     private static final String SECURITY_ACCOUNT_DEVICE = "openblog:security:account:device";
-    private static final String SECURITY_SLIDER_PENDING = "openblog:security:slider:pending";
-    private static final String SECURITY_SLIDER_OK = "openblog:security:slider:ok";
     private static final String SECURITY_EMAIL_CODE = "openblog:security:email:code";
     private static final String SECURITY_EMAIL_COOLDOWN = "openblog:security:email:cooldown";
     private static final String SECURITY_EMAIL_ATTEMPT = "openblog:security:email:attempt";
@@ -97,14 +95,6 @@ public final class RedisKeys {
 
     public static String accountDevices(long userId) {
         return SECURITY_ACCOUNT_DEVICE + ":" + userId;
-    }
-
-    public static String sliderPending(String id) {
-        return SECURITY_SLIDER_PENDING + ":" + id;
-    }
-
-    public static String sliderOk(String id) {
-        return SECURITY_SLIDER_OK + ":" + id;
     }
 
     public static String emailCode(String email) {

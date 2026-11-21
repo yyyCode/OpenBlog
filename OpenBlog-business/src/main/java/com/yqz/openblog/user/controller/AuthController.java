@@ -6,16 +6,12 @@ import com.yqz.openblog.user.dto.ChangePasswordRequest;
 import com.yqz.openblog.user.dto.EmailCodeRequest;
 import com.yqz.openblog.user.dto.EmailCodeResponse;
 import com.yqz.openblog.user.dto.LoginRequest;
-import com.yqz.openblog.user.dto.SliderChallengeResponse;
-import com.yqz.openblog.user.dto.SliderCompleteRequest;
 import com.yqz.openblog.user.dto.MeResponse;
 import com.yqz.openblog.user.dto.RefreshRequest;
 import com.yqz.openblog.user.dto.RegisterRequest;
 import com.yqz.openblog.user.dto.UserUpdateRequest;
 import com.yqz.openblog.user.service.AuthService;
 import com.yqz.openblog.user.service.EmailCodeService;
-import com.yqz.openblog.user.service.SliderVerificationService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,35 +21,17 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final SliderVerificationService sliderVerificationService;
     private final EmailCodeService emailCodeService;
 
-    public AuthController(AuthService authService,
-                          SliderVerificationService sliderVerificationService,
-                          EmailCodeService emailCodeService) {
+    public AuthController(AuthService authService, EmailCodeService emailCodeService) {
         this.authService = authService;
-        this.sliderVerificationService = sliderVerificationService;
         this.emailCodeService = emailCodeService;
-    }
-
-    @GetMapping("/auth/slider-challenge")
-    public ApiResponse<SliderChallengeResponse> sliderChallenge(HttpServletRequest request) {
-        return ApiResponse.ok(sliderVerificationService.issue(request));
-    }
-
-    @PostMapping("/auth/slider-complete")
-    public ApiResponse<Void> sliderComplete(
-            @RequestBody @Valid SliderCompleteRequest req,
-            HttpServletRequest request) {
-        sliderVerificationService.complete(request, req);
-        return ApiResponse.ok();
     }
 
     @PostMapping("/auth/email-code")
     public ApiResponse<EmailCodeResponse> emailCode(@RequestBody @Valid EmailCodeRequest req) {
         EmailCodeResponse resp = new EmailCodeResponse();
-        resp.setCooldownSeconds(emailCodeService.sendCode(
-                req.getEmail(), req.getPurpose(), req.getSliderChallengeId()));
+        resp.setCooldownSeconds(emailCodeService.sendCode(req.getEmail(), req.getPurpose()));
         return ApiResponse.ok(resp);
     }
 
