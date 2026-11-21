@@ -44,10 +44,7 @@ class EmailCodeServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // 用真实的滑块服务而非 mock：默认 slider.enabled=false 时它直接放行，
-        // 既有用例照常跑通；新用例把它打开即可验证「滑块失败不占冷却键」的顺序约束。
-        emailCodeService = new EmailCodeService(redisOps, authSecurityProperties, userMapper, emailValidator,
-                new SliderVerificationService(redisOps, authSecurityProperties));
+        emailCodeService = new EmailCodeService(redisOps, authSecurityProperties, userMapper, emailValidator);
         // @DubboReference 字段为私有 field 注入（无 setter、不在构造器），手动反射注入 mock。
         Field field = EmailCodeService.class.getDeclaredField("notificationRpcService");
         field.setAccessible(true);
@@ -71,7 +68,7 @@ class EmailCodeServiceTest {
         when(redisOps.setIfAbsent(anyString(), anyString(), any())).thenReturn(false);
 
         BizException ex = assertThrows(BizException.class,
-                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER, null));
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER));
 
         assertEquals(4293, ex.getCode());
         verify(redisOps).setIfAbsent(eq(RedisKeys.emailCooldown("a@example.com")), eq("1"), any());
@@ -85,7 +82,7 @@ class EmailCodeServiceTest {
                 .thenReturn(NotificationSendResult.fail(5002, "邮件服务暂不可用，请稍后再试"));
 
         BizException ex = assertThrows(BizException.class,
-                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER, null));
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER));
 
         assertEquals(5002, ex.getCode());
         verify(redisOps).delete(RedisKeys.emailCode("a@example.com"));
@@ -99,7 +96,7 @@ class EmailCodeServiceTest {
                 .thenThrow(new RpcException("No provider"));
 
         BizException ex = assertThrows(BizException.class,
-                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER, null));
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER));
 
         assertEquals(NotificationRpcService.ERROR_CODE_EMAIL_UNAVAILABLE, ex.getCode());
         verify(redisOps).delete(RedisKeys.emailCode("a@example.com"));
@@ -111,7 +108,7 @@ class EmailCodeServiceTest {
         stubPreconditions();
         when(notificationRpcService.submit(any(NotificationMessage.class))).thenReturn(NotificationSendResult.ok());
 
-        int seconds = emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER, null);
+        int seconds = emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_REGISTER);
 
         assertEquals(authSecurityProperties.getEmailCode().getResendCooldownSeconds(), seconds);
         verify(redisOps, never()).delete(anyString());
@@ -125,7 +122,7 @@ class EmailCodeServiceTest {
         when(userMapper.selectCount(any())).thenReturn(0L);
 
         BizException ex = assertThrows(BizException.class,
-                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_RESET, null));
+                () -> emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_RESET));
 
         assertEquals(4090, ex.getCode());
     }
@@ -137,7 +134,7 @@ class EmailCodeServiceTest {
         when(userMapper.selectCount(any())).thenReturn(1L);
         when(notificationRpcService.submit(any(NotificationMessage.class))).thenReturn(NotificationSendResult.ok());
 
-        emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_RESET, null);
+        emailCodeService.sendCode("a@example.com", EmailCodeService.PURPOSE_RESET);
 
         ArgumentCaptor<NotificationMessage> captor = ArgumentCaptor.forClass(NotificationMessage.class);
         verify(notificationRpcService).submit(captor.capture());
@@ -145,22 +142,4 @@ class EmailCodeServiceTest {
         assertEquals("OpenBlog 找回密码验证码", captor.getValue().getSubject());
     }
 
-    @Test
-    void sendCode_sliderEnabledWithoutProof_rejectsBeforeTouchingCooldownKey() {
-        // 滑块开启但凭证无效（伪造/已消费）→ 4001。关键断言是 setIfAbsent 从未被调用：
-        // 冷却键是「发信前占位」，若滑块校验被挪到 SETNX 之后，一次失败的滑块会白占满
-        // 一个冷却周期，用户必须空等才能重试。这条用例就是该顺序约束的回归防线。
-        //
-        // 刻意传一个"有值但查不到"的凭证而非 null：null 会在 verifyAndConsume 的 isBlank
-        // 分支就被拒，根本走不到 Redis，那样这条用例证明不了任何关于顺序的事。
-        authSecurityProperties.getSlider().setEnabled(true);
-        when(redisOps.getAndDelete(anyString())).thenReturn(Optional.empty());
-
-        BizException ex = assertThrows(BizException.class, () -> emailCodeService.sendCode(
-                "a@example.com", EmailCodeService.PURPOSE_REGISTER, "forged-challenge-id"));
-
-        assertEquals(4001, ex.getCode());
-        verify(redisOps, never()).setIfAbsent(anyString(), anyString(), any());
-        verify(notificationRpcService, never()).submit(any(NotificationMessage.class));
-    }
 }
