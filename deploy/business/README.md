@@ -75,17 +75,19 @@ OpenBlog-gateway（API 网关，8090）已 Docker 化 + 接入 CI，部署与切
 ## 进阶：CI 全自动（已实现）
 
 `.github/workflows/ci.yml` 中，push 到 master（或手动 `workflow_dispatch`）触发
-`deploy-business` job，在服务器上的自托管 Runner（`openblog-backend`）直接执行：
+`build-and-deploy-business` job，在服务器上的自托管 Runner（`openblog-backend`）直接执行：
 
-1. `actions/checkout` 拿到本目录的 `Dockerfile` / `docker-compose.yml` / `.dockerignore`
-2. 下载 `build-business` 产出的 jar
+1. `actions/checkout` 拿到源码与本目录的 `Dockerfile` / `docker-compose.yml` / `.dockerignore`
+2. 用 `maven:3.9-eclipse-temurin-17` 容器在 runner 上打包（依赖缓存到 `~/.m2`，走阿里云镜像）
 3. 停掉旧 systemd 服务 `openblog`（释放 8082），备份旧 jar
-4. 拷贝 jar + 部署文件到 `/www/wwwroot/java/openblog/`
+4. 拷贝 `OpenBlog-business/target/` 下的 jar + 部署文件到 `/www/wwwroot/java/openblog/`
 5. `docker compose up -d --build --remove-orphans` 并打印容器状态
 
+构建与部署在同机完成，**不再经过 GitHub artifact 存储**——business fat jar 约 152MB，
+原先「GitHub 托管 runner 构建 → Azure Blob → 国内 runner 下载」的跨境链路经常卡住数分钟。
 即 push 到 master 即自动 Docker 部署，本地不再需要跑 `./deploy.sh`。
-前提：服务器已装 Docker，Runner 用户有 docker 权限。前端走另一条 `deploy-frontend` 流水线。
-改动 `deploy/business/**` 也会触发本流水线（Dockerfile/compose 变更即生效）。
+前提：服务器已装 Docker，Runner 用户有 docker 权限，且能拉取 `maven` 镜像（首次会缓存）。
+前端走另一条 `deploy-frontend` 流水线。改动 `deploy/business/**` 也会触发本流水线。
 
 ## 端口暴露安全
 
