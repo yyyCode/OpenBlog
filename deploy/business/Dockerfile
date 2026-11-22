@@ -1,7 +1,7 @@
 # OpenBlog-business 容器镜像
 #
-# 构建策略：本地 Maven 打包 fat jar → 上传服务器 → 镜像内只运行（不编译）。
-# 避免在服务器上拉取 Maven 镜像 + 重复下载依赖，部署最快。
+# 构建策略：CI 在部署机（自托管 runner）上用 Maven 容器打包 fat jar，产物与部署同机，
+# 避免 152MB jar 经 GitHub Azure Blob 跨境上传/下载；镜像内只运行（不编译）。
 # 内存设置与宝塔原启动一致（-Xmx1024M -Xms256M），这里正确地放在 -jar 之前生效。
 
 FROM eclipse-temurin:17-jre
