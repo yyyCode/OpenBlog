@@ -423,6 +423,10 @@ public class ArticleService {
         if (a.getStatus() == ArticleStatus.PUBLISHED) {
             baiduPushService.pushArticleUrl(articleId);
             articleIndexer.sync(a);
+        } else if (previousStatus == ArticleStatus.PUBLISHED) {
+            // 已发布文章改约到未来时间会退回 SCHEDULED，必须从索引移除（sync 对非发布态即删除）：
+            // 否则搜索仍命中旧文档，表现为「总数 1 但列表为空」的幽灵条目（ES 计数含它，回查 DB 被状态过滤）。
+            articleIndexer.sync(a);
         }
 
         return mapListItem(a);
