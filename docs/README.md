@@ -2,6 +2,8 @@
 
 本目录按**文档性质**分层，先看本页再进子目录，避免「现行设计 / 外部参考 / 流程产物」混读。
 
+> 最近整理：2026-11-23（补全 spec/plan 导航、核对 ROADMAP 状态）
+
 ## 目录约定
 
 | 目录 | 放什么 | 不放什么 |
@@ -18,7 +20,7 @@
 
 ## 规划与架构
 
-- [ROADMAP.md](ROADMAP.md) — 任务优先级与进度（最近更新 2026-08-18）
+- [ROADMAP.md](ROADMAP.md) — 任务优先级与进度（任务 1–2 已完成，任务 3 仅完成容器化，2026-11-23 核对）
 - [architecture/](architecture/README.md) — 系统架构图与出图 prompt
 
 ## 现行设计（docs/designs/）
@@ -27,24 +29,60 @@
 |---|---|
 | [api-gateway-security-ha.md](designs/api-gateway-security-ha.md) | 是否引入 API 网关的评估、选型与不依赖网关的加固清单 |
 | [load-testing-design.md](designs/load-testing-design.md) | 压测方案：接口上限、鉴权负担、瓶颈定位 |
-| [notification-mq-async.md](designs/notification-mq-async.md) | 通知服务化规划（本地消息表 + MQ + 延时重试，P1 已实施） |
+| [notification-mq-async.md](designs/notification-mq-async.md) | 通知服务化规划（本地消息表 + MQ + 延时重试，已实施并迁入 message 服务） |
 | [service-extraction-analysis.md](designs/service-extraction-analysis.md) | 各业务域拆分独立服务的评估与顺序 |
 
-## 项目设计 spec（docs/superpowers/specs/）
+## 项目设计 spec 与实现计划（docs/superpowers/）
 
-按 `YYYY-MM-DD-主题-design.md` 命名；同名日期对应 `plans/` 里的实现计划。近期主要 spec：
+spec 多数按 `YYYY-MM-DD-主题-design.md` 命名（个别省略 `-design` 后缀）；实现计划在 `plans/` 下，一般同名（早期个别带 `-plan` 后缀）。
+**「计划」列为 `—`** 表示实现期直接开工、未回写计划，不代表未实现。
 
-- [2026-08-29-idempotent-framework-design.md](superpowers/specs/2026-08-29-idempotent-framework-design.md) — 幂等框架（`@RepeatExecuteLimit`）
-- [2026-08-29-gateway-module-design.md](superpowers/specs/2026-08-29-gateway-module-design.md) — 网关模块
-- [2026-08-29-notification-service-split-design.md](superpowers/specs/2026-08-29-notification-service-split-design.md) — 通知服务拆分进 message
-- [2026-08-31-device-fingerprint-ratelimit-design.md](superpowers/specs/2026-08-31-device-fingerprint-ratelimit-design.md) — 设备指纹限流
-- [2026-08-31-logging-file-persistence-design.md](superpowers/specs/2026-08-31-logging-file-persistence-design.md) — 日志文件持久化
-- [2026-08-31-small-company-backend-design.md](superpowers/specs/2026-08-31-small-company-backend-design.md) — 小公司后端
-- [2026-09-22-slider-captcha-design.md](superpowers/specs/2026-09-22-slider-captcha-design.md) — 滑块验证码
-- [2026-10-20-sensitive-word-filter-design.md](superpowers/specs/2026-10-20-sensitive-word-filter-design.md) — 敏感词过滤（AC + Trie 双引擎）
-- [2026-10-20-sensitive-word-engine-hot-switch.md](superpowers/specs/2026-10-20-sensitive-word-engine-hot-switch.md) — 敏感词引擎热切换
+### 基础设施与架构
 
-更早的页面/控制台改造类 spec 可直接在 `superpowers/specs/` 下按日期查找。
+| 日期 | 设计 | 实现计划 | 说明 |
+|---|---|---|---|
+| 2026-08-09 | [openblog-common](superpowers/specs/2026-08-09-openblog-common-design.md) | [plan](superpowers/plans/2026-08-09-openblog-common.md) | 公共模块抽取 |
+| 2026-08-29 | [gateway-module](superpowers/specs/2026-08-29-gateway-module-design.md) | [plan](superpowers/plans/2026-08-29-gateway-module.md) | Spring Cloud Gateway 网关模块 |
+| 2026-08-29 | [notification-service-split](superpowers/specs/2026-08-29-notification-service-split-design.md) | [plan](superpowers/plans/2026-08-29-notification-service-split.md) | 通知服务拆分进 message |
+| 2026-08-31 | [logging-file-persistence](superpowers/specs/2026-08-31-logging-file-persistence-design.md) | — | 日志文件持久化 + 错误日志缺口 |
+
+### 安全与风控
+
+| 日期 | 设计 | 实现计划 | 说明 |
+|---|---|---|---|
+| 2026-08-29 | [idempotent-framework](superpowers/specs/2026-08-29-idempotent-framework-design.md) | [plan](superpowers/plans/2026-08-29-idempotent-framework.md) | 通用幂等组件 `@RepeatExecuteLimit` |
+| 2026-08-31 | [device-fingerprint-ratelimit](superpowers/specs/2026-08-31-device-fingerprint-ratelimit-design.md) | [plan](superpowers/plans/2026-08-31-device-fingerprint-ratelimit.md) | 设备指纹 + IP 复合限流 |
+| 2026-09-22 | [slider-captcha](superpowers/specs/2026-09-22-slider-captcha-design.md) | — | 发码接口滑动验证码 |
+| 2026-10-20 | [sensitive-word-filter](superpowers/specs/2026-10-20-sensitive-word-filter-design.md) | — | 敏感词过滤（AC + Trie 双引擎） |
+| 2026-10-20 | [sensitive-word-engine-hot-switch](superpowers/specs/2026-10-20-sensitive-word-engine-hot-switch.md) | — | 敏感词引擎热切换 |
+
+### 内容与业务
+
+| 日期 | 设计 | 实现计划 | 说明 |
+|---|---|---|---|
+| 2026-07-22 | [project-recommendation](superpowers/specs/2026-07-22-project-recommendation-design.md) | [plan](superpowers/plans/2026-07-22-project-recommendation-plan.md) | 项目推荐 |
+| 2026-07-30 | [article-hidden-delete](superpowers/specs/2026-07-30-article-hidden-delete-design.md) | [plan](superpowers/plans/2026-07-30-article-hidden-delete.md) | 文章隐藏状态与物理删除 |
+| 2026-07-31 | [article-type-job-nav](superpowers/specs/2026-07-31-article-type-job-nav-design.md) | — | 文章类型字段与招聘导航 |
+| 2026-08-31 | [small-company-backend](superpowers/specs/2026-08-31-small-company-backend-design.md) | — | 小而美公司后端（表结构 + CRUD + 管理端） |
+
+### 管理后台
+
+| 日期 | 设计 | 实现计划 | 说明 |
+|---|---|---|---|
+| 2026-06-02 | [admin-user-management](superpowers/specs/2026-06-02-admin-user-management-design.md) | [plan](superpowers/plans/2026-06-02-admin-user-management.md) | 后台用户管理 |
+| 2026-06-02 | [site-config](superpowers/specs/2026-06-02-site-config-design.md) | [plan](superpowers/plans/2026-06-02-site-config.md) | 站点配置动态化 |
+
+### 前端页面与主题
+
+| 日期 | 设计 | 实现计划 | 说明 |
+|---|---|---|---|
+| 2026-06-23 | [blog-feishu-theme-overhaul](superpowers/specs/2026-06-23-blog-feishu-theme-overhaul.md) | [plan](superpowers/plans/2026-06-23-blog-feishu-theme-overhaul.md) | 博客前台飞书蓝白主题 |
+| 2026-06-23 | [console-feishu-redesign](superpowers/specs/2026-06-23-console-feishu-redesign.md) | [plan](superpowers/plans/2026-06-23-console-feishu-redesign.md) | 管理台飞书风格改版 |
+| 2026-06-23 | [site-auth-feishu-redesign](superpowers/specs/2026-06-23-site-auth-feishu-redesign.md) | [plan](superpowers/plans/2026-06-23-site-auth-feishu-redesign.md) | 登录/注册页改版 |
+| 2026-07-21 | [home-hero-image](superpowers/specs/2026-07-21-home-hero-image-design.md) | [plan](superpowers/plans/2026-07-21-home-hero-image.md) | 首页 Hero 图片 |
+| 2026-08-28 | [homepage-fullscreen-sections](superpowers/specs/2026-08-28-homepage-fullscreen-sections-design.md) | [plan](superpowers/plans/2026-08-28-homepage-fullscreen-sections.md) | 首页两屏全屏滚动 |
+| 2026-08-28 | [about-us-page](superpowers/specs/2026-08-28-about-us-page-design.md) | [plan](superpowers/plans/2026-08-28-about-us-page.md) | 关于我们页面 |
+| 2026-08-28 | [user-profile-page](superpowers/specs/2026-08-28-user-profile-page-design.md) | [plan](superpowers/plans/2026-08-28-user-profile-page.md) | 个人中心页 |
 
 ## 外部参考（docs/reference/）
 
