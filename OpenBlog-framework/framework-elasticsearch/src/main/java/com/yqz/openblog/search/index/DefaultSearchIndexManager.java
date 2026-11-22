@@ -42,6 +42,21 @@ public class DefaultSearchIndexManager implements SearchIndexManager {
     }
 
     @Override
+    public boolean recreateIndex(SearchIndex index) {
+        try {
+            IndexOperations ops = esOps.indexOps(IndexCoordinates.of(index.indexName()));
+            if (ops.exists()) {
+                ops.delete();
+                log.info("已删除 ES 索引 {}，准备重建", index.indexName());
+            }
+            return ensureIndex(index);
+        } catch (Exception e) {
+            log.warn("重建 ES 索引失败（已忽略），index={}", index.indexName(), e);
+            return false;
+        }
+    }
+
+    @Override
     public boolean indexExists(SearchIndex index) {
         try {
             return esOps.indexOps(IndexCoordinates.of(index.indexName())).exists();

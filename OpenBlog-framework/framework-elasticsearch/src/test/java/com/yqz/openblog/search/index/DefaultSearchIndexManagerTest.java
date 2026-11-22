@@ -63,11 +63,40 @@ class DefaultSearchIndexManagerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void recreateDeletesExistingIndexBeforeCreating() {
+        when(esOps.indexOps(any(IndexCoordinates.class))).thenReturn(indexOperations);
+        // 第一次 exists=true 触发删除，删除后 ensureIndex 再检查应为 false
+        when(indexOperations.exists()).thenReturn(true, false);
+        when(indexOperations.createMapping(any(Class.class))).thenReturn(MAPPING);
+
+        assertThat(manager.recreateIndex(INDEX)).isTrue();
+
+        verify(indexOperations).delete();
+        verify(indexOperations).create();
+        verify(indexOperations).putMapping(MAPPING);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void recreateSkipsDeleteWhenIndexMissing() {
+        when(esOps.indexOps(any(IndexCoordinates.class))).thenReturn(indexOperations);
+        when(indexOperations.exists()).thenReturn(false);
+        when(indexOperations.createMapping(any(Class.class))).thenReturn(MAPPING);
+
+        assertThat(manager.recreateIndex(INDEX)).isTrue();
+
+        verify(indexOperations, never()).delete();
+        verify(indexOperations).create();
+    }
+
+    @Test
     void returnsFalseWhenEsIsUnavailable() {
         when(esOps.indexOps(any(IndexCoordinates.class)))
                 .thenThrow(new RuntimeException("es down"));
 
         assertThat(manager.ensureIndex(INDEX)).isFalse();
+        assertThat(manager.recreateIndex(INDEX)).isFalse();
         assertThat(manager.indexExists(INDEX)).isFalse();
     }
 

@@ -1,12 +1,9 @@
 package com.yqz.openblog.search.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yqz.openblog.article.dto.ArticleListItemResponse;
 import com.yqz.openblog.article.entity.Article;
 import com.yqz.openblog.article.entity.ArticleStatus;
+import com.yqz.openblog.article.entity.ArticleType;
 import com.yqz.openblog.article.repo.ArticleMapper;
 import com.yqz.openblog.article.service.ArticleService;
 import com.yqz.openblog.common.PageResult;
@@ -27,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,6 +37,11 @@ import java.util.stream.Collectors;
 public class ArticleSearchService {
 
     private static final Logger log = LoggerFactory.getLogger(ArticleSearchService.class);
+
+    /** 关键词最大长度，过长的词会显著放大 ES 查询开销。 */
+    private static final int MAX_KEYWORD_LENGTH = 100;
+    /** 单页最大条数，防止调用方用超大 size 拖垮 ES/MySQL。 */
+    private static final int MAX_PAGE_SIZE = 50;
 
     private final ArticleMapper articleMapper;
     private final ArticleService articleService;
@@ -59,31 +60,52 @@ public class ArticleSearchService {
 
     /**
      * 全文搜索已发布文章。优先 ES，降级 MySQL。
+     *
+     * @param keyword    关键词（会 trim、截断到 100 字符）
+     * @param page       页码（从 0 开始，负数按 0 处理）
+     * @param size       每页条数（1..50）
+     * @param categoryId 分类过滤，null 表示不过滤
+     * @param type       文章类型过滤，null 表示不过滤
      */
-    public PageResult<ArticleListItemResponse> search(String keyword, int page, int size) {
-        SearchOps searchOps = searchOpsProvider.getIfAvailable();
-        if (searchOps == null) {
-            return searchByMysql(keyword, page, size);
+    public PageResult<ArticleListItemResponse> search(String keyword, int page, int size,
+                                                      Long categoryId, ArticleType type) {
+        String kw = normalizeKeyword(keyword);
+        int safePage = Math.max(0, page);
+        int safeSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
+        if (kw.isEmpty()) {
+            return new PageResult<>(List.of(), safePage, safeSize, 0);
         }
 
-        SearchRequest request = SearchRequest.builder()
-                .keyword(keyword)
+        SearchOps searchOps = searchOpsProvider.getIfAvailable();
+        if (searchOps == null) {
+            return searchByMysql(kw, safePage, safeSize, categoryId, type);
+        }
+
+        SearchRequest.Builder builder = SearchRequest.builder()
+                .keyword(kw)
                 .field("title", 3f)
                 .field("summary", 2f)
                 .field("contentMarkdown", 1f)
                 .termFilter("status", ArticleStatus.PUBLISHED.name())
+                // 先按相关性、同分再按发布时间；只按时间排序会丢掉 ES 的 _score
+                .sort(SearchSort.relevance())
                 .sort(SearchSort.desc("publishedAt"))
-                .page(page)
-                .size(size)
-                .build();
+                .page(safePage)
+                .size(safeSize);
+        if (categoryId != null) {
+            builder.termFilter("categoryId", categoryId);
+        }
+        if (type != null) {
+            builder.termFilter("type", type.name());
+        }
 
         SearchResult<ArticleDocument> result =
-                searchOps.search(articleSearchIndex, request, ArticleDocument.class);
+                searchOps.search(articleSearchIndex, builder.build(), ArticleDocument.class);
         if (result.isDegraded()) {
-            log.warn("ES 搜索不可用，降级到 MySQL LIKE，keyword={}", keyword);
-            return searchByMysql(keyword, page, size);
+            log.warn("ES 搜索不可用，降级到 MySQL，keyword={}", kw);
+            return searchByMysql(kw, safePage, safeSize, categoryId, type);
         }
-        return toPageResult(result, page, size);
+        return toPageResult(result, safePage, safeSize);
     }
 
     /**
@@ -127,45 +149,48 @@ public class ArticleSearchService {
     }
 
     /**
-     * MySQL 降级搜索：标题和摘要 LIKE，正文 FULLTEXT MATCH。
+     * MySQL 降级搜索：标题/摘要 LIKE + 正文 FULLTEXT，统一分页与总数。
      */
-    private PageResult<ArticleListItemResponse> searchByMysql(String keyword, int page, int size) {
-        // 搜索标题和摘要匹配的文章
-        LambdaQueryWrapper<Article> wrapper = Wrappers.lambdaQuery(Article.class)
-                .eq(Article::getStatus, ArticleStatus.PUBLISHED)
-                .and(w -> w
-                        .like(Article::getTitle, keyword)
-                        .or()
-                        .like(Article::getSummary, keyword)
-                )
-                .orderByDesc(Article::getPublishedAt);
+    private PageResult<ArticleListItemResponse> searchByMysql(String keyword, int page, int size,
+                                                              Long categoryId, ArticleType type) {
+        String typeName = type == null ? null : type.name();
+        String likePattern = "%" + escapeLike(keyword) + "%";
 
-        IPage<Article> articlePage = articleMapper.selectPage(new Page<>(page + 1, size), wrapper);
-
-        // 如果标题/摘要没有足够结果，尝试 FULLTEXT 搜索正文
-        if (articlePage.getTotal() < size) {
-            List<Long> fulltextIds = articleMapper.searchIdsByFulltext(keyword);
-            if (!fulltextIds.isEmpty()) {
-                // 合并结果：取已有结果 ID 集合，补充 FULLTEXT 结果
-                Set<Long> existingIds = articlePage.getRecords().stream()
-                        .map(Article::getId)
-                        .collect(Collectors.toSet());
-                for (Long id : fulltextIds) {
-                    if (existingIds.size() >= size) break;
-                    if (!existingIds.contains(id)) {
-                        Article extra = articleMapper.selectById(id);
-                        if (extra != null && extra.getStatus() == ArticleStatus.PUBLISHED) {
-                            articlePage.getRecords().add(extra);
-                            existingIds.add(id);
-                        }
-                    }
-                }
-                articlePage.setTotal(existingIds.size());
-            }
+        long total = articleMapper.countPublishedSearch(keyword, likePattern, categoryId, typeName);
+        if (total == 0) {
+            return new PageResult<>(List.of(), page, size, 0);
         }
 
-        List<ArticleListItemResponse> items = articleService.mapListItems(articlePage.getRecords());
+        long offset = (long) page * size;
+        List<Long> ids = articleMapper.searchPublishedIds(
+                keyword, likePattern, categoryId, typeName, offset, size);
+        if (ids.isEmpty()) {
+            return new PageResult<>(List.of(), page, size, total);
+        }
 
-        return new PageResult<>(items, page, size, articlePage.getTotal());
+        // 保持命中顺序（MySQL 按发布时间倒序），并过滤查询期间状态变化的文章
+        Map<Long, Article> byId = articleMapper.selectBatchIds(ids).stream()
+                .filter(a -> a.getStatus() == ArticleStatus.PUBLISHED)
+                .collect(Collectors.toMap(Article::getId, Function.identity(), (a, b) -> a));
+        List<Article> articles = ids.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .toList();
+        return new PageResult<>(articleService.mapListItems(articles), page, size, total);
+    }
+
+    private static String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return "";
+        }
+        String kw = keyword.trim();
+        return kw.length() <= MAX_KEYWORD_LENGTH ? kw : kw.substring(0, MAX_KEYWORD_LENGTH);
+    }
+
+    /** 转义 LIKE 通配符，避免用户输入 "%" / "_" 变成任意匹配。 */
+    private static String escapeLike(String keyword) {
+        return keyword.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 }

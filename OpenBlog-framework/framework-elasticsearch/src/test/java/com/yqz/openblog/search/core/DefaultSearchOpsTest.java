@@ -169,6 +169,30 @@ class DefaultSearchOpsTest {
     }
 
     @Test
+    void searchSupportsRelevanceSortBeforeFieldSort() {
+        when(esOps.search(any(Query.class), eq(Doc.class), any(IndexCoordinates.class)))
+                .thenReturn(mock(SearchHits.class));
+
+        SearchRequest request = SearchRequest.builder()
+                .keyword("spring")
+                .field("title", 1f)
+                .sort(SearchSort.relevance())
+                .sort(SearchSort.desc("publishedAt"))
+                .build();
+
+        ops.search(INDEX, request, Doc.class);
+
+        ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
+        verify(esOps).search(captor.capture(), eq(Doc.class), any(IndexCoordinates.class));
+        NativeQuery query = (NativeQuery) captor.getValue();
+
+        assertThat(query.getSortOptions()).hasSize(2);
+        assertThat(query.getSortOptions().get(0).isScore()).isTrue();
+        assertThat(query.getSortOptions().get(0).score().order()).isEqualTo(SortOrder.Desc);
+        assertThat(query.getSortOptions().get(1).field().field()).isEqualTo("publishedAt");
+    }
+
+    @Test
     void searchWithoutKeywordUsesMatchAll() {
         when(esOps.search(any(Query.class), eq(Doc.class), any(IndexCoordinates.class)))
                 .thenReturn(mock(SearchHits.class));

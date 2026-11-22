@@ -104,7 +104,11 @@ public class DefaultSearchOps implements SearchOps {
         for (SearchSort sort : request.getSorts()) {
             SortOrder order = sort.getDirection() == SearchSort.Direction.ASC
                     ? SortOrder.Asc : SortOrder.Desc;
-            builder.withSort(s -> s.field(f -> f.field(sort.getField()).order(order)));
+            if (sort.isScore()) {
+                builder.withSort(s -> s.score(sc -> sc.order(order)));
+            } else {
+                builder.withSort(s -> s.field(f -> f.field(sort.getField()).order(order)));
+            }
         }
 
         builder.withPageable(PageRequest.of(request.getPage(), request.getSize()));
