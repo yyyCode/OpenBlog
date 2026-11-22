@@ -1,6 +1,6 @@
 # OpenBlog 项目规划
 
-> 最近更新:2026-08-18
+> 最近更新:2026-11-23
 > 目的:梳理近期开发任务优先级与范围,作为后续 spec/plan 的输入。
 > 每个任务开工前,建议用 brainstorming 细化设计 → writing-plans 出实现计划 → subagent-driven 执行(与 OpenBlog-common 抽取同一流程)。
 
@@ -11,8 +11,8 @@
 | # | 任务 | 状态 | 目标 |
 |---|------|------|------|
 | 1 | 完善 email 服务,真正实现邮箱注册验证 | ✅ 已完成 | 注册流程真实发送验证邮件;通知抽象层(统一渠道,当前 email 直发) |
-| 2 | 首页前端动态化 | 🔲 待排期 | 设计动态首页 |
-| 3 | 部署 Docker 化 + 启动加速 | 🔲 待排期 | 后端 docker 启动,加快启动 |
+| 2 | 首页前端动态化 | ✅ 已完成 | 设计动态首页 |
+| 3 | 部署 Docker 化 + 启动加速 | 🟡 容器化已完成,启动加速未做 | 后端 docker 启动,加快启动 |
 
 ---
 
@@ -88,6 +88,12 @@
 - "动态前端页面"侧重**视觉动效**还是**内容动态加载**,还是两者?
 - 在现有飞书主题上迭代,还是重新设计风格?
 
+### 完成情况(2026-11-23 核对)
+
+- 内容动态化:首页 `HomeView.vue` 已接真实接口 —— 文章流(`fetchArticles`)、项目推荐(`fetchProjects`)、小公司榜单(`fetchSmallCompanies`)、论坛入口(`fetchForumTopics`),不再写死占位数据。
+- 视觉动效:粒子星网首屏、项目横向无限流水、滚动渐入、两屏全屏滚动(2026-08-28 改版)均已落地。
+- 后续迭代新增「开源贡献」入口屏与公共自我介绍组件。
+
 ---
 
 ## 任务 3:部署 Docker 化 + 启动加速
@@ -95,7 +101,7 @@
 ### 现状(已核实)
 
 - **前端**:已 Docker 化 —— Nginx 容器(`vue/Dockerfile`、`vue/docker.sh`),宿主端口 `18088 → 80`,CI 在 Runner 构建镜像 → 上传 → `docker.sh` 加载更新。
-- **后端**:宿主机 **systemd** `java -jar`(`OpenBlog-business-1.0.0-SNAPSHOT.jar`,`-Xmx1024M -Xms256M`),由 self-hosted Runner(`openblog-backend`)部署(`.github/workflows/ci.yml`)。
+- **后端**:三个服务均已 Docker 化 —— `deploy/business`、`deploy/message`、`deploy/gateway` 各有独立 `Dockerfile` + `docker-compose.yml`,基础镜像 `eclipse-temurin:17-jre`,内存参数经 `JAVA_OPTS` 注入(business `-Xmx1024M -Xms256M`,message/gateway `-Xmx512M -Xms128M`),由 self-hosted Runner 构建部署(`.github/workflows/ci.yml`)。
 - **基础设施**:MySQL / Redis / MinIO / Nacos 位于 `10.21.76.221`(局域网,宿主或独立机器)。
 
 ### 建议范围
@@ -121,11 +127,17 @@
 - MySQL/Redis/MinIO/Nacos 留在容器外还是纳入编排?
 - "加快启动速度"目标值(如:冷启动 < 15s / 部署总耗时减半)?
 
+### 完成情况(2026-11-23 核对)
+
+- 容器化已完成:三服务各用独立 compose 编排,CI 在自托管 Runner 上分别构建、推送、`docker compose up -d`;原 systemd 服务已在部署脚本中停用(释放 8082 端口)。
+- 前端保持 Nginx 容器(`vue/Dockerfile`,宿主 `18088 → 80`)。
+- **启动加速未做**:未见 `spring.main.lazy-initialization`、GC 调优、AppCDS 或镜像分层缓存;验收项「记录优化前后启动耗时对比」仍未勾选,如后续启动耗时成为问题再单独立项。
+
 ---
 
 ## 通用待办(非当前优先级)
 
-- 单元测试补充(README 待办项)。
-- 通知服务化(未来):本地消息表 + MQ 异步消费 + 延时队列重试,替换 `NotificationService.submit` 的同步发送实现;短信 / 飞书渠道按同一 Channel 抽象扩展。完整设计见 `docs/designs/notification-mq-async.md`。
-- 版本号收敛到根 pom `dependencyManagement`。
-- `MybatisPlusMetaObjectHandler` 迁移至 framework 模块(common 抽取时遗留)。
+- 单元测试补充(README 待办项,现有 46 个测试类,覆盖仍在补)。
+- ✅ 通知服务化已完成:本地消息表(outbox)+ RocketMQ 异步消费 + 延时重试已迁入 message 服务,设计见 `docs/designs/notification-mq-async.md` 与 `docs/superpowers/specs/2026-08-29-notification-service-split-design.md`。
+- 版本号收敛到根 pom `dependencyManagement`(未做:business / gateway / message 仍有显式版本号)。
+- `MybatisPlusMetaObjectHandler` 迁移至 framework 模块(未做:仍在 `OpenBlog-business/.../config/`)。
