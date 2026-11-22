@@ -52,6 +52,10 @@ public class ArticleDocument {
     @Field(type = FieldType.Keyword)
     private String status;
 
+    /** 文章类型（ARTICLE/JOB 等），用于精确过滤 */
+    @Field(type = FieldType.Keyword)
+    private String type;
+
     /** 发布时间 */
     @Field(type = FieldType.Date, format = DateFormat.date_optional_time)
     private Instant publishedAt;
@@ -130,6 +134,14 @@ public class ArticleDocument {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public Instant getPublishedAt() {

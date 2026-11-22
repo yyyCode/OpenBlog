@@ -17,6 +17,15 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 /**
  * 文章索引同步：负责把文章组装成 {@link ArticleDocument} 并写入/移出 ES。
  *
@@ -64,10 +73,43 @@ public class ArticleIndexer {
             return;
         }
         try {
-            searchOps.index(articleSearchIndex, String.valueOf(article.getId()), toDocument(article));
+            ArticleDocument doc = buildDocuments(List.of(article))
+                    .get(String.valueOf(article.getId()));
+            searchOps.index(articleSearchIndex, String.valueOf(article.getId()), doc);
         } catch (Exception e) {
             // 组装文档时的异常（如查正文/分类失败）同样不能影响主流程
             log.warn("组装文章索引文档失败（已忽略），articleId={}", article.getId(), e);
+        }
+    }
+
+    /**
+     * 批量同步（全量重建索引用）：批量加载正文与作者，避免逐篇 N+1。
+     *
+     * <p>只写入 PUBLISHED 文章；调用方需自行确保索引是干净的（见重建流程先删索引）。</p>
+     *
+     * @param articles 待同步文章
+     * @return 实际写入的文档数；ES 未启用或写入失败返回 0
+     */
+    public int syncBatch(List<Article> articles) {
+        if (articles == null || articles.isEmpty()) {
+            return 0;
+        }
+        List<Article> published = articles.stream()
+                .filter(a -> a != null && a.getId() != null && a.getStatus() == ArticleStatus.PUBLISHED)
+                .toList();
+        if (published.isEmpty()) {
+            return 0;
+        }
+        SearchOps searchOps = searchOpsProvider.getIfAvailable();
+        if (searchOps == null) {
+            return 0;
+        }
+        try {
+            Map<String, ArticleDocument> docs = buildDocuments(published);
+            return searchOps.indexBatch(articleSearchIndex, docs) ? docs.size() : 0;
+        } catch (Exception e) {
+            log.warn("批量组装文章索引文档失败（已忽略），size={}", published.size(), e);
+            return 0;
         }
     }
 
@@ -100,22 +142,52 @@ public class ArticleIndexer {
         searchOps.delete(articleSearchIndex, String.valueOf(articleId));
     }
 
-    private ArticleDocument toDocument(Article article) {
-        ArticleBody body = articleBodyMapper.selectById(article.getId());
-        User author = userMapper.selectById(article.getAuthorId());
+    /**
+     * 按文章 ID 批量组装索引文档：正文、作者各一次查询，分类名按分类维度去重查询。
+     */
+    private Map<String, ArticleDocument> buildDocuments(List<Article> articles) {
+        Set<Long> articleIds = articles.stream()
+                .map(Article::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, ArticleBody> bodyById = articleIds.isEmpty()
+                ? Map.of()
+                : articleBodyMapper.selectBatchIds(articleIds).stream()
+                        .collect(Collectors.toMap(ArticleBody::getArticleId, Function.identity(),
+                                (a, b) -> a));
 
-        ArticleDocument doc = new ArticleDocument();
-        doc.setId(article.getId());
-        doc.setTitle(article.getTitle());
-        doc.setSummary(article.getSummary());
-        doc.setContentMarkdown(body == null ? null : body.getContentMarkdown());
-        doc.setCategoryId(article.getCategoryId());
-        doc.setCategoryName(categoryService.resolveMeta(article.getCategoryId()).getCategoryName());
-        doc.setAuthorId(article.getAuthorId());
-        doc.setAuthorName(author == null ? null : author.getUsername());
-        doc.setStatus(article.getStatus().name());
-        doc.setPublishedAt(article.getPublishedAt());
-        doc.setViewCount(article.getViewCount() == null ? 0L : article.getViewCount());
-        return doc;
+        Set<Long> authorIds = articles.stream()
+                .map(Article::getAuthorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, User> authorById = authorIds.isEmpty()
+                ? Map.of()
+                : userMapper.selectBatchIds(authorIds).stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a));
+
+        Map<Long, String> categoryNameById = new HashMap<>();
+        Map<String, ArticleDocument> result = new LinkedHashMap<>();
+        for (Article article : articles) {
+            ArticleBody body = bodyById.get(article.getId());
+            User author = authorById.get(article.getAuthorId());
+
+            ArticleDocument doc = new ArticleDocument();
+            doc.setId(article.getId());
+            doc.setTitle(article.getTitle());
+            doc.setSummary(article.getSummary());
+            doc.setContentMarkdown(body == null ? null : body.getContentMarkdown());
+            doc.setCategoryId(article.getCategoryId());
+            doc.setCategoryName(article.getCategoryId() == null ? null
+                    : categoryNameById.computeIfAbsent(article.getCategoryId(),
+                            id -> categoryService.resolveMeta(id).getCategoryName()));
+            doc.setAuthorId(article.getAuthorId());
+            doc.setAuthorName(author == null ? null : author.getUsername());
+            doc.setStatus(article.getStatus().name());
+            doc.setType(article.getType() == null ? null : article.getType().name());
+            doc.setPublishedAt(article.getPublishedAt());
+            doc.setViewCount(article.getViewCount() == null ? 0L : article.getViewCount());
+            result.put(String.valueOf(article.getId()), doc);
+        }
+        return result;
     }
 }

@@ -45,17 +45,50 @@ public interface ArticleMapper extends BaseMapper<Article> {
     int publishScheduledIfDue(@Param("articleId") Long articleId, @Param("now") Instant now);
 
     /**
-     * FULLTEXT 搜索已发布文章的正文，返回匹配的文章 ID 列表（按相关性降序）。
+     * ES 不可用时的降级搜索：标题/摘要 LIKE + 正文 FULLTEXT，按发布时间倒序分页。
+     *
+     * <p>标题与摘要用 LIKE 而非 FULLTEXT，因此 LIKE 部分需要由调用方转义
+     * {@code % _ \\} 并传 {@code likePattern}；正文 MATCH 用原始 {@code keyword}。</p>
      */
     @Select("""
+            <script>
             select a.id
             from articles a
-            join article_bodies b on a.id = b.article_id
+            left join article_bodies b on a.id = b.article_id
             where a.status = 'PUBLISHED'
-              and match(b.content_markdown) against(#{keyword} in natural language mode)
-            order by a.published_at desc
-            limit 50
+              and (a.title like #{likePattern}
+                   or a.summary like #{likePattern}
+                   or match(b.content_markdown) against(#{keyword} in natural language mode))
+            <if test="categoryId != null">and a.category_id = #{categoryId}</if>
+            <if test="type != null">and a.type = #{type}</if>
+            order by a.published_at desc, a.id desc
+            limit #{offset}, #{size}
+            </script>
             """)
-    List<Long> searchIdsByFulltext(@Param("keyword") String keyword);
+    List<Long> searchPublishedIds(@Param("keyword") String keyword,
+                                  @Param("likePattern") String likePattern,
+                                  @Param("categoryId") Long categoryId,
+                                  @Param("type") String type,
+                                  @Param("offset") long offset,
+                                  @Param("size") int size);
+
+    /** 降级搜索的总命中数，条件必须与 {@link #searchPublishedIds} 保持一致。 */
+    @Select("""
+            <script>
+            select count(*)
+            from articles a
+            left join article_bodies b on a.id = b.article_id
+            where a.status = 'PUBLISHED'
+              and (a.title like #{likePattern}
+                   or a.summary like #{likePattern}
+                   or match(b.content_markdown) against(#{keyword} in natural language mode))
+            <if test="categoryId != null">and a.category_id = #{categoryId}</if>
+            <if test="type != null">and a.type = #{type}</if>
+            </script>
+            """)
+    long countPublishedSearch(@Param("keyword") String keyword,
+                              @Param("likePattern") String likePattern,
+                              @Param("categoryId") Long categoryId,
+                              @Param("type") String type);
 }
 
